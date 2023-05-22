@@ -51,6 +51,8 @@ endif()
 
 add_library(test_utils ${SRC_DIR}/test_utils.c)
 
+add_library(log ${SRC_DIR}/log.c)
+
 # add_library(darray ${SRC_DIR}/darray.c)
 # target_link_libraries(darray PUBLIC log)
 
@@ -70,3 +72,4 @@ endfunction()
 
 AddTest(test_utils_test test_utils.test.c)
 AddTest(stat_test stat.test.c)
+AddTest(log_test log.test.c log)

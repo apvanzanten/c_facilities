@@ -6,8 +6,6 @@
 
 #include "stat.h"
 
-#define OK STAT_OK
-
 Result tst_ranges_are_positive() {
   Result r = PASS;
 
