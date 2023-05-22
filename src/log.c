@@ -70,6 +70,23 @@ STAT_Val LOG_IMPL_stat_if_err(STAT_Val          stat,
   return stat;
 }
 
+STAT_Val LOG_IMPL_stat_if_nok(STAT_Val          stat,
+                              const char *      stat_str,
+                              LOG_IMPL_Location location,
+                              const char *      fmt,
+                              ...) {
+
+  if(!STAT_is_OK(stat)) {
+    va_list args;
+    va_start(args, fmt);
+
+    write_to_log(stat, stat_str, location, fmt, args);
+
+    va_end(args);
+  }
+  return stat;
+}
+
 static int write_location_to_msg(LOG_IMPL_Location location, char * msg, size_t max_len) {
   const char * file_basename = strrchr(location.file, '/'); // find last '/'
 
