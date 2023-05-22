@@ -58,6 +58,7 @@ typedef enum {
 
   // warnings
   STAT_WRN_OVERWRITTEN = STAT_IMPL_WRN_RANGE_FIRST,
+  STAT_WRN_NOTHING_TO_DO,
 
   // errors
   STAT_ERR_ARGS = STAT_IMPL_ERR_RANGE_FIRST,
@@ -91,6 +92,7 @@ static inline const char * STAT_to_str(STAT_Val code) {
 
   // warnings
   case STAT_WRN_OVERWRITTEN: return "STAT_WRN_OVERWRITTEN";
+  case STAT_WRN_NOTHING_TO_DO: return "STAT_WRN_NOTHING_TO_DO";
 
   // errors
   case STAT_ERR_ARGS: return "STAT_ERR_ARGS";
