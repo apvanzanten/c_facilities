@@ -84,11 +84,32 @@ Result tst_expects_str() {
   return PASS;
 }
 
-Result tst_expects_arr() {
+Result tst_expects_arr_int() {
   Result r = PASS;
 
   const int arr_10_primes[10] = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29};
   const int arr_10_fibs[10]   = {1, 1, 2, 3, 5, 8, 13, 21, 34, 55};
+
+  for(size_t i = 0; i < sizeof(arr_10_primes) / sizeof(int); i++) {
+    EXPECT_ARREQ(&r, int, arr_10_primes, arr_10_primes, i);
+    if(r == FAIL) return FAIL;
+
+    EXPECT_ARRNE(&r, int, arr_10_primes, arr_10_primes, i);
+    if(r != FAIL) return FAIL;
+    r = PASS;
+  }
+
+  for(size_t i = 0; i < sizeof(arr_10_primes) / sizeof(int); i++) {
+    EXPECT_ARRNE(&r, int, arr_10_primes, arr_10_fibs, i);
+    if(r != FAIL) return FAIL;
+    r = PASS;
+  }
+
+  return PASS;
+}
+
+Result tst_expects_arr_double() {
+  Result r = PASS;
 
   const double arr_some_reals[] = {
       1.2345,
@@ -101,26 +122,11 @@ Result tst_expects_arr() {
       42.0,
   };
 
-  for(size_t i = 0; i < sizeof(arr_10_primes) / sizeof(int); i++) {
-    EXPECT_ARREQ(&r, arr_10_primes, arr_10_primes, i);
-    if(r == FAIL) return FAIL;
-
-    EXPECT_ARRNE(&r, arr_10_primes, arr_10_primes, i);
-    if(r != FAIL) return FAIL;
-    r = PASS;
-  }
-
   for(size_t i = 0; i < sizeof(arr_some_reals) / sizeof(double); i++) {
-    EXPECT_ARREQ(&r, arr_some_reals, arr_some_reals, i);
+    EXPECT_ARREQ(&r, double, arr_some_reals, arr_some_reals, i);
     if(r == FAIL) return FAIL;
 
-    EXPECT_ARRNE(&r, arr_some_reals, arr_some_reals, i);
-    if(r != FAIL) return FAIL;
-    r = PASS;
-  }
-
-  for(size_t i = 0; i < sizeof(arr_10_primes) / sizeof(int); i++) {
-    EXPECT_ARRNE(&r, arr_10_primes, arr_10_fibs, i);
+    EXPECT_ARRNE(&r, double, arr_some_reals, arr_some_reals, i);
     if(r != FAIL) return FAIL;
     r = PASS;
   }
@@ -144,7 +150,8 @@ int main() {
       tst_expects_boolean,
       tst_expects_equality,
       tst_expects_str,
-      tst_expects_arr,
+      tst_expects_arr_int,
+      tst_expects_arr_double,
       tst_has_failed,
   };
 
