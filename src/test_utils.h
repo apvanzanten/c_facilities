@@ -13,19 +13,11 @@ typedef Result (*SetupFn)(void **);
 typedef Result (*TestWithFixture)(void *);
 typedef Result (*TeardownFn)(void **);
 
+Result run_tests(const Test tests[], size_t n);
 Result run_tests_with_fixture(const TestWithFixture tests[],
                               size_t                n,
                               SetupFn               setup,
                               TeardownFn            teardown);
-
-Result run_tests(const Test tests[], size_t n);
-
-Result run_all_tests(const Test            tests[],
-                     size_t                n,
-                     const TestWithFixture tests_with_fixture[],
-                     size_t                n_with_fixture,
-                     SetupFn               setup,
-                     TeardownFn            teardown);
 
 void print_failure(const char * file, const char * func, int line, const char * fmt, ...);
 

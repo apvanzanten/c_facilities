@@ -53,15 +53,3 @@ Result run_tests(const Test tests[], size_t n) {
 
   return (num_passed == n ? PASS : FAIL);
 }
-
-Result run_all_tests(const Test            tests[],
-                     size_t                n,
-                     const TestWithFixture tests_with_fixture[],
-                     size_t                n_with_fixture,
-                     SetupFn               setup,
-                     TeardownFn            teardown) {
-  return (run_tests(tests, n) == PASS &&
-          run_tests_with_fixture(tests_with_fixture, n_with_fixture, setup, teardown) == PASS)
-             ? PASS
-             : FAIL;
-}
