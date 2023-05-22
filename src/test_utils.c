@@ -1,7 +1,23 @@
 #include "test_utils.h"
 
+#include <stdarg.h>
 #include <stddef.h>
 #include <stdio.h>
+
+void print_failure(const char * file, const char * func, int line, const char * fmt, ...) {
+  const char * file_basename = strrchr(file, '/');                          // find last '/'
+  if(file_basename != NULL) file_basename++;                                // skip actual '/'
+  if(file_basename == NULL || *file_basename == '\0') file_basename = file; // fallback, plain file
+
+  va_list args;
+  va_start(args, fmt);
+
+  printf("--FAIL %s:%i in %s: ", file_basename, line, func);
+  vprintf(fmt, args);
+  putc('\n', stdout);
+
+  va_end(args);
+}
 
 Result run_tests_with_fixture(const TestWithFixture tests[],
                               size_t                n,

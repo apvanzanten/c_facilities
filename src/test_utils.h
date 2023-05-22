@@ -27,12 +27,9 @@ Result run_all_tests(const Test            tests[],
                      SetupFn               setup,
                      TeardownFn            teardown);
 
-#define PRINT_FAIL(...)                                                                            \
-  do {                                                                                             \
-    printf("--FAIL %s:%i in %s: ", &(strrchr(__FILE__, '/')[1]), __LINE__, __func__);              \
-    printf(__VA_ARGS__);                                                                           \
-    putc('\n', stdout);                                                                            \
-  } while(false)
+void print_failure(const char * file, const char * func, int line, const char * fmt, ...);
+
+#define PRINT_FAIL(...) print_failure(__FILE__, __func__, __LINE__, __VA_ARGS__)
 
 #define EXPECT_EQ(rPtr, a, b)                                                                      \
   do {                                                                                             \
@@ -87,9 +84,10 @@ Result run_all_tests(const Test            tests[],
 
 #define EXPECT_ARRNE(rPtr, type, a, b, n)                                                          \
   do {                                                                                             \
-    const type * a_copy          = (a);                                                            \
-    const type * b_copy          = (b);                                                            \
-    bool         is_equal_so_far = true;                                                           \
+    const type * a_copy = (a);                                                                     \
+    const type * b_copy = (b);                                                                     \
+                                                                                                   \
+    bool is_equal_so_far = true;                                                                   \
     for(size_t i = 0; (i < (size_t)(n)) && is_equal_so_far; i++) {                                 \
       if(a_copy[i] != b_copy[i]) is_equal_so_far = false;                                          \
     }                                                                                              \
