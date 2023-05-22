@@ -1,10 +1,7 @@
 #include "test_utils.h"
 
-#include <libgen.h>
-#include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
-#include <string.h>
 
 Result run_tests_with_fixture(const TestWithFixture tests[],
                               size_t                n,

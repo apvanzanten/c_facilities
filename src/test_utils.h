@@ -1,8 +1,6 @@
 #ifndef CFAC_TST_UTILS_H
 #define CFAC_TST_UTILS_H
 
-#include <libgen.h>
-#include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
@@ -29,9 +27,8 @@ Result run_all_tests(const Test            tests[],
                      SetupFn               setup,
                      TeardownFn            teardown);
 
-// TODO stop using basename
 #define PRINT_FAIL(...)                                                                            \
-  printf("--FAIL %s:%i in %s: ", basename(__FILE__), __LINE__, __func__);                          \
+  printf("--FAIL %s:%i in %s: ", &(strrchr(__FILE__, '/')[1]), __LINE__, __func__);                \
   printf(__VA_ARGS__);                                                                             \
   putc('\n', stdout);
 
