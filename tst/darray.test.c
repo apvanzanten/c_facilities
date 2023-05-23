@@ -607,6 +607,42 @@ Result tst_create_on_heap_from(void * env) {
   return r;
 }
 
+Result tst_equals(void * env) {
+  Result       r         = PASS;
+  DAR_DArray * arr       = env;
+  DAR_DArray   other_arr = {0};
+
+  const double   vals_a[]   = {1.0, 2.0, 3.0, 4.0, 5.0};
+  const double   vals_b[]   = {-1.0, -2.0, -3.0, -4.0, -5.0};
+  const uint32_t num_vals_a = sizeof(vals_a) / sizeof(double);
+  const uint32_t num_vals_b = sizeof(vals_b) / sizeof(double);
+
+  EXPECT_EQ(&r, OK, DAR_create_in_place(&other_arr, sizeof(double)));
+  if(HAS_FAILED(&r)) return r;
+
+  EXPECT_EQ(&r, OK, DAR_push_back_arr(arr, vals_a, num_vals_a));
+  EXPECT_EQ(&r, num_vals_a, arr->size);
+  if(HAS_FAILED(&r)) return r;
+
+  EXPECT_EQ(&r, OK, DAR_push_back_arr(&other_arr, vals_a, num_vals_a));
+  EXPECT_EQ(&r, num_vals_a, other_arr.size);
+  if(HAS_FAILED(&r)) return r;
+
+  EXPECT_TRUE(&r, DAR_equals((const DAR_DArray *)arr, (const DAR_DArray *)&other_arr));
+  if(HAS_FAILED(&r)) return r;
+
+  EXPECT_EQ(&r, OK, DAR_clear_and_shrink(&other_arr));
+  EXPECT_FALSE(&r, DAR_equals((const DAR_DArray *)arr, (const DAR_DArray *)&other_arr));
+
+  EXPECT_EQ(&r, OK, DAR_push_back_arr(&other_arr, vals_b, num_vals_b));
+  EXPECT_EQ(&r, num_vals_b, other_arr.size);
+  if(HAS_FAILED(&r)) return r;
+
+  EXPECT_FALSE(&r, DAR_equals((const DAR_DArray *)arr, (const DAR_DArray *)&other_arr));
+
+  return PASS;
+}
+
 int main() {
   Test tests[] = {
       tst_create_destroy_on_heap,
@@ -632,6 +668,7 @@ int main() {
       tst_push_back_darray,
       tst_create_in_place_from,
       tst_create_on_heap_from,
+      tst_equals,
   };
 
   const Result test_res = run_tests(tests, sizeof(tests) / sizeof(Test));

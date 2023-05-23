@@ -336,6 +336,14 @@ STAT_Val DAR_push_back_darray(DAR_DArray * this, const DAR_DArray * other) {
   return OK;
 }
 
+bool DAR_equals(const DAR_DArray * lhs, const DAR_DArray * rhs) {
+  if(lhs == NULL || rhs == NULL) return false;
+  if(lhs->element_size != rhs->element_size) return false;
+  if(lhs->size != rhs->size) return false;
+
+  return (memcmp(lhs->data, rhs->data, DAR_get_size_in_bytes(lhs)) == 0);
+}
+
 static size_t get_capacity_from_magnitude(uint8_t magnitude) { return 1LL << magnitude; }
 
 static size_t get_capacity(const DAR_DArray * this) {

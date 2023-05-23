@@ -49,6 +49,8 @@ STAT_Val DAR_set_checked(DAR_DArray * this, uint32_t idx, const void * value);
 STAT_Val DAR_push_back_arr(DAR_DArray * this, const void * arr, uint32_t n);
 STAT_Val DAR_push_back_darray(DAR_DArray * this, const DAR_DArray * other);
 
+bool DAR_equals(const DAR_DArray * lhs, const DAR_DArray * rhs);
+
 size_t DAR_get_capacity(const DAR_DArray * this);
 size_t DAR_get_capacity_in_bytes(const DAR_DArray * this);
 size_t DAR_get_size_in_bytes(const DAR_DArray * this);
