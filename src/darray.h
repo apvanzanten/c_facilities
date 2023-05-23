@@ -55,4 +55,9 @@ size_t DAR_get_capacity(const DAR_DArray * this);
 size_t DAR_get_capacity_in_bytes(const DAR_DArray * this);
 size_t DAR_get_size_in_bytes(const DAR_DArray * this);
 
+void *       DAR_first(DAR_DArray * this);
+void *       DAR_last(DAR_DArray * this);
+const void * DAR_first_const(const DAR_DArray * this);
+const void * DAR_last_const(const DAR_DArray * this);
+
 #endif

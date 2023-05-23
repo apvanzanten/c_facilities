@@ -344,6 +344,11 @@ bool DAR_equals(const DAR_DArray * lhs, const DAR_DArray * rhs) {
   return (memcmp(lhs->data, rhs->data, DAR_get_size_in_bytes(lhs)) == 0);
 }
 
+void *       DAR_first(DAR_DArray * this) { return this->data; }
+void *       DAR_last(DAR_DArray * this) { return DAR_get(this, this->size - 1); }
+const void * DAR_first_const(const DAR_DArray * this) { return this->data; }
+const void * DAR_last_const(const DAR_DArray * this) { return DAR_get_const(this, this->size - 1); }
+
 static size_t get_capacity_from_magnitude(uint8_t magnitude) { return 1LL << magnitude; }
 
 static size_t get_capacity(const DAR_DArray * this) {

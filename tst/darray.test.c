@@ -653,6 +653,25 @@ Result tst_equals(void * env) {
   return r;
 }
 
+Result tst_first_last(void * env) {
+  Result       r   = PASS;
+  DAR_DArray * arr = env;
+
+  const double vals[]   = {1.0, 2.0, 3.0, 4.0, 5.0};
+  const size_t num_vals = sizeof(vals) / sizeof(double);
+
+  EXPECT_EQ(&r, OK, DAR_push_back_arr(arr, vals, num_vals));
+  if(HAS_FAILED(&r)) return r;
+
+  EXPECT_EQ(&r, vals[0], *((double *)DAR_first(arr)));
+  EXPECT_EQ(&r, vals[0], *((const double *)DAR_first_const((const DAR_DArray *)arr)));
+
+  EXPECT_EQ(&r, vals[num_vals - 1], *((double *)DAR_last(arr)));
+  EXPECT_EQ(&r, vals[num_vals - 1], *((const double *)DAR_last_const((const DAR_DArray *)arr)));
+
+  return r;
+}
+
 Result tst_many_random_push_pop(void * env) {
   Result       r   = PASS;
   DAR_DArray * arr = env;
@@ -728,6 +747,7 @@ int main() {
       tst_create_in_place_from,
       tst_create_on_heap_from,
       tst_equals,
+      tst_first_last,
       tst_many_random_push_pop, // run this a couple times (gets new seed every time)
       tst_many_random_push_pop,
       tst_many_random_push_pop,
