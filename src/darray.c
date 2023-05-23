@@ -234,6 +234,23 @@ STAT_Val DAR_get_checked_const(const DAR_DArray * this, uint32_t idx, const void
   return OK;
 }
 
+void DAR_set(DAR_DArray * this, uint32_t idx, const void * value) {
+  memcpy(DAR_get(this, idx), value, this->element_size);
+}
+
+STAT_Val DAR_set_checked(DAR_DArray * this, uint32_t idx, const void * value) {
+  if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
+  if(value == NULL) return LOG_STAT(STAT_ERR_ARGS, "value is NULL");
+
+  if(idx >= this->size) {
+    return LOG_STAT(STAT_ERR_RANGE, "idx %u out of range (size=%u)", idx, this->size);
+  }
+
+  DAR_set(this, idx, value);
+
+  return OK;
+}
+
 static size_t get_capacity_from_magnitude(uint8_t magnitude) { return 1LL << magnitude; }
 
 static size_t get_capacity(const DAR_DArray * this) {

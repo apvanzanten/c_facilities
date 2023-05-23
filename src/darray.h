@@ -40,6 +40,9 @@ const void * DAR_get_const(const DAR_DArray * this, uint32_t idx);
 STAT_Val DAR_get_checked(DAR_DArray * this, uint32_t idx, void ** out);
 STAT_Val DAR_get_checked_const(const DAR_DArray * this, uint32_t idx, const void ** out);
 
+void     DAR_set(DAR_DArray * this, uint32_t idx, const void * value);
+STAT_Val DAR_set_checked(DAR_DArray * this, uint32_t idx, const void * value);
+
 size_t DAR_get_capacity(const DAR_DArray * this);
 size_t DAR_get_capacity_in_bytes(const DAR_DArray * this);
 size_t DAR_get_size_in_bytes(const DAR_DArray * this);
