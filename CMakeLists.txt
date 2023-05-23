@@ -16,7 +16,9 @@ set(WARNINGS
 set(SANITIZERS 
     -fsanitize=address; 
     -fsanitize=leak; 
-    -fsanitize=undefined;)
+    -fsanitize=undefined;
+    -fno-omit-frame-pointer;
+    )
 
 set(DEBUG_FLAGS -Og; -g; -DDEBUG)
 set(RELEASE_FLAGS -O2)

@@ -2,6 +2,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 
 #include "stat.h"
 #include "test_utils.h"
@@ -553,6 +555,8 @@ Result tst_push_back_darray(void * env) {
   EXPECT_EQ(&r, 0, memcmp(DAR_get(arr, 0), vals_a, num_vals_a));
   EXPECT_EQ(&r, 0, memcmp(DAR_get(arr, num_vals_a), vals_b, num_vals_b));
 
+  EXPECT_EQ(&r, OK, DAR_destroy_in_place(&other_arr));
+
   return r;
 }
 
@@ -576,6 +580,8 @@ Result tst_create_in_place_from(void * env) {
   if(HAS_FAILED(&r)) return r;
 
   EXPECT_EQ(&r, 0, memcmp(arr->data, other_arr.data, arr->size));
+
+  EXPECT_EQ(&r, OK, DAR_destroy_in_place(&other_arr));
 
   return r;
 }
@@ -603,6 +609,8 @@ Result tst_create_on_heap_from(void * env) {
   if(HAS_FAILED(&r)) return r;
 
   EXPECT_EQ(&r, 0, memcmp(arr->data, other_arr->data, arr->size));
+
+  EXPECT_EQ(&r, OK, DAR_destroy_on_heap(&other_arr));
 
   return r;
 }
@@ -640,7 +648,58 @@ Result tst_equals(void * env) {
 
   EXPECT_FALSE(&r, DAR_equals((const DAR_DArray *)arr, (const DAR_DArray *)&other_arr));
 
-  return PASS;
+  EXPECT_EQ(&r, OK, DAR_destroy_in_place(&other_arr));
+
+  return r;
+}
+
+Result tst_many_random_push_pop(void * env) {
+  Result       r   = PASS;
+  DAR_DArray * arr = env;
+
+  double       vals[1000] = {0};
+  const size_t max_size   = sizeof(vals) / sizeof(double);
+
+  const size_t num_iterations = 25000;
+
+  size_t current_size = 0;
+  size_t target_size  = 0;
+
+  for(size_t it = 0; it < num_iterations; it++) {
+    if(current_size == target_size) {
+      target_size = (size_t)(((double)rand() / (double)RAND_MAX) * (double)(max_size - 1));
+    }
+
+    const double delta = ((double)target_size - (double)current_size) / (double)max_size;
+
+    // number centered on 0.5 where smaller/bigger means we need more pop/push
+    const double guide = delta + 0.5;
+
+    const bool is_push = (current_size == 0) || ((current_size < max_size) &&
+                                                 (((double)rand() / (double)RAND_MAX) < guide));
+
+    if(is_push) {
+      vals[current_size] = (double)rand();
+
+      EXPECT_EQ(&r, OK, DAR_push_back(arr, &vals[current_size]));
+      current_size++;
+
+      EXPECT_EQ(&r, current_size, arr->size);
+    } else {
+      // pop
+      EXPECT_EQ(&r, OK, DAR_pop_back(arr));
+      current_size--;
+
+      EXPECT_EQ(&r, current_size, arr->size);
+      EXPECT_EQ(&r, OK, DAR_shrink_to_fit(arr));
+    }
+    if(HAS_FAILED(&r)) return r;
+
+    EXPECT_ARREQ(&r, double, arr->data, vals, current_size);
+    if(HAS_FAILED(&r)) return r;
+  }
+
+  return r;
 }
 
 int main() {
@@ -669,6 +728,11 @@ int main() {
       tst_create_in_place_from,
       tst_create_on_heap_from,
       tst_equals,
+      tst_many_random_push_pop, // run this a couple times (gets new seed every time)
+      tst_many_random_push_pop,
+      tst_many_random_push_pop,
+      tst_many_random_push_pop,
+      tst_many_random_push_pop,
   };
 
   const Result test_res = run_tests(tests, sizeof(tests) / sizeof(Test));
@@ -684,6 +748,9 @@ int main() {
 static Result setup(void ** env_p) {
   Result        r     = PASS;
   DAR_DArray ** arr_p = (DAR_DArray **)env_p;
+
+  // use both time and clock so we get a different seed even if we call this many times per second
+  srand(time(NULL) + clock());
 
   EXPECT_EQ(&r, OK, DAR_create_on_heap(arr_p, sizeof(double)));
 
