@@ -20,7 +20,7 @@ static void * at(DAR_DArray * this, uint32_t idx);
 
 static uint8_t get_minimum_required_capacity_magnitude(uint32_t size);
 
-static STAT_Val grow_capacity(DAR_DArray * this);
+static STAT_Val grow_capacity_as_needed(DAR_DArray * this, uint32_t num_elements_to_fit);
 
 STAT_Val DAR_create_on_heap(DAR_DArray ** this_p, uint8_t element_size) {
   if(this_p == NULL || *this_p != NULL) return LOG_STAT(STAT_ERR_ARGS, "bad arg 'this_p'");
@@ -78,13 +78,15 @@ STAT_Val DAR_push_back(DAR_DArray * this, const void * element) {
   if(this == NULL || element == NULL) return LOG_STAT(STAT_ERR_ARGS, "this or element is NULL");
   if(this->size == UINT32_MAX) return LOG_STAT(STAT_ERR_FULL, "DAR_Array at maximum size");
 
-  if(this->size + 1 > get_capacity(this)) {
-    if(!STAT_is_OK(grow_capacity(this))) {
-      return LOG_STAT(STAT_ERR_INTERNAL, "failed to grow capacity for DAR_Array");
-    }
+  const uint32_t new_size = this->size + 1;
+
+  if(!STAT_is_OK(grow_capacity_as_needed(this, new_size))) {
+    return LOG_STAT(STAT_ERR_INTERNAL, "failed to grow capacity for push back");
   }
 
-  memcpy(at(this, this->size++), element, this->element_size);
+  memcpy(at(this, this->size), element, this->element_size);
+
+  this->size = new_size;
 
   return OK;
 }
@@ -116,6 +118,16 @@ STAT_Val DAR_shrink_to_fit(DAR_DArray * this) {
   return OK;
 }
 
+STAT_Val DAR_reserve(DAR_DArray * this, uint32_t num_elements) {
+  if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
+
+  if(!STAT_is_OK(grow_capacity_as_needed(this, num_elements))) {
+    return LOG_STAT(STAT_ERR_INTERNAL, "failed to grow capacity for reserve");
+  }
+
+  return OK;
+}
+
 size_t DAR_get_capacity(const DAR_DArray * this) {
   if(this == NULL) return 0;
   return get_capacity(this);
@@ -135,16 +147,18 @@ static size_t get_capacity_in_bytes_from_magnitude(uint8_t element_size, uint8_t
   return element_size * get_capacity_from_magnitude(magnitude);
 }
 
-static STAT_Val grow_capacity(DAR_DArray * this) {
-  const uint8_t new_capacity_magnitude = this->capacity_magnitude + 1;
-  const size_t  new_capacity_in_bytes =
-      get_capacity_in_bytes_from_magnitude(this->element_size, new_capacity_magnitude);
+static STAT_Val grow_capacity_as_needed(DAR_DArray * this, uint32_t num_elements_to_fit) {
+  const uint8_t req_cap_magnitude = get_minimum_required_capacity_magnitude(num_elements_to_fit);
+  if(this->capacity_magnitude >= req_cap_magnitude) return OK;
+
+  const size_t new_capacity_in_bytes =
+      get_capacity_in_bytes_from_magnitude(this->element_size, req_cap_magnitude);
 
   void * new_data = realloc(this->data, new_capacity_in_bytes);
   if(new_data == NULL) return LOG_STAT(STAT_ERR_ALLOC, "failed to allocate for growing capacity");
 
   this->data               = new_data;
-  this->capacity_magnitude = new_capacity_magnitude;
+  this->capacity_magnitude = req_cap_magnitude;
 
   return OK;
 }

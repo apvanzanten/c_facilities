@@ -25,6 +25,8 @@ STAT_Val DAR_pop_back(DAR_DArray * this);
 
 STAT_Val DAR_shrink_to_fit(DAR_DArray * this);
 
+STAT_Val DAR_reserve(DAR_DArray * this, uint32_t num_elements);
+
 size_t DAR_get_capacity(const DAR_DArray * this);
 size_t DAR_get_capacity_in_bytes(const DAR_DArray * this);
 size_t DAR_get_size_in_bytes(const DAR_DArray * this);

@@ -168,6 +168,41 @@ Result tst_capacity(void * env) {
   return r;
 }
 
+Result tst_reserve(void * env) {
+  Result       r   = PASS;
+  DAR_DArray * arr = env;
+
+  const size_t initial_capacity = DAR_get_capacity(arr);
+
+  for(size_t num_elements = 16; num_elements < 10000; num_elements *= 1.2) {
+    EXPECT_EQ(&r, OK, DAR_reserve(arr, num_elements));
+
+    const size_t reserved_capacity = DAR_get_capacity(arr);
+
+    for(size_t i = 1; i <= num_elements; i++) {
+      const double val = (double)i;
+
+      EXPECT_EQ(&r, OK, DAR_push_back(arr, &val));
+
+      EXPECT_EQ(&r, i, arr->size);
+      EXPECT_EQ(&r, reserved_capacity, DAR_get_capacity(arr));
+
+      if(HAS_FAILED(&r)) return r;
+    }
+
+    while(arr->size != 0) {
+      EXPECT_EQ(&r, OK, DAR_pop_back(arr));
+      if(HAS_FAILED(&r)) return r;
+    }
+
+    EXPECT_EQ(&r, OK, DAR_shrink_to_fit(arr));
+    EXPECT_EQ(&r, initial_capacity, DAR_get_capacity(arr));
+    if(HAS_FAILED(&r)) return r;
+  }
+
+  return r;
+}
+
 int main() {
   Test tests[] = {
       tst_create_destroy_on_heap,
@@ -179,6 +214,7 @@ int main() {
       tst_push_back,
       tst_pop_back,
       tst_capacity,
+      tst_reserve,
   };
 
   const Result test_res = run_tests(tests, sizeof(tests) / sizeof(Test));
