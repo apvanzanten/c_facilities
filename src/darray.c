@@ -74,7 +74,7 @@ STAT_Val DAR_destroy_in_place(DAR_DArray * this) {
   return OK;
 }
 
-STAT_Val DAR_push_back(DAR_DArray * this, void * element) {
+STAT_Val DAR_push_back(DAR_DArray * this, const void * element) {
   if(this == NULL || element == NULL) return LOG_STAT(STAT_ERR_ARGS, "this or element is NULL");
   if(this->size == UINT32_MAX) return LOG_STAT(STAT_ERR_FULL, "DAR_Array at maximum size");
 
@@ -116,7 +116,16 @@ STAT_Val DAR_shrink_to_fit(DAR_DArray * this) {
   return OK;
 }
 
-static size_t get_capacity_from_magnitude(uint8_t magnitude) { return 1 << magnitude; }
+size_t DAR_get_capacity(const DAR_DArray * this) {
+  if(this == NULL) return 0;
+  return get_capacity(this);
+}
+size_t DAR_get_size_in_bytes(const DAR_DArray * this) {
+  if(this == NULL) return 0;
+  return this->size * this->element_size;
+}
+
+static size_t get_capacity_from_magnitude(uint8_t magnitude) { return 1LL << magnitude; }
 
 static size_t get_capacity(const DAR_DArray * this) {
   return get_capacity_from_magnitude(this->capacity_magnitude);
@@ -149,11 +158,12 @@ static void * at(DAR_DArray * this, uint32_t idx) {
 }
 
 static uint8_t get_minimum_required_capacity_magnitude(uint32_t size) {
+  // TODO optimize to use existing magnitude, that probably saves a lot of time in many cases
   // NOTE this can probably be done more efficiently with some intrinsics (or bit twiddling)
   //      this is probably good enough, I may optimize it later when I have benchmarks set up
-  for(uint8_t magnitude = 1; magnitude < MAX_CAPACITY_MAGNITUDE; magnitude++) {
-    const size_t capacity = (1LL < magnitude);
-    if(capacity > size) return magnitude;
+  for(uint8_t magnitude = MIN_CAPACITY_MAGNITUDE; magnitude < MAX_CAPACITY_MAGNITUDE; magnitude++) {
+    const size_t capacity = get_capacity_from_magnitude(magnitude);
+    if(capacity >= size) return magnitude;
   }
   return MAX_CAPACITY_MAGNITUDE;
 }
