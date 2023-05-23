@@ -118,6 +118,51 @@ STAT_Val DAR_shrink_to_fit(DAR_DArray * this) {
   return OK;
 }
 
+STAT_Val DAR_resize(DAR_DArray * this, uint32_t new_size) {
+  if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
+
+  if(!STAT_is_OK(grow_capacity_as_needed(this, new_size))) {
+    return LOG_STAT(STAT_ERR_INTERNAL, "failed to grow capacity for resize");
+  }
+  this->size = new_size;
+
+  return OK;
+}
+
+STAT_Val DAR_resize_zeroed(DAR_DArray * this, uint32_t new_size) {
+  if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
+
+  const uint32_t old_size = this->size;
+
+  if(!STAT_is_OK(DAR_resize(this, new_size))) {
+    return LOG_STAT(STAT_ERR_INTERNAL, "failed to resize for resize zeroed");
+  }
+
+  if(new_size > old_size) {
+    const size_t grown_in_bytes = (new_size - old_size) * this->element_size;
+    memset(at(this, old_size), 0, grown_in_bytes);
+  }
+
+  return OK;
+}
+
+STAT_Val DAR_resize_with_value(DAR_DArray * this, uint32_t new_size, const void * value) {
+  if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
+  if(value == NULL) return LOG_STAT(STAT_ERR_ARGS, "value is NULL");
+
+  const uint32_t old_size = this->size;
+
+  if(!STAT_is_OK(DAR_resize(this, new_size))) {
+    return LOG_STAT(STAT_ERR_INTERNAL, "failed to resize for resize zeroed");
+  }
+
+  for(uint32_t idx = old_size; idx < new_size; idx++) {
+    memcpy(at(this, idx), value, this->element_size);
+  }
+
+  return OK;
+}
+
 STAT_Val DAR_reserve(DAR_DArray * this, uint32_t num_elements) {
   if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
 

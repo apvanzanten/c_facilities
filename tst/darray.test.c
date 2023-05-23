@@ -203,6 +203,115 @@ Result tst_reserve(void * env) {
   return r;
 }
 
+Result tst_resize(void * env) {
+  Result       r   = PASS;
+  DAR_DArray * arr = env;
+
+  for(uint32_t initial_size = 16; initial_size < 1000; initial_size *= 1.2) {
+    for(uint32_t new_size = 8; new_size < 1000; new_size *= 1.2) {
+      for(uint32_t i = 0; i < initial_size; i++) {
+        const double val = (double)i;
+        EXPECT_EQ(&r, OK, DAR_push_back(arr, &val));
+
+        EXPECT_EQ(&r, (i + 1), arr->size);
+
+        if(HAS_FAILED(&r)) return r;
+      }
+
+      EXPECT_EQ(&r, initial_size, arr->size);
+      if(HAS_FAILED(&r)) return r;
+
+      EXPECT_EQ(&r, OK, DAR_resize(arr, new_size));
+      EXPECT_EQ(&r, new_size, arr->size);
+      EXPECT_TRUE(&r, DAR_get_capacity(arr) >= new_size);
+
+      if(HAS_FAILED(&r)) return r;
+
+      while(arr->size != 0) {
+        EXPECT_EQ(&r, OK, DAR_pop_back(arr));
+        if(HAS_FAILED(&r)) return r;
+      }
+      EXPECT_EQ(&r, OK, DAR_shrink_to_fit(arr));
+
+      if(HAS_FAILED(&r)) return r;
+    }
+  }
+
+  return r;
+}
+
+Result tst_resize_zeroed(void * env) {
+  Result       r   = PASS;
+  DAR_DArray * arr = env;
+
+  const double vals[1024] = {0};
+
+  const uint32_t max_size = sizeof(vals) / sizeof(double);
+
+  for(uint32_t new_size = 8; new_size < max_size; new_size *= 1.2) {
+    // push some garbage data into array
+    for(uint32_t i = 0; i < new_size; i++) {
+      const double val = (double)i;
+      EXPECT_EQ(&r, OK, DAR_push_back(arr, &val));
+      if(HAS_FAILED(&r)) return r;
+    }
+
+    // resize back to 0, garbage data should still be in memory
+    EXPECT_EQ(&r, OK, DAR_resize(arr, 0));
+    EXPECT_EQ(&r, 0, arr->size);
+    if(HAS_FAILED(&r)) return r;
+
+    // resize zeroed, should overwrite garbage data with 0
+    EXPECT_EQ(&r, OK, DAR_resize_zeroed(arr, new_size));
+    EXPECT_EQ(&r, new_size, arr->size);
+    EXPECT_TRUE(&r, DAR_get_capacity(arr) >= new_size);
+
+    EXPECT_ARREQ(&r, double, (double *)arr->data, vals, new_size);
+
+    // resize back to 0 to clean up
+    EXPECT_EQ(&r, OK, DAR_resize(arr, 0));
+    if(HAS_FAILED(&r)) return r;
+  }
+
+  return r;
+}
+
+Result tst_resize_with_value(void * env) {
+  Result       r   = PASS;
+  DAR_DArray * arr = env;
+
+  double         vals[1024] = {0};
+  const uint32_t max_size   = sizeof(vals) / sizeof(double);
+
+  // put test data in vals so we can compare against it
+  const double test_value = 1.23456;
+  for(uint32_t i = 0; i < max_size; i++) {
+    vals[i] = test_value;
+  }
+
+  for(uint32_t new_size = 8; new_size < max_size; new_size *= 1.2) {
+    // resize zeroed and then back to 0, memory now contains zeroes
+    EXPECT_EQ(&r, OK, DAR_resize_zeroed(arr, new_size));
+    EXPECT_EQ(&r, new_size, arr->size);
+    EXPECT_EQ(&r, OK, DAR_resize(arr, 0));
+    EXPECT_EQ(&r, 0, arr->size);
+
+    // resize with value, should put value in memory
+    EXPECT_EQ(&r, OK, DAR_resize_with_value(arr, new_size, &test_value));
+    EXPECT_EQ(&r, new_size, arr->size);
+    EXPECT_TRUE(&r, DAR_get_capacity(arr) >= new_size);
+    if(HAS_FAILED(&r)) return r;
+
+    EXPECT_ARREQ(&r, double, (double *)arr->data, vals, new_size);
+
+    // resize back to 0 to clean up
+    EXPECT_EQ(&r, OK, DAR_resize(arr, 0));
+    if(HAS_FAILED(&r)) return r;
+  }
+
+  return r;
+}
+
 int main() {
   Test tests[] = {
       tst_create_destroy_on_heap,
@@ -215,6 +324,9 @@ int main() {
       tst_pop_back,
       tst_capacity,
       tst_reserve,
+      tst_resize,
+      tst_resize_zeroed,
+      tst_resize_with_value,
   };
 
   const Result test_res = run_tests(tests, sizeof(tests) / sizeof(Test));
