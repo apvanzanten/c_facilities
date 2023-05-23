@@ -357,6 +357,93 @@ Result tst_clear_and_shrink(void * env) {
   return r;
 }
 
+Result tst_get(void * env) {
+  Result       r   = PASS;
+  DAR_DArray * arr = env;
+
+  double         vals[1024] = {0};
+  const uint32_t max_size   = sizeof(vals) / sizeof(double);
+
+  // put some interesting data in both vals and the array so we can compare
+  vals[0] = 1.23456;
+  for(uint32_t i = 1; i < max_size; i++) {
+    vals[i] = vals[i - 1] * -1.1;
+  }
+
+  for(uint32_t i = 0; i < max_size; i++) {
+    EXPECT_EQ(&r, OK, DAR_push_back(arr, &(vals[i])));
+
+    EXPECT_EQ(&r, i + 1, arr->size);
+    if(HAS_FAILED(&r)) return r;
+  }
+
+  for(uint32_t i = 0; i < max_size; i++) {
+    double *       arr_val       = DAR_get(arr, i);
+    const double * arr_val_const = DAR_get_const((const DAR_DArray *)arr, i);
+
+    EXPECT_EQ(&r, 0, memcmp(&(vals[i]), arr_val, sizeof(double)));
+    EXPECT_EQ(&r, 0, memcmp(&(vals[i]), arr_val_const, sizeof(double)));
+
+    if(HAS_FAILED(&r)) return r;
+  }
+
+  return r;
+}
+
+Result tst_get_checked(void * env) {
+  Result       r   = PASS;
+  DAR_DArray * arr = env;
+
+  const double   vals[]   = {1.0, 2.0, 3.0, 4.0, 5.0};
+  const uint32_t num_vals = sizeof(vals) / sizeof(double);
+
+  EXPECT_EQ(&r, OK, DAR_push_back(arr, &vals[0]));
+  EXPECT_EQ(&r, OK, DAR_push_back(arr, &vals[1]));
+  EXPECT_EQ(&r, OK, DAR_push_back(arr, &vals[2]));
+  EXPECT_EQ(&r, OK, DAR_push_back(arr, &vals[3]));
+  EXPECT_EQ(&r, OK, DAR_push_back(arr, &vals[4]));
+
+  if(HAS_FAILED(&r)) return r;
+
+  for(uint32_t i = 0; i < num_vals; i++) {
+    double *       arr_val       = NULL;
+    const double * arr_val_const = NULL;
+
+    EXPECT_EQ(&r, OK, DAR_get_checked(arr, i, (void **)(&arr_val)));
+    EXPECT_EQ(&r,
+              OK,
+              DAR_get_checked_const((const DAR_DArray *)arr, i, (const void **)(&arr_val_const)));
+
+    EXPECT_EQ(&r, 0, memcmp(&(vals[i]), arr_val, sizeof(double)));
+    EXPECT_EQ(&r, 0, memcmp(&(vals[i]), arr_val_const, sizeof(double)));
+
+    EXPECT_EQ(&r, STAT_ERR_ARGS, DAR_get_checked(NULL, i, (void **)(&arr_val)));
+    EXPECT_EQ(&r, STAT_ERR_ARGS, DAR_get_checked_const(NULL, i, (const void **)(&arr_val_const)));
+
+    EXPECT_EQ(&r, STAT_ERR_ARGS, DAR_get_checked(arr, i, NULL));
+    EXPECT_EQ(&r, STAT_ERR_ARGS, DAR_get_checked_const((const DAR_DArray *)arr, i, NULL));
+
+    if(HAS_FAILED(&r)) return r;
+  }
+
+  for(uint32_t i = num_vals; i < num_vals * 2; i++) {
+    double *       arr_val       = NULL;
+    const double * arr_val_const = NULL;
+
+    EXPECT_EQ(&r, STAT_ERR_RANGE, DAR_get_checked(arr, i, (void **)(&arr_val)));
+    EXPECT_EQ(&r,
+              STAT_ERR_RANGE,
+              DAR_get_checked_const((const DAR_DArray *)arr, i, (const void **)(&arr_val_const)));
+
+    EXPECT_EQ(&r, NULL, arr_val);
+    EXPECT_EQ(&r, NULL, arr_val_const);
+
+    if(HAS_FAILED(&r)) return r;
+  }
+
+  return r;
+}
+
 int main() {
   Test tests[] = {
       tst_create_destroy_on_heap,
@@ -374,6 +461,8 @@ int main() {
       tst_resize_with_value,
       tst_clear,
       tst_clear_and_shrink,
+      tst_get,
+      tst_get_checked,
   };
 
   const Result test_res = run_tests(tests, sizeof(tests) / sizeof(Test));

@@ -16,7 +16,6 @@ static size_t get_capacity_from_magnitude(uint8_t magnitude);
 static size_t get_capacity_in_bytes_from_magnitude(uint8_t element_size, uint8_t magnitude);
 
 static size_t get_byte_idx(const DAR_DArray * this, uint32_t element_idx);
-static void * at(DAR_DArray * this, uint32_t idx);
 
 static uint8_t get_minimum_required_capacity_magnitude(uint32_t size);
 
@@ -84,7 +83,7 @@ STAT_Val DAR_push_back(DAR_DArray * this, const void * element) {
     return LOG_STAT(STAT_ERR_INTERNAL, "failed to grow capacity for push back");
   }
 
-  memcpy(at(this, this->size), element, this->element_size);
+  memcpy(DAR_get(this, this->size), element, this->element_size);
 
   this->size = new_size;
 
@@ -140,7 +139,7 @@ STAT_Val DAR_resize_zeroed(DAR_DArray * this, uint32_t new_size) {
 
   if(new_size > old_size) {
     const size_t grown_in_bytes = (new_size - old_size) * this->element_size;
-    memset(at(this, old_size), 0, grown_in_bytes);
+    memset(DAR_get(this, old_size), 0, grown_in_bytes);
   }
 
   return OK;
@@ -157,7 +156,7 @@ STAT_Val DAR_resize_with_value(DAR_DArray * this, uint32_t new_size, const void 
   }
 
   for(uint32_t idx = old_size; idx < new_size; idx++) {
-    memcpy(at(this, idx), value, this->element_size);
+    memcpy(DAR_get(this, idx), value, this->element_size);
   }
 
   return OK;
@@ -201,6 +200,40 @@ STAT_Val DAR_clear_and_shrink(DAR_DArray * this) {
   return OK;
 }
 
+void * DAR_get(DAR_DArray * this, uint32_t idx) {
+  return &(((char *)this->data)[get_byte_idx(this, idx)]);
+}
+
+const void * DAR_get_const(const DAR_DArray * this, uint32_t idx) {
+  return &(((const char *)this->data)[get_byte_idx(this, idx)]);
+}
+
+STAT_Val DAR_get_checked(DAR_DArray * this, uint32_t idx, void ** out) {
+  if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
+  if(out == NULL) return LOG_STAT(STAT_ERR_ARGS, "out is NULL");
+
+  if(idx >= this->size) {
+    return LOG_STAT(STAT_ERR_RANGE, "idx %u out of range (size=%u)", idx, this->size);
+  }
+
+  *out = DAR_get(this, idx);
+
+  return OK;
+}
+
+STAT_Val DAR_get_checked_const(const DAR_DArray * this, uint32_t idx, const void ** out) {
+  if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
+  if(out == NULL) return LOG_STAT(STAT_ERR_ARGS, "out is NULL");
+
+  if(idx >= this->size) {
+    return LOG_STAT(STAT_ERR_RANGE, "idx %u out of range (size=%u)", idx, this->size);
+  }
+
+  *out = DAR_get_const(this, idx);
+
+  return OK;
+}
+
 static size_t get_capacity_from_magnitude(uint8_t magnitude) { return 1LL << magnitude; }
 
 static size_t get_capacity(const DAR_DArray * this) {
@@ -229,10 +262,6 @@ static STAT_Val grow_capacity_as_needed(DAR_DArray * this, uint32_t num_elements
 
 static size_t get_byte_idx(const DAR_DArray * this, uint32_t element_idx) {
   return this->element_size * element_idx;
-}
-
-static void * at(DAR_DArray * this, uint32_t idx) {
-  return &(((char *)this->data)[get_byte_idx(this, idx)]);
 }
 
 static uint8_t get_minimum_required_capacity_magnitude(uint32_t size) {

@@ -34,6 +34,12 @@ STAT_Val DAR_reserve(DAR_DArray * this, uint32_t num_elements);
 STAT_Val DAR_clear(DAR_DArray * this);
 STAT_Val DAR_clear_and_shrink(DAR_DArray * this);
 
+void *       DAR_get(DAR_DArray * this, uint32_t idx);
+const void * DAR_get_const(const DAR_DArray * this, uint32_t idx);
+
+STAT_Val DAR_get_checked(DAR_DArray * this, uint32_t idx, void ** out);
+STAT_Val DAR_get_checked_const(const DAR_DArray * this, uint32_t idx, const void ** out);
+
 size_t DAR_get_capacity(const DAR_DArray * this);
 size_t DAR_get_capacity_in_bytes(const DAR_DArray * this);
 size_t DAR_get_size_in_bytes(const DAR_DArray * this);
