@@ -497,6 +497,116 @@ Result tst_set_checked(void * env) {
   return r;
 }
 
+Result tst_push_back_arr(void * env) {
+  Result       r   = PASS;
+  DAR_DArray * arr = env;
+
+  const double   vals_a[]   = {1.0, 2.0, 3.0, 4.0, 5.0};
+  const double   vals_b[]   = {-1.0, -2.0, -3.0};
+  const uint32_t num_vals_a = sizeof(vals_a) / sizeof(double);
+  const uint32_t num_vals_b = sizeof(vals_b) / sizeof(double);
+  const uint32_t num_zeroes = 5;
+
+  EXPECT_EQ(&r, OK, DAR_push_back_arr(arr, vals_a, num_vals_a));
+  EXPECT_EQ(&r, num_vals_a, arr->size);
+  if(HAS_FAILED(&r)) return r;
+
+  EXPECT_EQ(&r, OK, DAR_resize_zeroed(arr, num_vals_a + num_zeroes));
+  EXPECT_EQ(&r, num_vals_a + num_zeroes, arr->size);
+  if(HAS_FAILED(&r)) return r;
+
+  EXPECT_EQ(&r, OK, DAR_push_back_arr(arr, vals_b, num_vals_b));
+  EXPECT_EQ(&r, num_vals_a + num_zeroes + num_vals_b, arr->size);
+  if(HAS_FAILED(&r)) return r;
+
+  EXPECT_EQ(&r, 0, memcmp(DAR_get(arr, 0), vals_a, num_vals_a));
+  EXPECT_EQ(&r, 0, memcmp(DAR_get(arr, num_vals_a + num_zeroes), vals_b, num_vals_b));
+
+  return r;
+}
+
+Result tst_push_back_darray(void * env) {
+  Result       r         = PASS;
+  DAR_DArray * arr       = env;
+  DAR_DArray   other_arr = {0};
+
+  const double   vals_a[]   = {1.0, 2.0, 3.0, 4.0, 5.0};
+  const double   vals_b[]   = {-1.0, -2.0, -3.0};
+  const uint32_t num_vals_a = sizeof(vals_a) / sizeof(double);
+  const uint32_t num_vals_b = sizeof(vals_b) / sizeof(double);
+
+  EXPECT_EQ(&r, OK, DAR_create_in_place(&other_arr, sizeof(double)));
+  if(HAS_FAILED(&r)) return r;
+
+  EXPECT_EQ(&r, OK, DAR_push_back_arr(arr, vals_a, num_vals_a));
+  EXPECT_EQ(&r, num_vals_a, arr->size);
+  if(HAS_FAILED(&r)) return r;
+
+  EXPECT_EQ(&r, OK, DAR_push_back_arr(&other_arr, vals_b, num_vals_b));
+  EXPECT_EQ(&r, num_vals_b, other_arr.size);
+  if(HAS_FAILED(&r)) return r;
+
+  EXPECT_EQ(&r, OK, DAR_push_back_darray(arr, &other_arr));
+  EXPECT_EQ(&r, num_vals_a + num_vals_b, arr->size);
+  if(HAS_FAILED(&r)) return r;
+
+  EXPECT_EQ(&r, 0, memcmp(DAR_get(arr, 0), vals_a, num_vals_a));
+  EXPECT_EQ(&r, 0, memcmp(DAR_get(arr, num_vals_a), vals_b, num_vals_b));
+
+  return r;
+}
+
+Result tst_create_in_place_from(void * env) {
+  Result       r         = PASS;
+  DAR_DArray * arr       = env;
+  DAR_DArray   other_arr = {0};
+
+  const double   vals[]   = {1.0, 2.0, 3.0, 4.0, 5.0};
+  const uint32_t num_vals = sizeof(vals) / sizeof(double);
+
+  EXPECT_EQ(&r, OK, DAR_push_back_arr(arr, vals, num_vals));
+  EXPECT_EQ(&r, num_vals, arr->size);
+  if(HAS_FAILED(&r)) return r;
+
+  EXPECT_EQ(&r, OK, DAR_create_in_place_from(&other_arr, (const DAR_DArray *)arr));
+  EXPECT_NE(&r, NULL, other_arr.data);
+  EXPECT_NE(&r, arr->data, other_arr.data);
+  EXPECT_EQ(&r, arr->size, other_arr.size);
+  EXPECT_EQ(&r, arr->element_size, other_arr.element_size);
+  if(HAS_FAILED(&r)) return r;
+
+  EXPECT_EQ(&r, 0, memcmp(arr->data, other_arr.data, arr->size));
+
+  return r;
+}
+
+Result tst_create_on_heap_from(void * env) {
+  Result       r         = PASS;
+  DAR_DArray * arr       = env;
+  DAR_DArray * other_arr = NULL;
+
+  const double   vals[]   = {1.0, 2.0, 3.0, 4.0, 5.0};
+  const uint32_t num_vals = sizeof(vals) / sizeof(double);
+
+  EXPECT_EQ(&r, OK, DAR_push_back_arr(arr, vals, num_vals));
+  EXPECT_EQ(&r, num_vals, arr->size);
+  if(HAS_FAILED(&r)) return r;
+
+  EXPECT_EQ(&r, OK, DAR_create_on_heap_from(&other_arr, (const DAR_DArray *)arr));
+  EXPECT_NE(&r, NULL, other_arr);
+  if(HAS_FAILED(&r)) return r;
+
+  EXPECT_NE(&r, NULL, other_arr->data);
+  EXPECT_NE(&r, arr->data, other_arr->data);
+  EXPECT_EQ(&r, arr->size, other_arr->size);
+  EXPECT_EQ(&r, arr->element_size, other_arr->element_size);
+  if(HAS_FAILED(&r)) return r;
+
+  EXPECT_EQ(&r, 0, memcmp(arr->data, other_arr->data, arr->size));
+
+  return r;
+}
+
 int main() {
   Test tests[] = {
       tst_create_destroy_on_heap,
@@ -518,6 +628,10 @@ int main() {
       tst_get_checked,
       tst_set,
       tst_set_checked,
+      tst_push_back_arr,
+      tst_push_back_darray,
+      tst_create_in_place_from,
+      tst_create_on_heap_from,
   };
 
   const Result test_res = run_tests(tests, sizeof(tests) / sizeof(Test));

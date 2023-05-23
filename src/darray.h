@@ -15,7 +15,10 @@ typedef struct {
 } DAR_DArray;
 
 STAT_Val DAR_create_on_heap(DAR_DArray ** this_p, uint8_t element_size);
+STAT_Val DAR_create_on_heap_from(DAR_DArray ** this_p, const DAR_DArray * src);
+
 STAT_Val DAR_create_in_place(DAR_DArray * this, uint8_t element_size);
+STAT_Val DAR_create_in_place_from(DAR_DArray * this, const DAR_DArray * src);
 
 STAT_Val DAR_destroy_on_heap(DAR_DArray ** this_p);
 STAT_Val DAR_destroy_in_place(DAR_DArray * this);
@@ -42,6 +45,9 @@ STAT_Val DAR_get_checked_const(const DAR_DArray * this, uint32_t idx, const void
 
 void     DAR_set(DAR_DArray * this, uint32_t idx, const void * value);
 STAT_Val DAR_set_checked(DAR_DArray * this, uint32_t idx, const void * value);
+
+STAT_Val DAR_push_back_arr(DAR_DArray * this, const void * arr, uint32_t n);
+STAT_Val DAR_push_back_darray(DAR_DArray * this, const DAR_DArray * other);
 
 size_t DAR_get_capacity(const DAR_DArray * this);
 size_t DAR_get_capacity_in_bytes(const DAR_DArray * this);

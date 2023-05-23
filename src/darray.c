@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <errno.h>
+
 #include "log.h"
 
 #define OK STAT_OK
@@ -37,14 +39,56 @@ STAT_Val DAR_create_on_heap(DAR_DArray ** this_p, uint8_t element_size) {
   return OK;
 }
 
+STAT_Val DAR_create_on_heap_from(DAR_DArray ** this_p, const DAR_DArray * src) {
+  if(this_p == NULL || *this_p != NULL) return LOG_STAT(STAT_ERR_ARGS, "bad arg 'this_p'");
+
+  DAR_DArray * this = (DAR_DArray *)malloc(sizeof(DAR_DArray));
+  if(this == NULL) return LOG_STAT(STAT_ERR_ALLOC, "failed to allocate for DAR_DArray");
+
+  if(!STAT_is_OK(DAR_create_in_place_from(this, src))) {
+    free(this);
+    return LOG_STAT(STAT_ERR_INTERNAL, "failed to create DAR_DArray");
+  }
+
+  *this_p = this;
+
+  return OK;
+}
+
 STAT_Val DAR_create_in_place(DAR_DArray * this, uint8_t element_size) {
   if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this arg is NULL");
 
+  this->size               = 0;
   this->element_size       = element_size;
   this->capacity_magnitude = MIN_CAPACITY_MAGNITUDE;
 
-  this->data = malloc(get_capacity_in_bytes_from_magnitude(element_size, MIN_CAPACITY_MAGNITUDE));
-  if(this->data == NULL) return LOG_STAT(STAT_ERR_ALLOC, "failed to allocate data array");
+  const size_t capacity_in_bytes =
+      get_capacity_in_bytes_from_magnitude(element_size, MIN_CAPACITY_MAGNITUDE);
+
+  this->data = malloc(capacity_in_bytes);
+  if(this->data == NULL) {
+    return LOG_STAT(STAT_ERR_ALLOC,
+                    "failed to allocate data array with size %zu, errno: %d (\'%s\')",
+                    capacity_in_bytes,
+                    errno,
+                    strerror(errno));
+  }
+
+  return OK;
+}
+
+STAT_Val DAR_create_in_place_from(DAR_DArray * this, const DAR_DArray * src) {
+  if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
+  if(src == NULL) return LOG_STAT(STAT_ERR_ARGS, "src is NULL");
+
+  if(!STAT_is_OK(DAR_create_in_place(this, src->element_size))) {
+    return LOG_STAT(STAT_ERR_INTERNAL, "failed to create new array");
+  }
+
+  if(!STAT_is_OK(DAR_push_back_darray(this, src))) {
+    DAR_destroy_in_place(this);
+    return LOG_STAT(STAT_ERR_INTERNAL, "failed to push src data into this array");
+  }
 
   return OK;
 }
@@ -109,7 +153,13 @@ STAT_Val DAR_shrink_to_fit(DAR_DArray * this) {
       get_capacity_in_bytes_from_magnitude(this->element_size, new_capacity_magnitude);
 
   void * new_data = realloc(this->data, new_capacity_in_bytes);
-  if(new_data == NULL) return LOG_STAT(STAT_ERR_ALLOC, "failed to reallocate to shrink array");
+  if(new_data == NULL) {
+    return LOG_STAT(STAT_ERR_ALLOC,
+                    "failed to reallocate for shrink to size %zu, errno: %d (\'%s\')",
+                    new_capacity_in_bytes,
+                    errno,
+                    strerror(errno));
+  }
 
   this->capacity_magnitude = new_capacity_magnitude;
   this->data               = new_data;
@@ -251,6 +301,41 @@ STAT_Val DAR_set_checked(DAR_DArray * this, uint32_t idx, const void * value) {
   return OK;
 }
 
+STAT_Val DAR_push_back_arr(DAR_DArray * this, const void * arr, uint32_t n) {
+  if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
+  if(arr == NULL) return LOG_STAT(STAT_ERR_ARGS, "arr is NULL");
+
+  if(n == 0) return OK;
+
+  const uint32_t old_size = this->size;
+
+  if(!STAT_is_OK(DAR_resize(this, this->size + n))) {
+    return LOG_STAT(STAT_ERR_INTERNAL, "failed to resize");
+  }
+
+  memcpy(DAR_get(this, old_size), arr, n * this->element_size);
+
+  return OK;
+}
+
+STAT_Val DAR_push_back_darray(DAR_DArray * this, const DAR_DArray * other) {
+  if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
+  if(other == NULL) return LOG_STAT(STAT_ERR_ARGS, "other is NULL");
+
+  if(this->element_size != other->element_size) {
+    return LOG_STAT(STAT_ERR_ARGS,
+                    "element size mismatch (%u != %u)",
+                    this->element_size,
+                    other->element_size);
+  }
+
+  if(!STAT_is_OK(DAR_push_back_arr(this, other->data, other->size))) {
+    return LOG_STAT(STAT_ERR_INTERNAL, "failed to push back data");
+  }
+
+  return OK;
+}
+
 static size_t get_capacity_from_magnitude(uint8_t magnitude) { return 1LL << magnitude; }
 
 static size_t get_capacity(const DAR_DArray * this) {
@@ -269,7 +354,13 @@ static STAT_Val grow_capacity_as_needed(DAR_DArray * this, uint32_t num_elements
       get_capacity_in_bytes_from_magnitude(this->element_size, req_cap_magnitude);
 
   void * new_data = realloc(this->data, new_capacity_in_bytes);
-  if(new_data == NULL) return LOG_STAT(STAT_ERR_ALLOC, "failed to allocate for growing capacity");
+  if(new_data == NULL) {
+    return LOG_STAT(STAT_ERR_ALLOC,
+                    "failed to reallocate for growing capacity to size %zu, errno: %d (\'%s\')",
+                    new_capacity_in_bytes,
+                    errno,
+                    strerror(errno));
+  }
 
   this->data               = new_data;
   this->capacity_magnitude = req_cap_magnitude;
@@ -287,7 +378,7 @@ static uint8_t get_minimum_required_capacity_magnitude(uint32_t size) {
   //      this is probably good enough, I may optimize it later when I have benchmarks set up
   for(uint8_t magnitude = MIN_CAPACITY_MAGNITUDE; magnitude < MAX_CAPACITY_MAGNITUDE; magnitude++) {
     const size_t capacity = get_capacity_from_magnitude(magnitude);
-    if(capacity >= size) return magnitude;
+    if(capacity >= (size_t)size) return magnitude;
   }
   return MAX_CAPACITY_MAGNITUDE;
 }
