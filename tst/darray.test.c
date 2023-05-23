@@ -312,6 +312,51 @@ Result tst_resize_with_value(void * env) {
   return r;
 }
 
+Result tst_clear(void * env) {
+  Result       r   = PASS;
+  DAR_DArray * arr = env;
+
+  // push some garbage data into array
+  for(uint32_t i = 0; i < 100; i++) {
+    const double val = (double)i;
+    EXPECT_EQ(&r, OK, DAR_push_back(arr, &val));
+    if(HAS_FAILED(&r)) return r;
+  }
+
+  EXPECT_EQ(&r, OK, DAR_clear(arr));
+  EXPECT_EQ(&r, 0, arr->size);
+
+  return r;
+}
+
+Result tst_clear_and_shrink(void * env) {
+  Result       r   = PASS;
+  DAR_DArray * arr = env;
+
+  const size_t   initial_capacity = DAR_get_capacity(arr);
+  const uint32_t max_size         = 4096;
+
+  for(uint32_t size = 16; size < max_size; size *= 1.2) {
+    // push some garbage data into array
+    for(uint32_t i = 0; i < size; i++) {
+      const double val = (double)i;
+      EXPECT_EQ(&r, OK, DAR_push_back(arr, &val));
+      if(HAS_FAILED(&r)) return r;
+    }
+
+    EXPECT_EQ(&r, size, arr->size);
+    EXPECT_TRUE(&r, DAR_get_capacity(arr) > initial_capacity);
+
+    EXPECT_EQ(&r, OK, DAR_clear_and_shrink(arr));
+    EXPECT_EQ(&r, 0, arr->size);
+    EXPECT_EQ(&r, initial_capacity, DAR_get_capacity(arr));
+
+    if(HAS_FAILED(&r)) return r;
+  }
+
+  return r;
+}
+
 int main() {
   Test tests[] = {
       tst_create_destroy_on_heap,
@@ -327,6 +372,8 @@ int main() {
       tst_resize,
       tst_resize_zeroed,
       tst_resize_with_value,
+      tst_clear,
+      tst_clear_and_shrink,
   };
 
   const Result test_res = run_tests(tests, sizeof(tests) / sizeof(Test));

@@ -182,6 +182,25 @@ size_t DAR_get_size_in_bytes(const DAR_DArray * this) {
   return this->size * this->element_size;
 }
 
+STAT_Val DAR_clear(DAR_DArray * this) {
+  if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
+
+  if(!STAT_is_OK(DAR_resize(this, 0))) {
+    return LOG_STAT(STAT_ERR_INTERNAL, "failed to resize for clear");
+  }
+
+  return OK;
+}
+
+STAT_Val DAR_clear_and_shrink(DAR_DArray * this) {
+  if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
+
+  if(!STAT_is_OK(DAR_clear(this))) return LOG_STAT(STAT_ERR_INTERNAL, "failed to clear");
+  if(!STAT_is_OK(DAR_shrink_to_fit(this))) return LOG_STAT(STAT_ERR_INTERNAL, "failed to shrink");
+
+  return OK;
+}
+
 static size_t get_capacity_from_magnitude(uint8_t magnitude) { return 1LL << magnitude; }
 
 static size_t get_capacity(const DAR_DArray * this) {
