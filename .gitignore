@@ -54,3 +54,4 @@ dkms.conf
 bld
 .vscode
 bld_debug
+bld_release
