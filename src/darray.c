@@ -41,11 +41,29 @@ STAT_Val DAR_create_on_heap(DAR_DArray ** this_p, uint8_t element_size) {
 
 STAT_Val DAR_create_on_heap_from(DAR_DArray ** this_p, const DAR_DArray * src) {
   if(this_p == NULL || *this_p != NULL) return LOG_STAT(STAT_ERR_ARGS, "bad arg 'this_p'");
+  if(src == NULL) return LOG_STAT(STAT_ERR_ARGS, "src is NULL");
 
   DAR_DArray * this = (DAR_DArray *)malloc(sizeof(DAR_DArray));
   if(this == NULL) return LOG_STAT(STAT_ERR_ALLOC, "failed to allocate for DAR_DArray");
 
   if(!STAT_is_OK(DAR_create_in_place_from(this, src))) {
+    free(this);
+    return LOG_STAT(STAT_ERR_INTERNAL, "failed to create DAR_DArray");
+  }
+
+  *this_p = this;
+
+  return OK;
+}
+
+STAT_Val DAR_create_on_heap_from_cstr(DAR_DArray ** this_p, const char * str) {
+  if(this_p == NULL || *this_p != NULL) return LOG_STAT(STAT_ERR_ARGS, "bad arg 'this_p'");
+  if(str == NULL) return LOG_STAT(STAT_ERR_ARGS, "str is NULL");
+
+  DAR_DArray * this = (DAR_DArray *)malloc(sizeof(DAR_DArray));
+  if(this == NULL) return LOG_STAT(STAT_ERR_ALLOC, "failed to allocate for DAR_DArray");
+
+  if(!STAT_is_OK(DAR_create_in_place_from_cstr(this, str))) {
     free(this);
     return LOG_STAT(STAT_ERR_INTERNAL, "failed to create DAR_DArray");
   }
@@ -88,6 +106,22 @@ STAT_Val DAR_create_in_place_from(DAR_DArray * this, const DAR_DArray * src) {
   if(!STAT_is_OK(DAR_push_back_darray(this, src))) {
     DAR_destroy_in_place(this);
     return LOG_STAT(STAT_ERR_INTERNAL, "failed to push src data into this array");
+  }
+
+  return OK;
+}
+
+STAT_Val DAR_create_in_place_from_cstr(DAR_DArray * this, const char * str) {
+  if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
+  if(str == NULL) return LOG_STAT(STAT_ERR_ARGS, "str is NULL");
+
+  if(!STAT_is_OK(DAR_create_in_place(this, sizeof(char)))) {
+    return LOG_STAT(STAT_ERR_INTERNAL, "failed to create new array");
+  }
+
+  if(!STAT_is_OK(DAR_push_back_array(this, str, strlen(str) + 1))) { // +1 for null termination
+    DAR_destroy_in_place(this);
+    return LOG_STAT(STAT_ERR_INTERNAL, "failed to push str data into this array");
   }
 
   return OK;
@@ -301,7 +335,7 @@ STAT_Val DAR_set_checked(DAR_DArray * this, uint32_t idx, const void * value) {
   return OK;
 }
 
-STAT_Val DAR_push_back_arr(DAR_DArray * this, const void * arr, uint32_t n) {
+STAT_Val DAR_push_back_array(DAR_DArray * this, const void * arr, uint32_t n) {
   if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
   if(arr == NULL) return LOG_STAT(STAT_ERR_ARGS, "arr is NULL");
 
@@ -329,7 +363,7 @@ STAT_Val DAR_push_back_darray(DAR_DArray * this, const DAR_DArray * other) {
                     other->element_size);
   }
 
-  if(!STAT_is_OK(DAR_push_back_arr(this, other->data, other->size))) {
+  if(!STAT_is_OK(DAR_push_back_array(this, other->data, other->size))) {
     return LOG_STAT(STAT_ERR_INTERNAL, "failed to push back data");
   }
 
