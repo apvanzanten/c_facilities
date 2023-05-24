@@ -225,6 +225,113 @@ Result tst_subspan_double() {
   return r;
 }
 
+Result tst_constains_subspan_cstr() {
+  Result r = PASS;
+
+  EXPECT_TRUE(&r, SPN_contains_subspan(SPN_from_cstr("hi"), SPN_from_cstr("hi")));
+  EXPECT_TRUE(&r, SPN_contains_subspan(SPN_from_cstr("hi"), SPN_from_cstr("h")));
+  EXPECT_FALSE(&r, SPN_contains_subspan(SPN_from_cstr("hey"), SPN_from_cstr("hi")));
+  EXPECT_TRUE(&r, SPN_contains_subspan(SPN_from_cstr("hey"), SPN_from_cstr("h")));
+  EXPECT_FALSE(&r, SPN_contains_subspan(SPN_from_cstr("hey"), SPN_from_cstr("i")));
+
+  EXPECT_TRUE(&r,
+              SPN_contains_subspan(SPN_from_cstr("a somewhat longer string"),
+                                   SPN_from_cstr("a somewhat longer string")));
+  EXPECT_TRUE(&r,
+              SPN_contains_subspan(SPN_from_cstr("a somewhat longer string"),
+                                   SPN_from_cstr("string")));
+  EXPECT_TRUE(&r,
+              SPN_contains_subspan(SPN_from_cstr("a somewhat longer string"),
+                                   SPN_from_cstr("longer")));
+  EXPECT_TRUE(&r,
+              SPN_contains_subspan(SPN_from_cstr("a somewhat longer string"),
+                                   SPN_from_cstr("somewhat longer string")));
+
+  EXPECT_FALSE(&r,
+               SPN_contains_subspan(SPN_from_cstr("a somewhat longer string"),
+                                    SPN_from_cstr("a sumwot lahnger strung")));
+  EXPECT_FALSE(&r,
+               SPN_contains_subspan(SPN_from_cstr("a somewhat longer string"),
+                                    SPN_from_cstr("Slartibartfast")));
+  EXPECT_FALSE(&r,
+               SPN_contains_subspan(SPN_from_cstr("a somewhat longer string"),
+                                    SPN_from_cstr("96")));
+
+  return r;
+}
+
+Result tst_constains_subspan_int() {
+  Result r = PASS;
+
+  const int      span_vals[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
+  const SPN_Span span        = {.begin        = span_vals,
+                                .len          = sizeof(span_vals) / sizeof(int),
+                                .element_size = sizeof(int)};
+
+  {
+    const int      subspan_vals[] = {0, 1, 2};
+    const SPN_Span subspan        = {.begin        = subspan_vals,
+                                     .len          = sizeof(subspan_vals) / sizeof(int),
+                                     .element_size = sizeof(int)};
+    EXPECT_TRUE(&r, SPN_contains_subspan(span, subspan));
+  }
+  {
+    const int      subspan_vals[] = {4, 5, 6, 7, 8};
+    const SPN_Span subspan        = {.begin        = subspan_vals,
+                                     .len          = sizeof(subspan_vals) / sizeof(int),
+                                     .element_size = sizeof(int)};
+    EXPECT_TRUE(&r, SPN_contains_subspan(span, subspan));
+  }
+  {
+    const SPN_Span subspan = {.begin = NULL, .len = 0, .element_size = sizeof(int)};
+    EXPECT_TRUE(&r, SPN_contains_subspan(span, subspan));
+  }
+  {
+    const int      subspan_vals[] = {9, 10, 11, 12, 13, 14, 15};
+    const SPN_Span subspan        = {.begin        = subspan_vals,
+                                     .len          = sizeof(subspan_vals) / sizeof(int),
+                                     .element_size = sizeof(int)};
+    EXPECT_TRUE(&r, SPN_contains_subspan(span, subspan));
+  }
+  {
+    const int      subspan_vals[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
+    const SPN_Span subspan        = {.begin        = subspan_vals,
+                                     .len          = sizeof(subspan_vals) / sizeof(int),
+                                     .element_size = sizeof(int)};
+    EXPECT_TRUE(&r, SPN_contains_subspan(span, subspan));
+  }
+  {
+    const int      subspan_vals[] = {0, 1, 3};
+    const SPN_Span subspan        = {.begin        = subspan_vals,
+                                     .len          = sizeof(subspan_vals) / sizeof(int),
+                                     .element_size = sizeof(int)};
+    EXPECT_FALSE(&r, SPN_contains_subspan(span, subspan));
+  }
+  {
+    const int      subspan_vals[] = {0, 1, 2, 3, -1};
+    const SPN_Span subspan        = {.begin        = subspan_vals,
+                                     .len          = sizeof(subspan_vals) / sizeof(int),
+                                     .element_size = sizeof(int)};
+    EXPECT_FALSE(&r, SPN_contains_subspan(span, subspan));
+  }
+  {
+    const int      subspan_vals[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
+    const SPN_Span subspan        = {.begin        = subspan_vals,
+                                     .len          = sizeof(subspan_vals) / sizeof(int),
+                                     .element_size = sizeof(int)};
+    EXPECT_FALSE(&r, SPN_contains_subspan(span, subspan));
+  }
+  {
+    const uint64_t subspan_vals[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
+    const SPN_Span subspan        = {.begin        = subspan_vals,
+                                     .len          = sizeof(subspan_vals) / sizeof(uint64_t),
+                                     .element_size = sizeof(uint64_t)};
+    EXPECT_FALSE(&r, SPN_contains_subspan(span, subspan));
+  }
+
+  return r;
+}
+
 int main() {
   Test tests[] = {
       tst_create_from_cstr,
@@ -234,6 +341,8 @@ int main() {
       tst_equals,
       tst_subspan_char,
       tst_subspan_double,
+      tst_constains_subspan_cstr,
+      tst_constains_subspan_int,
   };
 
   return (run_tests(tests, sizeof(tests) / sizeof(Test)) == PASS) ? 0 : 1;

@@ -26,15 +26,16 @@ bool SPN_equals(SPN_Span lhs, SPN_Span rhs) {
 }
 
 bool SPN_contains_subspan(SPN_Span span, SPN_Span subspan) {
-  if(span.begin == NULL || subspan.begin == NULL) return false;
   if(span.element_size != subspan.element_size) return false;
-  if(span.len < subspan.len) return false;
   if(subspan.len == 0) return true;
+  if(span.begin == NULL || subspan.begin == NULL) return false;
+  if(span.len < subspan.len) return false;
 
-  return false; // TODO
+  // NOTE this could probably be faster if we did our own comparisons
 
-  // return (memmem(span.begin,
-  //                SPN_get_size_in_bytes(span),
-  //                subspan.begin,
-  //                SPN_get_size_in_bytes(subspan)) != NULL);
+  for(uint32_t i = 0; i <= (span.len - subspan.len); i++) {
+    if(memcmp(SPN_get(span, i), subspan.begin, SPN_get_size_in_bytes(subspan)) == 0) return true;
+  }
+
+  return false;
 }

@@ -19,7 +19,9 @@ bool SPN_equals(SPN_Span lhs, SPN_Span rhs);
 
 bool SPN_contains_subspan(SPN_Span span, SPN_Span subspan);
 
-inline static size_t SPN_get_byte_idx(SPN_Span src, uint32_t idx) { return src.element_size * idx; }
+inline static size_t SPN_get_byte_idx(SPN_Span src, uint32_t idx) {
+  return ((size_t)src.element_size) * ((size_t)idx);
+}
 
 inline static const void * SPN_get(SPN_Span src, uint32_t idx) {
   return (const void *)(&(((const uint8_t *)src.begin)[SPN_get_byte_idx(src, idx)]));
