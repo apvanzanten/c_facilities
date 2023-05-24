@@ -9,9 +9,12 @@
 
 typedef struct {
   void *   data;
-  uint8_t  element_size;
-  uint8_t  capacity_magnitude;
-  uint32_t size;
+  uint8_t  element_size;       // size of each element in bytes
+  uint8_t  capacity_magnitude; // magnitude of capacity in elements
+  uint32_t size;               // size of array in elements
+
+  // NOTE size of data memory should always be: element_size * (2^capacity_magnitude)
+  // NOTE and always (2^capacity_magnitude) >= size
 } DAR_DArray;
 
 STAT_Val DAR_create_on_heap(DAR_DArray ** this_p, uint8_t element_size);
