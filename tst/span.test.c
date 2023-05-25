@@ -283,7 +283,7 @@ Result tst_constains_subspan_int() {
     EXPECT_TRUE(&r, SPN_contains_subspan(span, subspan));
   }
   {
-    const SPN_Span subspan = {.begin = NULL, .len = 0, .element_size = sizeof(int)};
+    const SPN_Span subspan = {.begin = span_vals, .len = 0, .element_size = sizeof(int)};
     EXPECT_TRUE(&r, SPN_contains_subspan(span, subspan));
   }
   {
@@ -502,6 +502,238 @@ Result tst_find_at_and_reverse_with_duplicates() {
   return r;
 }
 
+Result tst_find_subspan_basic() {
+  Result r = PASS;
+
+  {
+    uint32_t tmp = 9999;
+    EXPECT_EQ(&r, OK, SPN_find_subspan(SPN_from_cstr("012345"), SPN_from_cstr("012345"), &tmp));
+    EXPECT_EQ(&r, 0, tmp);
+  }
+  {
+    uint32_t tmp = 9999;
+    EXPECT_EQ(&r,
+              OK,
+              SPN_find_subspan_reverse(SPN_from_cstr("012345"), SPN_from_cstr("012345"), &tmp));
+    EXPECT_EQ(&r, 0, tmp);
+  }
+  {
+    uint32_t tmp = 9999;
+    EXPECT_EQ(&r, OK, SPN_find_subspan(SPN_from_cstr("012345"), SPN_from_cstr("123"), &tmp));
+    EXPECT_EQ(&r, 1, tmp);
+  }
+  {
+    uint32_t tmp = 9999;
+    EXPECT_EQ(&r,
+              OK,
+              SPN_find_subspan_reverse(SPN_from_cstr("012345"), SPN_from_cstr("123"), &tmp));
+    EXPECT_EQ(&r, 1, tmp);
+  }
+  {
+    uint32_t tmp = 9999;
+    EXPECT_EQ(&r, OK, SPN_find_subspan(SPN_from_cstr("012345"), SPN_from_cstr(""), &tmp));
+    EXPECT_EQ(&r, 0, tmp);
+  }
+  {
+    uint32_t tmp = 9999;
+    EXPECT_EQ(&r, OK, SPN_find_subspan_reverse(SPN_from_cstr("012345"), SPN_from_cstr(""), &tmp));
+    EXPECT_EQ(&r, 5, tmp);
+  }
+  {
+    uint32_t tmp = 9999;
+    EXPECT_EQ(&r,
+              STAT_OK_NOT_FOUND,
+              SPN_find_subspan(SPN_from_cstr("012"), SPN_from_cstr("123"), &tmp));
+  }
+  {
+    uint32_t tmp = 9999;
+    EXPECT_EQ(&r,
+              STAT_OK_NOT_FOUND,
+              SPN_find_subspan_reverse(SPN_from_cstr("012"), SPN_from_cstr("123"), &tmp));
+  }
+
+  return r;
+}
+
+Result tst_find_subspan_at_basic() {
+  Result r = PASS;
+
+  {
+    uint32_t tmp = 9999;
+    EXPECT_EQ(&r, OK, SPN_find_subspan_at(SPN_from_cstr("012345"), SPN_from_cstr(""), 1, &tmp));
+    EXPECT_EQ(&r, 1, tmp);
+  }
+  {
+    uint32_t tmp = 9999;
+    EXPECT_EQ(&r,
+              OK,
+              SPN_find_subspan_reverse_at(SPN_from_cstr("012345"), SPN_from_cstr(""), 1, &tmp));
+    EXPECT_EQ(&r, 1, tmp);
+  }
+  {
+    uint32_t tmp = 9999;
+    EXPECT_EQ(&r, OK, SPN_find_subspan_at(SPN_from_cstr("012345"), SPN_from_cstr("234"), 0, &tmp));
+    EXPECT_EQ(&r, 2, tmp);
+  }
+  {
+    uint32_t tmp = 9999;
+    EXPECT_EQ(&r,
+              OK,
+              SPN_find_subspan_reverse_at(SPN_from_cstr("012345"), SPN_from_cstr("234"), 5, &tmp));
+    EXPECT_EQ(&r, 2, tmp);
+  }
+  {
+    uint32_t tmp = 9999;
+    EXPECT_EQ(&r, OK, SPN_find_subspan_at(SPN_from_cstr("0"), SPN_from_cstr("0"), 0, &tmp));
+    EXPECT_EQ(&r, 0, tmp);
+  }
+  {
+    uint32_t tmp = 9999;
+    EXPECT_EQ(&r, OK, SPN_find_subspan_reverse_at(SPN_from_cstr("0"), SPN_from_cstr("0"), 0, &tmp));
+    EXPECT_EQ(&r, 0, tmp);
+  }
+
+  return r;
+}
+
+Result tst_find_subspan_monster() {
+  Result r = PASS;
+
+  // this monstrous test case does the following
+  //  set up array of values, with a unique value on each element
+  //  for all possible spans on vals array
+  //    for all possible subspans on vals array
+  //      try to find subspan in span, and check result
+  //      try to find subspan in reverse in span, and check result
+  //      for all elements in span
+  //        try to find subspan in span starting at element, and check result
+  //        try to find subspan in reverse in span starting at element, and check result
+
+  // NOTE I wouldn't generally recommend writing something like this, but I thought it was fun :)
+  // NOTE Obvious gap in this test: duplicates, that is, we never have multiple matching sequences
+  //      and then check which one we find based on the 'at' idx and 'reverse'.
+
+  uint32_t       vals[50] = {0};
+  const uint32_t len      = sizeof(vals) / sizeof(int);
+  for(uint32_t i = 0; i < len; i++) {
+    vals[i] = (2 * i) + 1; // math just to make it distinct from indices
+  }
+
+  for(uint32_t span_start_idx = 0; span_start_idx < len; span_start_idx++) {
+    printf("span_start_idx: %u\n", span_start_idx);
+
+    for(uint32_t span_len = 0; span_len < (len - span_start_idx); span_len++) {
+
+      const SPN_Span span = {.begin        = &vals[span_start_idx],
+                             .len          = span_len,
+                             .element_size = sizeof(int)};
+
+      for(uint32_t subspan_start_idx = 0; subspan_start_idx < len; subspan_start_idx++) {
+        for(uint32_t subspan_len = 0; subspan_len < (len - subspan_start_idx); subspan_len++) {
+
+          const SPN_Span subspan = {.begin        = &vals[subspan_start_idx],
+                                    .len          = subspan_len,
+                                    .element_size = sizeof(int)};
+
+          const bool subspan_is_empty           = (subspan.len == 0);
+          const bool subspan_starts_before_span = (subspan_start_idx < span_start_idx);
+          const bool subspan_ends_after_span =
+              (subspan_start_idx + subspan.len) > (span_start_idx + span.len);
+          const bool subspan_is_in_span = (!subspan_starts_before_span && !subspan_ends_after_span);
+
+          uint32_t find_idx = 9999;
+
+          {
+            const STAT_Val st = SPN_find_subspan(span, subspan, &find_idx);
+
+            if(subspan_is_empty) {
+              EXPECT_EQ(&r, OK, st);
+              EXPECT_EQ(&r, 0, find_idx);
+            } else if(subspan_is_in_span) {
+              EXPECT_EQ(&r, OK, st);
+              EXPECT_EQ(&r, (subspan_start_idx - span_start_idx), find_idx);
+            } else {
+              EXPECT_EQ(&r, STAT_OK_NOT_FOUND, st);
+            }
+          }
+
+          if(!HAS_FAILED(&r)) {
+            const STAT_Val st = SPN_find_subspan_reverse(span, subspan, &find_idx);
+
+            if(subspan_is_empty) {
+              EXPECT_EQ(&r, OK, st);
+              EXPECT_EQ(&r, (span_len > 0 ? (span.len - 1) : 0), find_idx);
+            } else if(subspan_is_in_span) {
+              EXPECT_EQ(&r, OK, st);
+              EXPECT_EQ(&r, (subspan_start_idx - span_start_idx), find_idx);
+            } else {
+              EXPECT_EQ(&r, STAT_OK_NOT_FOUND, st);
+            }
+          }
+
+          for(uint32_t at_idx = 0; !HAS_FAILED(&r) && at_idx < span.len; at_idx++) {
+            const STAT_Val st = SPN_find_subspan_at(span, subspan, at_idx, &find_idx);
+
+            const bool subspan_starts_before_at_idx = subspan_start_idx < (span_start_idx + at_idx);
+
+            if(subspan_is_empty) {
+              EXPECT_EQ(&r, OK, st);
+              EXPECT_EQ(&r, at_idx, find_idx);
+            } else if(subspan_is_in_span && !subspan_starts_before_at_idx) {
+              EXPECT_EQ(&r, OK, st);
+              EXPECT_EQ(&r, (subspan_start_idx - span_start_idx), find_idx);
+            } else {
+              EXPECT_EQ(&r, STAT_OK_NOT_FOUND, st);
+            }
+
+            if(HAS_FAILED(&r)) {
+              printf("\tat_idx: %u\n", at_idx);
+              printf("\tsubspan_starts_before_at_idx: %u\n", subspan_starts_before_at_idx);
+            }
+          }
+
+          for(uint32_t at_idx = 0; !HAS_FAILED(&r) && at_idx < span.len; at_idx++) {
+            const STAT_Val st = SPN_find_subspan_reverse_at(span, subspan, at_idx, &find_idx);
+
+            const bool subspan_starts_after_at_idx = subspan_start_idx > (span_start_idx + at_idx);
+
+            if(subspan_is_empty) {
+              EXPECT_EQ(&r, OK, st);
+              EXPECT_EQ(&r, at_idx, find_idx);
+            } else if(subspan_is_in_span && !subspan_starts_after_at_idx) {
+              EXPECT_EQ(&r, OK, st);
+              EXPECT_EQ(&r, (subspan_start_idx - span_start_idx), find_idx);
+            } else {
+              EXPECT_EQ(&r, STAT_OK_NOT_FOUND, st);
+            }
+
+            if(HAS_FAILED(&r)) {
+              printf("\tat_idx: %u\n", at_idx);
+              printf("\tsubspan_starts_after_at_idx: %u\n", subspan_starts_after_at_idx);
+            }
+          }
+
+          if(HAS_FAILED(&r)) {
+            printf("\tspan_start_idx: %u\n", span_start_idx);
+            printf("\tsubspan_start_idx: %u\n", subspan_start_idx);
+            printf("\tspan.len: %u\n", span.len);
+            printf("\tsubspan.len: %u\n", subspan.len);
+            printf("\tsubspan_is_empty: %i\n", subspan_is_empty);
+            printf("\tsubspan_starts_before_span: %i\n", subspan_starts_before_span);
+            printf("\tsubspan_ends_after_span: %i\n", subspan_ends_after_span);
+            printf("\tsubspan_is_in_span: %i\n", subspan_is_in_span);
+            printf("\tfind_idx: %u\n", find_idx);
+
+            return r;
+          }
+        }
+      }
+    }
+  }
+
+  return r;
+}
+
 int main() {
   Test tests[] = {
       tst_create_from_cstr,
@@ -516,6 +748,9 @@ int main() {
       tst_find_char,
       tst_find_int,
       tst_find_at_and_reverse_with_duplicates,
+      tst_find_subspan_basic,
+      tst_find_subspan_at_basic,
+      tst_find_subspan_monster,
   };
 
   return (run_tests(tests, sizeof(tests) / sizeof(Test)) == PASS) ? 0 : 1;

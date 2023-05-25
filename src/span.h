@@ -30,6 +30,14 @@ STAT_Val SPN_find_reverse_at(SPN_Span     span,
                              uint32_t     at_idx,
                              uint32_t *   o_idx);
 
+STAT_Val SPN_find_subspan(SPN_Span span, SPN_Span subspan, uint32_t * o_idx);
+STAT_Val SPN_find_subspan_at(SPN_Span span, SPN_Span subspan, uint32_t at_idx, uint32_t * o_idx);
+STAT_Val SPN_find_subspan_reverse(SPN_Span span, SPN_Span subspan, uint32_t * o_idx);
+STAT_Val SPN_find_subspan_reverse_at(SPN_Span   span,
+                                     SPN_Span   subspan,
+                                     uint32_t   at_idx,
+                                     uint32_t * o_idx);
+
 inline static size_t SPN_get_byte_idx(SPN_Span src, uint32_t idx) {
   return ((size_t)src.element_size) * ((size_t)idx);
 }
