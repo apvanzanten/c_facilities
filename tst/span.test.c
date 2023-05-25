@@ -481,10 +481,10 @@ Result tst_find_at_and_reverse_with_duplicates() {
     EXPECT_EQ(&r, 0, tmp); // finds only the first
     EXPECT_EQ(&r, OK, SPN_find_at(SPN_from_cstr(str), "0", 1, &tmp));
     EXPECT_EQ(&r, 10, tmp); // finds only the second because we skipped over the first
-    EXPECT_EQ(&r, OK, SPN_find_reverse(SPN_from_cstr(str), "0", &tmp));
-    EXPECT_EQ(&r, 10, tmp); // finds only the second because we search from behind
     EXPECT_EQ(&r, OK, SPN_find_reverse_at(SPN_from_cstr(str), "0", 9, &tmp));
     EXPECT_EQ(&r, 0, tmp); // finds only the first because we search in reverse and skip the back
+    EXPECT_EQ(&r, OK, SPN_find_reverse(SPN_from_cstr(str), "0", &tmp));
+    EXPECT_EQ(&r, 10, tmp); // finds only the second because we search from behind
   }
 
   {
@@ -493,10 +493,52 @@ Result tst_find_at_and_reverse_with_duplicates() {
     EXPECT_EQ(&r, 5, tmp); // finds only the first
     EXPECT_EQ(&r, OK, SPN_find_at(SPN_from_cstr(str), "5", 6, &tmp));
     EXPECT_EQ(&r, 15, tmp); // finds only the second because we skipped over the first
-    EXPECT_EQ(&r, OK, SPN_find_reverse(SPN_from_cstr(str), "5", &tmp));
-    EXPECT_EQ(&r, 15, tmp); // finds only the second because we search from behind
     EXPECT_EQ(&r, OK, SPN_find_reverse_at(SPN_from_cstr(str), "5", 9, &tmp));
     EXPECT_EQ(&r, 5, tmp); // finds only the first because we search in reverse and skip the back
+    EXPECT_EQ(&r, OK, SPN_find_reverse(SPN_from_cstr(str), "5", &tmp));
+    EXPECT_EQ(&r, 15, tmp); // finds only the second because we search from behind
+  }
+
+  return r;
+}
+
+Result tst_find_at_likely_usage() {
+  Result r = PASS;
+
+  // Let's face it, the most likely use case for a function like this (or indeed any function), is
+  // finding (more) llamas.
+
+  const char str[] = "Here's a llama, there's a llama, and another little llama.\n"
+                     "Fuzzy llama, funny llama, llama llama, duck."; // credit to Burton Earny
+
+  const SPN_Span span  = SPN_from_cstr(str);
+  const SPN_Span llama = SPN_from_cstr("llama");
+
+  const uint32_t expected_llamas[] = {9, 26, 52, 59 + 6, 59 + 19, 59 + 26, 59 + 32};
+  const size_t   num_llamas = sizeof(expected_llamas) / sizeof(uint32_t); // llamas are 32 bit?
+
+  {
+    uint32_t at_idx = 0;
+    for(size_t llama_idx = 0; llama_idx < num_llamas; llama_idx++) {
+      uint32_t tmp = 9999;
+      EXPECT_EQ(&r, OK, SPN_find_subspan_at(span, llama, at_idx, &tmp));
+      EXPECT_EQ(&r, expected_llamas[llama_idx], tmp);
+      at_idx = tmp + 1;
+
+      if(HAS_FAILED(&r)) return r;
+    }
+  }
+
+  { // same but in reverse (we count our llamas twice, as each time brings us joy)
+    uint32_t at_idx = span.len - 1;
+    for(int llama_idx = num_llamas - 1; llama_idx >= 0; llama_idx--) {
+      uint32_t tmp = 9999;
+      EXPECT_EQ(&r, OK, SPN_find_subspan_reverse_at(span, llama, at_idx, &tmp));
+      EXPECT_EQ(&r, expected_llamas[llama_idx], tmp);
+      at_idx = tmp - 1;
+
+      if(HAS_FAILED(&r)) return r;
+    }
   }
 
   return r;
@@ -505,52 +547,33 @@ Result tst_find_at_and_reverse_with_duplicates() {
 Result tst_find_subspan_basic() {
   Result r = PASS;
 
-  {
-    uint32_t tmp = 9999;
-    EXPECT_EQ(&r, OK, SPN_find_subspan(SPN_from_cstr("012345"), SPN_from_cstr("012345"), &tmp));
-    EXPECT_EQ(&r, 0, tmp);
-  }
-  {
-    uint32_t tmp = 9999;
-    EXPECT_EQ(&r,
-              OK,
-              SPN_find_subspan_reverse(SPN_from_cstr("012345"), SPN_from_cstr("012345"), &tmp));
-    EXPECT_EQ(&r, 0, tmp);
-  }
-  {
-    uint32_t tmp = 9999;
-    EXPECT_EQ(&r, OK, SPN_find_subspan(SPN_from_cstr("012345"), SPN_from_cstr("123"), &tmp));
-    EXPECT_EQ(&r, 1, tmp);
-  }
-  {
-    uint32_t tmp = 9999;
-    EXPECT_EQ(&r,
-              OK,
-              SPN_find_subspan_reverse(SPN_from_cstr("012345"), SPN_from_cstr("123"), &tmp));
-    EXPECT_EQ(&r, 1, tmp);
-  }
-  {
-    uint32_t tmp = 9999;
-    EXPECT_EQ(&r, OK, SPN_find_subspan(SPN_from_cstr("012345"), SPN_from_cstr(""), &tmp));
-    EXPECT_EQ(&r, 0, tmp);
-  }
-  {
-    uint32_t tmp = 9999;
-    EXPECT_EQ(&r, OK, SPN_find_subspan_reverse(SPN_from_cstr("012345"), SPN_from_cstr(""), &tmp));
-    EXPECT_EQ(&r, 5, tmp);
-  }
-  {
-    uint32_t tmp = 9999;
-    EXPECT_EQ(&r,
-              STAT_OK_NOT_FOUND,
-              SPN_find_subspan(SPN_from_cstr("012"), SPN_from_cstr("123"), &tmp));
-  }
-  {
-    uint32_t tmp = 9999;
-    EXPECT_EQ(&r,
-              STAT_OK_NOT_FOUND,
-              SPN_find_subspan_reverse(SPN_from_cstr("012"), SPN_from_cstr("123"), &tmp));
-  }
+  uint32_t tmp = 9999;
+  EXPECT_EQ(&r, OK, SPN_find_subspan(SPN_from_cstr("012345"), SPN_from_cstr("012345"), &tmp));
+  EXPECT_EQ(&r, 0, tmp);
+
+  EXPECT_EQ(&r, OK, SPN_find_subspan(SPN_from_cstr("012345"), SPN_from_cstr("123"), &tmp));
+  EXPECT_EQ(&r, 1, tmp);
+
+  EXPECT_EQ(&r,
+            OK,
+            SPN_find_subspan_reverse(SPN_from_cstr("012345"), SPN_from_cstr("012345"), &tmp));
+  EXPECT_EQ(&r, 0, tmp);
+
+  EXPECT_EQ(&r, OK, SPN_find_subspan_reverse(SPN_from_cstr("012345"), SPN_from_cstr("123"), &tmp));
+  EXPECT_EQ(&r, 1, tmp);
+
+  EXPECT_EQ(&r, OK, SPN_find_subspan(SPN_from_cstr("012345"), SPN_from_cstr(""), &tmp));
+  EXPECT_EQ(&r, 0, tmp);
+
+  EXPECT_EQ(&r, OK, SPN_find_subspan_reverse(SPN_from_cstr("012345"), SPN_from_cstr(""), &tmp));
+  EXPECT_EQ(&r, 5, tmp);
+
+  EXPECT_EQ(&r,
+            STAT_OK_NOT_FOUND,
+            SPN_find_subspan(SPN_from_cstr("012"), SPN_from_cstr("123"), &tmp));
+  EXPECT_EQ(&r,
+            STAT_OK_NOT_FOUND,
+            SPN_find_subspan_reverse(SPN_from_cstr("012"), SPN_from_cstr("123"), &tmp));
 
   return r;
 }
@@ -558,40 +581,43 @@ Result tst_find_subspan_basic() {
 Result tst_find_subspan_at_basic() {
   Result r = PASS;
 
-  {
-    uint32_t tmp = 9999;
-    EXPECT_EQ(&r, OK, SPN_find_subspan_at(SPN_from_cstr("012345"), SPN_from_cstr(""), 1, &tmp));
-    EXPECT_EQ(&r, 1, tmp);
-  }
-  {
-    uint32_t tmp = 9999;
-    EXPECT_EQ(&r,
-              OK,
-              SPN_find_subspan_reverse_at(SPN_from_cstr("012345"), SPN_from_cstr(""), 1, &tmp));
-    EXPECT_EQ(&r, 1, tmp);
-  }
-  {
-    uint32_t tmp = 9999;
-    EXPECT_EQ(&r, OK, SPN_find_subspan_at(SPN_from_cstr("012345"), SPN_from_cstr("234"), 0, &tmp));
-    EXPECT_EQ(&r, 2, tmp);
-  }
-  {
-    uint32_t tmp = 9999;
-    EXPECT_EQ(&r,
-              OK,
-              SPN_find_subspan_reverse_at(SPN_from_cstr("012345"), SPN_from_cstr("234"), 5, &tmp));
-    EXPECT_EQ(&r, 2, tmp);
-  }
-  {
-    uint32_t tmp = 9999;
-    EXPECT_EQ(&r, OK, SPN_find_subspan_at(SPN_from_cstr("0"), SPN_from_cstr("0"), 0, &tmp));
-    EXPECT_EQ(&r, 0, tmp);
-  }
-  {
-    uint32_t tmp = 9999;
-    EXPECT_EQ(&r, OK, SPN_find_subspan_reverse_at(SPN_from_cstr("0"), SPN_from_cstr("0"), 0, &tmp));
-    EXPECT_EQ(&r, 0, tmp);
-  }
+  uint32_t tmp = 9999;
+
+  EXPECT_EQ(&r, OK, SPN_find_subspan_at(SPN_from_cstr("012345"), SPN_from_cstr(""), 1, &tmp));
+  EXPECT_EQ(&r, 1, tmp);
+
+  EXPECT_EQ(&r, OK, SPN_find_subspan_at(SPN_from_cstr("012345"), SPN_from_cstr("234"), 0, &tmp));
+  EXPECT_EQ(&r, 2, tmp);
+
+  EXPECT_EQ(&r, OK, SPN_find_subspan_at(SPN_from_cstr("0"), SPN_from_cstr("0"), 0, &tmp));
+  EXPECT_EQ(&r, 0, tmp);
+
+  EXPECT_EQ(&r,
+            OK,
+            SPN_find_subspan_reverse_at(SPN_from_cstr("012345"), SPN_from_cstr(""), 1, &tmp));
+  EXPECT_EQ(&r, 1, tmp);
+
+  EXPECT_EQ(&r,
+            OK,
+            SPN_find_subspan_reverse_at(SPN_from_cstr("012345"), SPN_from_cstr("234"), 5, &tmp));
+  EXPECT_EQ(&r, 2, tmp);
+
+  EXPECT_EQ(&r, OK, SPN_find_subspan_reverse_at(SPN_from_cstr("0"), SPN_from_cstr("0"), 0, &tmp));
+  EXPECT_EQ(&r, 0, tmp);
+
+  EXPECT_EQ(&r, OK, SPN_find_subspan_at(SPN_from_cstr("012012"), SPN_from_cstr("1"), 0, &tmp));
+  EXPECT_EQ(&r, 1, tmp);
+  EXPECT_EQ(&r, OK, SPN_find_subspan_at(SPN_from_cstr("012012"), SPN_from_cstr("1"), 2, &tmp));
+  EXPECT_EQ(&r, 4, tmp);
+
+  EXPECT_EQ(&r,
+            OK,
+            SPN_find_subspan_reverse_at(SPN_from_cstr("012012"), SPN_from_cstr("1"), 5, &tmp));
+  EXPECT_EQ(&r, 4, tmp);
+  EXPECT_EQ(&r,
+            OK,
+            SPN_find_subspan_reverse_at(SPN_from_cstr("012012"), SPN_from_cstr("1"), 2, &tmp));
+  EXPECT_EQ(&r, 1, tmp);
 
   return r;
 }
@@ -611,9 +637,10 @@ Result tst_find_subspan_monster() {
 
   // NOTE I wouldn't generally recommend writing something like this, but I thought it was fun :)
   // NOTE Obvious gap in this test: duplicates, that is, we never have multiple matching sequences
-  //      and then check which one we find based on the 'at' idx and 'reverse'.
+  //      and then check which one we find based on the 'at' idx and 'reverse'. This gap is covered
+  //      by other tests (llamas were involved).
 
-  uint32_t       vals[50] = {0};
+  uint32_t       vals[16] = {0};
   const uint32_t len      = sizeof(vals) / sizeof(int);
   for(uint32_t i = 0; i < len; i++) {
     vals[i] = (2 * i) + 1; // math just to make it distinct from indices
@@ -748,6 +775,7 @@ int main() {
       tst_find_char,
       tst_find_int,
       tst_find_at_and_reverse_with_duplicates,
+      tst_find_at_likely_usage,
       tst_find_subspan_basic,
       tst_find_subspan_at_basic,
       tst_find_subspan_monster,
