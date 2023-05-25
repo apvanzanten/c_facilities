@@ -55,11 +55,11 @@ add_library(test_utils ${SRC_DIR}/test_utils.c)
 
 add_library(log ${SRC_DIR}/log.c)
 
-add_library(darray ${SRC_DIR}/darray.c)
-target_link_libraries(darray PUBLIC log)
-
 add_library(span ${SRC_DIR}/span.c)
 target_link_libraries(span PUBLIC log)
+
+add_library(darray ${SRC_DIR}/darray.c)
+target_link_libraries(darray PUBLIC log span)
 
 
 # --- tests ---

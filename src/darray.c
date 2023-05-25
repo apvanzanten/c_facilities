@@ -429,3 +429,41 @@ static uint8_t get_minimum_required_capacity_magnitude(uint32_t size) {
   }
   return MAX_CAPACITY_MAGNITUDE;
 }
+
+SPN_Span DAR_to_span(const DAR_DArray * this) {
+  if(this == NULL) return (SPN_Span){0};
+
+  return (SPN_Span){.begin = this->data, .len = this->size, .element_size = this->element_size};
+}
+
+STAT_Val DAR_create_on_heap_from_span(DAR_DArray ** this_p, SPN_Span span) {
+  if(this_p == NULL || *this_p != NULL) return LOG_STAT(STAT_ERR_ARGS, "bad arg 'this_p'");
+
+  DAR_DArray * this = (DAR_DArray *)malloc(sizeof(DAR_DArray));
+  if(this == NULL) return LOG_STAT(STAT_ERR_ALLOC, "failed to allocate for DAR_DArray");
+
+  if(!STAT_is_OK(DAR_create_in_place_from_span(this, span))) {
+    return LOG_STAT(STAT_ERR_INTERNAL, "failed to create new array");
+  }
+
+  *this_p = this;
+
+  return OK;
+}
+
+STAT_Val DAR_create_in_place_from_span(DAR_DArray * this, SPN_Span span) {
+  if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
+  if(span.element_size == 0) return LOG_STAT(STAT_ERR_ARGS, "span has invalid element size");
+  if(span.begin == NULL) return LOG_STAT(STAT_ERR_ARGS, "span has invalid data pointer");
+
+  if(!STAT_is_OK(DAR_create_in_place(this, span.element_size))) {
+    return LOG_STAT(STAT_ERR_INTERNAL, "failed to create new array");
+  }
+
+  if(!STAT_is_OK(DAR_push_back_array(this, span.begin, span.len))) {
+    DAR_destroy_in_place(this);
+    return LOG_STAT(STAT_ERR_INTERNAL, "failed to copy span data into array");
+  }
+
+  return OK;
+}

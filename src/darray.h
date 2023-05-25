@@ -7,6 +7,8 @@
 
 #include "stat.h"
 
+#include "span.h"
+
 typedef struct {
   void *   data;
   uint8_t  element_size;       // size of each element in bytes
@@ -63,5 +65,9 @@ void *       DAR_first(DAR_DArray * this);
 void *       DAR_last(DAR_DArray * this);
 const void * DAR_first_const(const DAR_DArray * this);
 const void * DAR_last_const(const DAR_DArray * this);
+
+SPN_Span DAR_to_span(const DAR_DArray * this);
+STAT_Val DAR_create_on_heap_from_span(DAR_DArray ** this_p, SPN_Span span);
+STAT_Val DAR_create_in_place_from_span(DAR_DArray * this, SPN_Span span);
 
 #endif

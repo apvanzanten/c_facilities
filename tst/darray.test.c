@@ -10,6 +10,8 @@
 
 #include "darray.h"
 
+#include "span.h"
+
 #define OK STAT_OK
 
 static Result setup(void ** env_p);
@@ -97,6 +99,114 @@ Result tst_create_in_place_from_cstr() {
   EXPECT_STREQ(&r, str, arr.data);
 
   EXPECT_EQ(&r, OK, DAR_destroy_in_place(&arr));
+
+  return r;
+}
+
+Result tst_create_on_heap_from_span() {
+  Result r = PASS;
+
+  DAR_DArray * arr = NULL;
+
+  {
+    const char     str[] = "They're waiting for you Gordon, in the *test* chamber.";
+    const SPN_Span span  = SPN_from_cstr(str);
+
+    EXPECT_EQ(&r, OK, DAR_create_on_heap_from_span(&arr, span));
+
+    EXPECT_EQ(&r, span.len, arr->size);
+    EXPECT_EQ(&r, span.element_size, arr->element_size);
+    EXPECT_NE(&r, span.begin, arr->data);
+
+    EXPECT_ARREQ(&r, char, span.begin, arr->data, span.len);
+
+    EXPECT_EQ(&r, OK, DAR_destroy_on_heap(&arr));
+  }
+  {
+    const int      vals[] = {1, 2, 3, 4, 6, 7};
+    const SPN_Span span =
+        (SPN_Span){.begin = vals, .len = sizeof(vals) / sizeof(int), .element_size = sizeof(int)};
+
+    EXPECT_EQ(&r, OK, DAR_create_on_heap_from_span(&arr, span));
+
+    EXPECT_EQ(&r, span.len, arr->size);
+    EXPECT_EQ(&r, span.element_size, arr->element_size);
+    EXPECT_NE(&r, span.begin, arr->data);
+
+    EXPECT_ARREQ(&r, int, span.begin, arr->data, span.len);
+
+    EXPECT_EQ(&r, OK, DAR_destroy_on_heap(&arr));
+  }
+  {
+    const double   vals[] = {1.0, 2.0, 3.0, 4.0, 6.0, 7.0};
+    const SPN_Span span   = (SPN_Span){.begin        = vals,
+                                       .len          = sizeof(vals) / sizeof(double),
+                                       .element_size = sizeof(double)};
+
+    EXPECT_EQ(&r, OK, DAR_create_on_heap_from_span(&arr, span));
+
+    EXPECT_EQ(&r, span.len, arr->size);
+    EXPECT_EQ(&r, span.element_size, arr->element_size);
+    EXPECT_NE(&r, span.begin, arr->data);
+
+    EXPECT_ARREQ(&r, double, span.begin, arr->data, span.len);
+
+    EXPECT_EQ(&r, OK, DAR_destroy_on_heap(&arr));
+  }
+
+  return r;
+}
+
+Result tst_create_in_place_from_span() {
+  Result r = PASS;
+
+  DAR_DArray arr = {0};
+
+  {
+    const char     str[] = "The Shire's this way.";
+    const SPN_Span span  = SPN_from_cstr(str);
+
+    EXPECT_EQ(&r, OK, DAR_create_in_place_from_span(&arr, span));
+
+    EXPECT_EQ(&r, span.len, arr.size);
+    EXPECT_EQ(&r, span.element_size, arr.element_size);
+    EXPECT_NE(&r, span.begin, arr.data);
+
+    EXPECT_ARREQ(&r, char, span.begin, arr.data, span.len);
+
+    EXPECT_EQ(&r, OK, DAR_destroy_in_place(&arr));
+  }
+  {
+    const int      vals[] = {1, 2, 3, 4, 6, 7};
+    const SPN_Span span =
+        (SPN_Span){.begin = vals, .len = sizeof(vals) / sizeof(int), .element_size = sizeof(int)};
+
+    EXPECT_EQ(&r, OK, DAR_create_in_place_from_span(&arr, span));
+
+    EXPECT_EQ(&r, span.len, arr.size);
+    EXPECT_EQ(&r, span.element_size, arr.element_size);
+    EXPECT_NE(&r, span.begin, arr.data);
+
+    EXPECT_ARREQ(&r, int, span.begin, arr.data, span.len);
+
+    EXPECT_EQ(&r, OK, DAR_destroy_in_place(&arr));
+  }
+  {
+    const double   vals[] = {1.0, 2.0, 3.0, 4.0, 6.0, 7.0};
+    const SPN_Span span   = (SPN_Span){.begin        = vals,
+                                       .len          = sizeof(vals) / sizeof(double),
+                                       .element_size = sizeof(double)};
+
+    EXPECT_EQ(&r, OK, DAR_create_in_place_from_span(&arr, span));
+
+    EXPECT_EQ(&r, span.len, arr.size);
+    EXPECT_EQ(&r, span.element_size, arr.element_size);
+    EXPECT_NE(&r, span.begin, arr.data);
+
+    EXPECT_ARREQ(&r, double, span.begin, arr.data, span.len);
+
+    EXPECT_EQ(&r, OK, DAR_destroy_in_place(&arr));
+  }
 
   return r;
 }
@@ -768,12 +878,33 @@ Result tst_many_random_push_pop(void * env) {
   return r;
 }
 
+Result tst_to_span(void * env) {
+  Result       r   = PASS;
+  DAR_DArray * arr = env;
+
+  const double vals[]   = {1.0, 2.0, 3.0, 4.0, 5.0};
+  const size_t num_vals = sizeof(vals) / sizeof(double);
+
+  EXPECT_EQ(&r, OK, DAR_push_back_array(arr, vals, num_vals));
+  if(HAS_FAILED(&r)) return r;
+
+  const SPN_Span span = DAR_to_span(arr);
+
+  EXPECT_EQ(&r, arr->size, span.len);
+  EXPECT_EQ(&r, arr->element_size, span.element_size);
+  EXPECT_EQ(&r, arr->data, span.begin);
+
+  return r;
+}
+
 int main() {
   Test tests[] = {
       tst_create_destroy_on_heap,
       tst_create_destroy_in_place,
       tst_create_on_heap_from_cstr,
       tst_create_in_place_from_cstr,
+      tst_create_on_heap_from_span,
+      tst_create_in_place_from_span,
   };
 
   TestWithFixture tests_with_fixture[] = {
@@ -797,11 +928,15 @@ int main() {
       tst_create_on_heap_from,
       tst_equals,
       tst_first_last,
-      tst_many_random_push_pop, // run this a couple times (gets new seed every time)
+
+      // run this a couple times (gets new seed every time)
       tst_many_random_push_pop,
       tst_many_random_push_pop,
       tst_many_random_push_pop,
       tst_many_random_push_pop,
+      tst_many_random_push_pop,
+
+      tst_to_span,
   };
 
   const Result test_res = run_tests(tests, sizeof(tests) / sizeof(Test));
