@@ -43,13 +43,13 @@ STAT_Val DAR_reserve(DAR_DArray * this, uint32_t num_elements);
 STAT_Val DAR_clear(DAR_DArray * this);
 STAT_Val DAR_clear_and_shrink(DAR_DArray * this);
 
-void *       DAR_get(DAR_DArray * this, uint32_t idx);
-const void * DAR_get_const(const DAR_DArray * this, uint32_t idx);
+static inline void *       DAR_get(DAR_DArray * this, uint32_t idx);
+static inline const void * DAR_get_const(const DAR_DArray * this, uint32_t idx);
+static inline void         DAR_set(DAR_DArray * this, uint32_t idx, const void * value);
 
 STAT_Val DAR_get_checked(DAR_DArray * this, uint32_t idx, void ** out);
 STAT_Val DAR_get_checked_const(const DAR_DArray * this, uint32_t idx, const void ** out);
 
-void     DAR_set(DAR_DArray * this, uint32_t idx, const void * value);
 STAT_Val DAR_set_checked(DAR_DArray * this, uint32_t idx, const void * value);
 
 STAT_Val DAR_push_back_array(DAR_DArray * this, const void * arr, uint32_t n);
@@ -61,13 +61,47 @@ size_t DAR_get_capacity(const DAR_DArray * this);
 size_t DAR_get_capacity_in_bytes(const DAR_DArray * this);
 size_t DAR_get_size_in_bytes(const DAR_DArray * this);
 
-void *       DAR_first(DAR_DArray * this);
-void *       DAR_last(DAR_DArray * this);
-const void * DAR_first_const(const DAR_DArray * this);
-const void * DAR_last_const(const DAR_DArray * this);
+static inline void *       DAR_first(DAR_DArray * this);
+static inline void *       DAR_last(DAR_DArray * this);
+static inline const void * DAR_first_const(const DAR_DArray * this);
+static inline const void * DAR_last_const(const DAR_DArray * this);
 
 SPN_Span DAR_to_span(const DAR_DArray * this);
 STAT_Val DAR_create_on_heap_from_span(DAR_DArray ** this_p, SPN_Span span);
 STAT_Val DAR_create_in_place_from_span(DAR_DArray * this, SPN_Span span);
+
+static size_t DAR_get_byte_idx(const DAR_DArray * this, uint32_t element_idx) {
+  return this->element_size * element_idx;
+}
+
+static inline void * DAR_get(DAR_DArray * this, uint32_t idx) {
+  return &(((uint8_t *)this->data)[DAR_get_byte_idx(this, idx)]);
+}
+static inline const void * DAR_get_const(const DAR_DArray * this, uint32_t idx) {
+  return &(((const uint8_t *)this->data)[DAR_get_byte_idx(this, idx)]);
+}
+static inline void DAR_set(DAR_DArray * this, uint32_t idx, const void * value) {
+  // NOTE This could be done with memcpy. Based on some quick and dirty benchmarks, I gather it
+  // would be significantly slower for smaller elements, but catch up and start being significantly
+  // faster at around 16 bytes per element. That said, your mileage may vary depending on where/how
+  // this is called; due to inlining it may be able to fill in parts of the below loop at
+  // compile-time which could lead to significant optimizations, probably making it not quite so
+  // slow also for larger elements.
+  // Ultimately, it's not too hard for the client to call memcpy themselves if they need the
+  // performance, so I decided to stick with just the loop.
+
+  uint8_t *       dst_bytes = (uint8_t *)DAR_get(this, idx);
+  const uint8_t * src_bytes = (const uint8_t *)value;
+  for(uint32_t i = 0; i < this->element_size; i++) {
+    dst_bytes[i] = src_bytes[i];
+  }
+}
+
+static inline void *       DAR_first(DAR_DArray * this) { return this->data; }
+static inline void *       DAR_last(DAR_DArray * this) { return DAR_get(this, this->size - 1); }
+static inline const void * DAR_first_const(const DAR_DArray * this) { return this->data; }
+static inline const void * DAR_last_const(const DAR_DArray * this) {
+  return DAR_get_const(this, this->size - 1);
+}
 
 #endif

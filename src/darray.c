@@ -17,8 +17,6 @@ static size_t get_capacity(const DAR_DArray * this);
 static size_t get_capacity_from_magnitude(uint8_t magnitude);
 static size_t get_capacity_in_bytes_from_magnitude(uint8_t element_size, uint8_t magnitude);
 
-static size_t get_byte_idx(const DAR_DArray * this, uint32_t element_idx);
-
 static uint8_t get_minimum_required_capacity_magnitude(uint32_t size);
 
 static STAT_Val grow_capacity_as_needed(DAR_DArray * this, uint32_t num_elements_to_fit);
@@ -284,14 +282,6 @@ STAT_Val DAR_clear_and_shrink(DAR_DArray * this) {
   return OK;
 }
 
-void * DAR_get(DAR_DArray * this, uint32_t idx) {
-  return &(((char *)this->data)[get_byte_idx(this, idx)]);
-}
-
-const void * DAR_get_const(const DAR_DArray * this, uint32_t idx) {
-  return &(((const char *)this->data)[get_byte_idx(this, idx)]);
-}
-
 STAT_Val DAR_get_checked(DAR_DArray * this, uint32_t idx, void ** out) {
   if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
   if(out == NULL) return LOG_STAT(STAT_ERR_ARGS, "out is NULL");
@@ -316,10 +306,6 @@ STAT_Val DAR_get_checked_const(const DAR_DArray * this, uint32_t idx, const void
   *out = DAR_get_const(this, idx);
 
   return OK;
-}
-
-void DAR_set(DAR_DArray * this, uint32_t idx, const void * value) {
-  memcpy(DAR_get(this, idx), value, this->element_size);
 }
 
 STAT_Val DAR_set_checked(DAR_DArray * this, uint32_t idx, const void * value) {
@@ -378,11 +364,6 @@ bool DAR_equals(const DAR_DArray * lhs, const DAR_DArray * rhs) {
   return (memcmp(lhs->data, rhs->data, DAR_get_size_in_bytes(lhs)) == 0);
 }
 
-void *       DAR_first(DAR_DArray * this) { return this->data; }
-void *       DAR_last(DAR_DArray * this) { return DAR_get(this, this->size - 1); }
-const void * DAR_first_const(const DAR_DArray * this) { return this->data; }
-const void * DAR_last_const(const DAR_DArray * this) { return DAR_get_const(this, this->size - 1); }
-
 static size_t get_capacity_from_magnitude(uint8_t magnitude) { return 1LL << magnitude; }
 
 static size_t get_capacity(const DAR_DArray * this) {
@@ -413,10 +394,6 @@ static STAT_Val grow_capacity_as_needed(DAR_DArray * this, uint32_t num_elements
   this->capacity_magnitude = req_cap_magnitude;
 
   return OK;
-}
-
-static size_t get_byte_idx(const DAR_DArray * this, uint32_t element_idx) {
-  return this->element_size * element_idx;
 }
 
 static uint8_t get_minimum_required_capacity_magnitude(uint32_t size) {
