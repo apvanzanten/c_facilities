@@ -7,6 +7,8 @@
 
 #define OK STAT_OK
 
+static bool is_valid(SPN_Span span) { return (span.begin != NULL && span.element_size != 0); }
+
 SPN_Span SPN_from_cstr(const char * cstr) {
   if(cstr == NULL) return (SPN_Span){0};
   return (SPN_Span){.begin = (const void *)cstr, .len = strlen(cstr), .element_size = 1};
@@ -38,4 +40,47 @@ bool SPN_contains_subspan(SPN_Span span, SPN_Span subspan) {
   }
 
   return false;
+}
+
+STAT_Val SPN_find(SPN_Span span, const void * element, uint32_t * o_idx) {
+  return SPN_find_at(span, element, 0, o_idx);
+}
+
+STAT_Val SPN_find_at(SPN_Span span, const void * element, uint32_t at_idx, uint32_t * o_idx) {
+  if(!is_valid(span)) return LOG_STAT(STAT_ERR_ARGS, "span not valid");
+  if(element == NULL) return LOG_STAT(STAT_ERR_ARGS, "element is NULL");
+
+  for(uint32_t i = at_idx; i < span.len; i++) {
+    if(memcmp(SPN_get(span, i), element, span.element_size) == 0) {
+      if(o_idx != NULL) *o_idx = i;
+      return OK;
+    };
+  }
+
+  return STAT_OK_NOT_FOUND;
+}
+
+STAT_Val SPN_find_reverse(SPN_Span span, const void * element, uint32_t * o_idx) {
+  if(span.len == 0) return STAT_OK_NOT_FOUND;
+  return SPN_find_reverse_at(span, element, span.len - 1, o_idx);
+}
+
+STAT_Val SPN_find_reverse_at(SPN_Span     span,
+                             const void * element,
+                             uint32_t     at_idx,
+                             uint32_t *   o_idx) {
+  if(!is_valid(span)) return LOG_STAT(STAT_ERR_ARGS, "span not valid");
+  if(element == NULL) return LOG_STAT(STAT_ERR_ARGS, "element is NULL");
+
+  // we start at +1 and then decrement at the start of the iteration
+  uint32_t i = at_idx + 1;
+  do {
+    i--;
+    if(memcmp(SPN_get(span, i), element, span.element_size) == 0) {
+      if(o_idx != NULL) *o_idx = i;
+      return OK;
+    }
+  } while(i != 0);
+
+  return STAT_OK_NOT_FOUND;
 }

@@ -5,6 +5,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "stat.h"
+
 typedef struct {
   const void * begin;        // NOTE non-owning
   uint32_t     len;          // len in number of elements
@@ -18,6 +20,15 @@ SPN_Span SPN_subspan(SPN_Span src, uint32_t begin_idx, uint32_t len);
 bool SPN_equals(SPN_Span lhs, SPN_Span rhs);
 
 bool SPN_contains_subspan(SPN_Span span, SPN_Span subspan);
+
+STAT_Val SPN_find(SPN_Span span, const void * element, uint32_t * o_idx);
+STAT_Val SPN_find_at(SPN_Span span, const void * element, uint32_t at_idx, uint32_t * o_idx);
+
+STAT_Val SPN_find_reverse(SPN_Span span, const void * element, uint32_t * o_idx);
+STAT_Val SPN_find_reverse_at(SPN_Span     span,
+                             const void * element,
+                             uint32_t     at_idx,
+                             uint32_t *   o_idx);
 
 inline static size_t SPN_get_byte_idx(SPN_Span src, uint32_t idx) {
   return ((size_t)src.element_size) * ((size_t)idx);

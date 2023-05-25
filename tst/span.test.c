@@ -332,6 +332,176 @@ Result tst_constains_subspan_int() {
   return r;
 }
 
+Result tst_find_char() {
+  Result r = PASS;
+
+  const char     str[] = "0123456789abcdefghijklmnopqrstuvwxyz"; // should have unique letters only
+  const uint32_t len   = strlen(str);
+
+  for(uint32_t idx = 0; idx < len; idx++) {
+    {
+      uint32_t tmp = 9999;
+      EXPECT_EQ(&r, OK, SPN_find(SPN_from_cstr(str), &(str[idx]), &tmp));
+      EXPECT_EQ(&r, idx, tmp);
+    }
+    {
+      uint32_t tmp = 9999;
+      EXPECT_EQ(&r, OK, SPN_find_reverse(SPN_from_cstr(str), &(str[idx]), &tmp));
+      EXPECT_EQ(&r, idx, tmp);
+    }
+    if(HAS_FAILED(&r)) return r;
+  }
+
+  {
+    uint32_t tmp = 9999;
+    EXPECT_EQ(&r, STAT_OK_NOT_FOUND, SPN_find(SPN_from_cstr(str), "A", &tmp));
+    EXPECT_EQ(&r, STAT_OK_NOT_FOUND, SPN_find(SPN_from_cstr(str), ";", &tmp));
+    EXPECT_EQ(&r, STAT_OK_NOT_FOUND, SPN_find(SPN_from_cstr(str), "&", &tmp));
+    EXPECT_EQ(&r, STAT_OK_NOT_FOUND, SPN_find(SPN_from_cstr(str), "*", &tmp));
+    EXPECT_EQ(&r, STAT_OK_NOT_FOUND, SPN_find_reverse(SPN_from_cstr(str), "A", &tmp));
+    EXPECT_EQ(&r, STAT_OK_NOT_FOUND, SPN_find_reverse(SPN_from_cstr(str), ";", &tmp));
+    EXPECT_EQ(&r, STAT_OK_NOT_FOUND, SPN_find_reverse(SPN_from_cstr(str), "&", &tmp));
+    EXPECT_EQ(&r, STAT_OK_NOT_FOUND, SPN_find_reverse(SPN_from_cstr(str), "*", &tmp));
+  }
+
+  for(uint32_t at_idx = 0; at_idx < len; at_idx++) {
+    for(uint32_t idx = 0; idx < len; idx++) {
+      {
+        uint32_t       tmp = 9999;
+        const STAT_Val st  = SPN_find_at(SPN_from_cstr(str), &(str[idx]), at_idx, &tmp);
+        if(idx >= at_idx) {
+          EXPECT_EQ(&r, OK, st);
+          EXPECT_EQ(&r, idx, tmp);
+        } else {
+          EXPECT_EQ(&r, STAT_OK_NOT_FOUND, st);
+        }
+      }
+      {
+        uint32_t       tmp = 9999;
+        const STAT_Val st  = SPN_find_reverse_at(SPN_from_cstr(str), &(str[idx]), at_idx, &tmp);
+        if(idx <= at_idx) {
+          EXPECT_EQ(&r, OK, st);
+          EXPECT_EQ(&r, idx, tmp);
+        } else {
+          EXPECT_EQ(&r, STAT_OK_NOT_FOUND, st);
+        }
+      }
+      if(HAS_FAILED(&r)) return r;
+    }
+  }
+
+  return r;
+}
+
+Result tst_find_int() {
+  Result r = PASS;
+
+  const int      vals[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
+  const SPN_Span span   = {.begin        = vals,
+                           .len          = sizeof(vals) / sizeof(int),
+                           .element_size = sizeof(int)};
+
+  for(uint32_t idx = 0; idx < span.len; idx++) {
+    {
+      uint32_t tmp = 9999;
+      EXPECT_EQ(&r, OK, SPN_find(span, SPN_get(span, idx), &tmp));
+      EXPECT_EQ(&r, idx, tmp);
+    }
+    {
+      uint32_t tmp = 9999;
+      EXPECT_EQ(&r, OK, SPN_find_reverse(span, SPN_get(span, idx), &tmp));
+      EXPECT_EQ(&r, idx, tmp);
+    }
+    if(HAS_FAILED(&r)) return r;
+  }
+
+  {
+    uint32_t tmp = 9999;
+    {
+      const int to_find = 16;
+      EXPECT_EQ(&r, STAT_OK_NOT_FOUND, SPN_find(span, &to_find, &tmp));
+      EXPECT_EQ(&r, STAT_OK_NOT_FOUND, SPN_find_reverse(span, &to_find, &tmp));
+    }
+    {
+      const int to_find = -5;
+      EXPECT_EQ(&r, STAT_OK_NOT_FOUND, SPN_find(span, &to_find, &tmp));
+      EXPECT_EQ(&r, STAT_OK_NOT_FOUND, SPN_find_reverse(span, &to_find, &tmp));
+    }
+    {
+      const int to_find = 9001;
+      EXPECT_EQ(&r, STAT_OK_NOT_FOUND, SPN_find(span, &to_find, &tmp));
+      EXPECT_EQ(&r, STAT_OK_NOT_FOUND, SPN_find_reverse(span, &to_find, &tmp));
+    }
+    {
+      const int to_find = -1;
+      EXPECT_EQ(&r, STAT_OK_NOT_FOUND, SPN_find(span, &to_find, &tmp));
+      EXPECT_EQ(&r, STAT_OK_NOT_FOUND, SPN_find_reverse(span, &to_find, &tmp));
+    }
+  }
+
+  for(uint32_t at_idx = 0; at_idx < span.len; at_idx++) {
+    for(uint32_t idx = 0; idx < span.len; idx++) {
+      {
+        uint32_t       tmp = 9999;
+        const STAT_Val st  = SPN_find_at(span, SPN_get(span, idx), at_idx, &tmp);
+
+        if(idx >= at_idx) {
+          EXPECT_EQ(&r, OK, st);
+          EXPECT_EQ(&r, idx, tmp);
+        } else {
+          EXPECT_EQ(&r, STAT_OK_NOT_FOUND, st);
+        }
+      }
+      {
+        uint32_t       tmp = 9999;
+        const STAT_Val st  = SPN_find_reverse_at(span, SPN_get(span, idx), at_idx, &tmp);
+
+        if(idx <= at_idx) {
+          EXPECT_EQ(&r, OK, st);
+          EXPECT_EQ(&r, idx, tmp);
+        } else {
+          EXPECT_EQ(&r, STAT_OK_NOT_FOUND, st);
+        }
+      }
+      if(HAS_FAILED(&r)) return r;
+    }
+  }
+
+  return r;
+}
+
+Result tst_find_at_and_reverse_with_duplicates() {
+  Result r = PASS;
+
+  const char str[] = "01234567890123456789";
+
+  {
+    uint32_t tmp = 9999;
+    EXPECT_EQ(&r, OK, SPN_find(SPN_from_cstr(str), "0", &tmp));
+    EXPECT_EQ(&r, 0, tmp); // finds only the first
+    EXPECT_EQ(&r, OK, SPN_find_at(SPN_from_cstr(str), "0", 1, &tmp));
+    EXPECT_EQ(&r, 10, tmp); // finds only the second because we skipped over the first
+    EXPECT_EQ(&r, OK, SPN_find_reverse(SPN_from_cstr(str), "0", &tmp));
+    EXPECT_EQ(&r, 10, tmp); // finds only the second because we search from behind
+    EXPECT_EQ(&r, OK, SPN_find_reverse_at(SPN_from_cstr(str), "0", 9, &tmp));
+    EXPECT_EQ(&r, 0, tmp); // finds only the first because we search in reverse and skip the back
+  }
+
+  {
+    uint32_t tmp = 9999;
+    EXPECT_EQ(&r, OK, SPN_find(SPN_from_cstr(str), "5", &tmp));
+    EXPECT_EQ(&r, 5, tmp); // finds only the first
+    EXPECT_EQ(&r, OK, SPN_find_at(SPN_from_cstr(str), "5", 6, &tmp));
+    EXPECT_EQ(&r, 15, tmp); // finds only the second because we skipped over the first
+    EXPECT_EQ(&r, OK, SPN_find_reverse(SPN_from_cstr(str), "5", &tmp));
+    EXPECT_EQ(&r, 15, tmp); // finds only the second because we search from behind
+    EXPECT_EQ(&r, OK, SPN_find_reverse_at(SPN_from_cstr(str), "5", 9, &tmp));
+    EXPECT_EQ(&r, 5, tmp); // finds only the first because we search in reverse and skip the back
+  }
+
+  return r;
+}
+
 int main() {
   Test tests[] = {
       tst_create_from_cstr,
@@ -343,6 +513,9 @@ int main() {
       tst_subspan_double,
       tst_constains_subspan_cstr,
       tst_constains_subspan_int,
+      tst_find_char,
+      tst_find_int,
+      tst_find_at_and_reverse_with_duplicates,
   };
 
   return (run_tests(tests, sizeof(tests) / sizeof(Test)) == PASS) ? 0 : 1;
