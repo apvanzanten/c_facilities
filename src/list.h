@@ -48,12 +48,26 @@ STAT_Val LST_insert_from_array(LST_List * this,
 
 STAT_Val LST_remove(LST_Node * to_be_removed);
 
+STAT_Val LST_inject(LST_Node * to_be_injected, LST_Node * successor);
+STAT_Val LST_extract(LST_Node * to_be_extracted);
+
 STAT_Val LST_clear(LST_List * this);
 
 // =============
 // == queries ==
 
 size_t LST_get_len(const LST_List * this);
+bool   LST_contains(const LST_List * this, const void * value);
+
+// STAT_Val LST_find([const] LST_List * this, const void * value, [const] LST_Node ** o_found_node);
+#define LST_find(list, value, o_found_node)                                                        \
+  _Generic((list),                                                                                 \
+      const LST_List *: LST_IMPL_find_const,                                                       \
+      LST_List *: LST_IMPL_find_nonconst)(list, value, o_found_node)
+STAT_Val LST_IMPL_find_nonconst(LST_List * this, const void * value, LST_Node ** o_found_node);
+STAT_Val LST_IMPL_find_const(const LST_List * this,
+                             const void *      value,
+                             const LST_Node ** o_found_node);
 
 // ===============
 // == accessors ==
@@ -87,6 +101,14 @@ static inline const void * LST_IMPL_data_const(const LST_Node * node);
 // from uint8_t to whatever is the relevant data type will likely result in warnings/errors from
 // compilers and linters. It's not a perfect solution but it is slightly more convenient.
 
+//  [const] LST_Node * LST_next([const] LST_Node * node, int n);
+#define LST_next(node, n)                                                                          \
+  _Generic((node),                                                                                 \
+      const LST_Node *: LST_IMPL_next_const,                                                       \
+      LST_Node *: LST_IMPL_next_nonconst)(node, n)
+static inline LST_Node *       LST_IMPL_next_nonconst(LST_Node * node_pp, int n);
+static inline const LST_Node * LST_IMPL_next_const(const LST_Node * node_pp, int n);
+
 // =====================================
 // == inline function implementations ==
 
@@ -103,6 +125,17 @@ static inline const LST_Node * LST_IMPL_end_const(const LST_List * this) { retur
 static inline void *       LST_IMPL_data_nonconst(LST_Node * node) { return (void *)node->data; }
 static inline const void * LST_IMPL_data_const(const LST_Node * node) {
   return (const void *)node->data;
+}
+
+static inline LST_Node * LST_IMPL_next_nonconst(LST_Node * node, int n) {
+  for(int i = 0; i < n; i++) node = node->next;
+  for(int i = 0; i > n; i--) node = node->prev;
+  return node;
+}
+static inline const LST_Node * LST_IMPL_next_const(const LST_Node * node, int n) {
+  for(int i = 0; i < n; i++) node = node->next;
+  for(int i = 0; i > n; i--) node = node->prev;
+  return node;
 }
 
 // ===============

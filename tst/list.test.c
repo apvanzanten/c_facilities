@@ -256,6 +256,71 @@ Result tst_remove(void * env_p) {
   return r;
 }
 
+Result tst_extract_and_inject(void * env_p) {
+  Result     r    = PASS;
+  LST_List * list = (LST_List *)env_p;
+
+  const double vals[]   = {0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0};
+  const size_t num_vals = sizeof(vals) / sizeof(double);
+
+  EXPECT_EQ(&r, OK, LST_insert_from_array(list, LST_end(list), vals, num_vals, NULL));
+
+  { // extract from back and inject at start
+    LST_Node * node = LST_last(list);
+
+    EXPECT_EQ(&r, OK, LST_extract(node));
+    EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
+    EXPECT_EQ(&r, (num_vals - 1), LST_get_len(list));
+    EXPECT_NE(&r, NULL, node);
+    EXPECT_NE(&r, node, LST_last(list));
+    EXPECT_FALSE(&r, LST_contains(list, LST_data(node)));
+    if(HAS_FAILED(&r)) return r;
+
+    EXPECT_EQ(&r, OK, LST_inject(node, LST_first(list)));
+    EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
+    EXPECT_EQ(&r, num_vals, LST_get_len(list));
+    EXPECT_EQ(&r, node, LST_first(list));
+    if(HAS_FAILED(&r)) return r;
+  }
+
+  { // extract from front and inject at back
+    LST_Node * node = LST_first(list);
+
+    EXPECT_EQ(&r, OK, LST_extract(node));
+    EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
+    EXPECT_EQ(&r, (num_vals - 1), LST_get_len(list));
+    EXPECT_NE(&r, NULL, node);
+    EXPECT_NE(&r, node, LST_first(list));
+    EXPECT_FALSE(&r, LST_contains(list, LST_data(node)));
+    if(HAS_FAILED(&r)) return r;
+
+    EXPECT_EQ(&r, OK, LST_inject(node, LST_end(list)));
+    EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
+    EXPECT_EQ(&r, num_vals, LST_get_len(list));
+    EXPECT_EQ(&r, node, LST_last(list));
+    if(HAS_FAILED(&r)) return r;
+  }
+
+  { // extract from [2] and inject before [4]
+    LST_Node * node = LST_next(LST_first(list), 2);
+
+    EXPECT_EQ(&r, OK, LST_extract(node));
+    EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
+    EXPECT_EQ(&r, (num_vals - 1), LST_get_len(list));
+    EXPECT_NE(&r, NULL, node);
+    EXPECT_FALSE(&r, LST_contains(list, LST_data(node)));
+    if(HAS_FAILED(&r)) return r;
+
+    EXPECT_EQ(&r, OK, LST_inject(node, LST_next(LST_first(list), 4)));
+    EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
+    EXPECT_EQ(&r, num_vals, LST_get_len(list));
+    EXPECT_EQ(&r, node, LST_next(LST_first(list), 4));
+    if(HAS_FAILED(&r)) return r;
+  }
+
+  return r;
+}
+
 int main() {
   Test tests[] = {
       tst_create_destroy_on_heap,
@@ -268,6 +333,7 @@ int main() {
       tst_insert,
       tst_insert_from_array,
       tst_remove,
+      tst_extract_and_inject,
   };
 
   const Result test_res = run_tests(tests, sizeof(tests) / sizeof(Test));

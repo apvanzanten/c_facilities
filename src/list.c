@@ -164,6 +164,28 @@ STAT_Val LST_remove(LST_Node * to_be_removed) {
   return OK;
 }
 
+STAT_Val LST_inject(LST_Node * to_be_injected, LST_Node * successor) {
+  if(to_be_injected == NULL) return LOG_STAT(STAT_ERR_ARGS, "to_be_injected is NULL");
+  if(successor == NULL) return LOG_STAT(STAT_ERR_ARGS, "successor is NULL");
+
+  LST_Node * predecessor = successor->prev;
+  connect(predecessor, to_be_injected);
+  connect(to_be_injected, successor);
+
+  return OK;
+}
+
+STAT_Val LST_extract(LST_Node * to_be_extracted) {
+  if(to_be_extracted == NULL) return LOG_STAT(STAT_ERR_ARGS, "to_be_extracted is NULL");
+
+  connect(to_be_extracted->prev, to_be_extracted->next);
+
+  to_be_extracted->next = NULL;
+  to_be_extracted->prev = NULL;
+
+  return OK;
+}
+
 // =============
 // == queries ==
 
@@ -178,6 +200,41 @@ size_t LST_get_len(const LST_List * this) {
   }
 
   return len;
+}
+
+STAT_Val LST_IMPL_find_nonconst(LST_List * this, const void * value, LST_Node ** o_found_node) {
+  if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
+  if(value == NULL) return LOG_STAT(STAT_ERR_ARGS, "value is NULL");
+
+  for(LST_Node * node = LST_first(this); node != LST_end(this); node = node->next) {
+    if(memcmp(LST_data(node), value, this->element_size) == 0) {
+      if(o_found_node != NULL) *o_found_node = node;
+      return OK;
+    }
+  }
+
+  return STAT_OK_NOT_FOUND;
+}
+
+STAT_Val LST_IMPL_find_const(const LST_List * this,
+                             const void *      value,
+                             const LST_Node ** o_found_node) {
+  if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
+  if(value == NULL) return LOG_STAT(STAT_ERR_ARGS, "value is NULL");
+
+  for(const LST_Node * node = LST_first(this); node != LST_end(this); node = node->next) {
+    if(memcmp(LST_data(node), value, this->element_size) == 0) {
+      if(o_found_node != NULL) *o_found_node = node;
+      return OK;
+    }
+  }
+
+  return STAT_OK_NOT_FOUND;
+}
+
+bool LST_contains(const LST_List * this, const void * value) {
+  if(this == NULL || value == NULL) return false;
+  return (LST_find(this, value, NULL) == STAT_OK);
 }
 
 // =====================================
