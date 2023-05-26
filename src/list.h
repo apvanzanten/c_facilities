@@ -6,6 +6,9 @@
 
 #include "stat.h"
 
+// ===========
+// == types ==
+
 typedef struct LST_Node {
   // NOTE we align this struct and the data flexible array member to sizeof(max_align_t), so that we
   // can store larger things in the data flexible array member (that may need such alignment).
@@ -21,17 +24,22 @@ typedef struct LST_List {
   size_t element_size;
 } LST_List;
 
+// ==============================
+// == creation and destruction ==
+
 STAT_Val LST_create_on_heap(LST_List ** this_p, size_t element_size);
 STAT_Val LST_create_in_place(LST_List * this, size_t element_size);
 
 STAT_Val LST_destroy_on_heap(LST_List ** this_p);
 STAT_Val LST_destroy_in_place(LST_List * this);
 
+// ==================
+// == modification ==
+
 STAT_Val LST_insert(LST_List * this,
                     LST_Node *   successor,
                     const void * data,
                     LST_Node **  o_inserted_node);
-
 STAT_Val LST_insert_from_array(LST_List * this,
                                LST_Node *   successor,
                                const void * arr,
@@ -42,7 +50,45 @@ STAT_Val LST_remove(LST_Node * to_be_removed);
 
 STAT_Val LST_clear(LST_List * this);
 
+// =============
+// == queries ==
+
 size_t LST_get_len(const LST_List * this);
+
+// ===============
+// == accessors ==
+
+//  [const] LST_Node * LST_first([const] LST_List * this);
+#define LST_first(list)                                                                            \
+  _Generic((list), const LST_List *: LST_IMPL_first_const, LST_List *: LST_IMPL_first_nonconst)(   \
+      list)
+static inline LST_Node *       LST_IMPL_first_nonconst(LST_List * this);
+static inline const LST_Node * LST_IMPL_first_const(const LST_List * this);
+
+//  [const] LST_Node * LST_last([const] LST_List * this);
+#define LST_last(list)                                                                             \
+  _Generic((list), const LST_List *: LST_IMPL_last_const, LST_List *: LST_IMPL_last_nonconst)(list)
+static inline LST_Node *       LST_IMPL_last_nonconst(LST_List * this);
+static inline const LST_Node * LST_IMPL_last_const(const LST_List * this);
+
+//  [const] LST_Node * LST_end([const] LST_List * this);
+#define LST_end(list)                                                                              \
+  _Generic((list), const LST_List *: LST_IMPL_end_const, LST_List *: LST_IMPL_end_nonconst)(list)
+static inline LST_Node *       LST_IMPL_end_nonconst(LST_List * this);
+static inline const LST_Node * LST_IMPL_end_const(const LST_List * this);
+
+//  [const] void * LST_data([const] LST_Node * node);
+#define LST_data(node)                                                                             \
+  _Generic((node), const LST_Node *: LST_IMPL_data_const, LST_Node *: LST_IMPL_data_nonconst)(node)
+static inline void *       LST_IMPL_data_nonconst(LST_Node * node);
+static inline const void * LST_IMPL_data_const(const LST_Node * node);
+// NOTE We have this LST_data accessors because our data member is not void (because arrays can't
+// be members, and flexible array members must be arrays so can't be void), but casting directly
+// from uint8_t to whatever is the relevant data type will likely result in warnings/errors from
+// compilers and linters. It's not a perfect solution but it is slightly more convenient.
+
+// =====================================
+// == inline function implementations ==
 
 static inline LST_Node * LST_IMPL_first_nonconst(LST_List * this) { return this->sentinel->next; }
 static inline LST_Node * LST_IMPL_last_nonconst(LST_List * this) { return this->sentinel->prev; }
@@ -54,25 +100,13 @@ static inline const LST_Node * LST_IMPL_last_const(const LST_List * this) {
   return this->sentinel->prev;
 }
 static inline const LST_Node * LST_IMPL_end_const(const LST_List * this) { return this->sentinel; }
-
-// We have these because our data member is not void (because arrays can't be members, and flexible
-// array members must be arrays so can't be void), but casting directly from uint8_t to whatever is
-// the relevant data type will likely result in warnings/errors from compilers and linters.
-// It's not a perfect solution but it is slightly more convenient.
 static inline void *       LST_IMPL_data_nonconst(LST_Node * node) { return (void *)node->data; }
 static inline const void * LST_IMPL_data_const(const LST_Node * node) {
   return (const void *)node->data;
 }
 
-#define LST_first(list)                                                                            \
-  _Generic((list), const LST_List *: LST_IMPL_first_const, LST_List *: LST_IMPL_first_nonconst)(   \
-      list)
-#define LST_last(list)                                                                             \
-  _Generic((list), const LST_List *: LST_IMPL_last_const, LST_List *: LST_IMPL_last_nonconst)(list)
-#define LST_end(list)                                                                              \
-  _Generic((list), const LST_List *: LST_IMPL_end_const, LST_List *: LST_IMPL_end_nonconst)(list)
-#define LST_data(node)                                                                             \
-  _Generic((node), const LST_Node *: LST_IMPL_data_const, LST_Node *: LST_IMPL_data_nonconst)(node)
+// ===============
+// == test-only ==
 
 bool LST_IMPL_is_valid(const LST_List * this);
 
