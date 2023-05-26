@@ -109,6 +109,14 @@ static inline const void * LST_IMPL_data_const(const LST_Node * node);
 static inline LST_Node *       LST_IMPL_next_nonconst(LST_Node * node_pp, int n);
 static inline const LST_Node * LST_IMPL_next_const(const LST_Node * node_pp, int n);
 
+//  [const] LST_Node * LST_prev([const] LST_Node * node, int n);
+#define LST_prev(node, n)                                                                          \
+  _Generic((node),                                                                                 \
+      const LST_Node *: LST_IMPL_prev_const,                                                       \
+      LST_Node *: LST_IMPL_prev_nonconst)(node, n)
+static inline LST_Node *       LST_IMPL_prev_nonconst(LST_Node * node_pp, int n);
+static inline const LST_Node * LST_IMPL_prev_const(const LST_Node * node_pp, int n);
+
 // =====================================
 // == inline function implementations ==
 
@@ -135,6 +143,17 @@ static inline LST_Node * LST_IMPL_next_nonconst(LST_Node * node, int n) {
 static inline const LST_Node * LST_IMPL_next_const(const LST_Node * node, int n) {
   for(int i = 0; i < n; i++) node = node->next;
   for(int i = 0; i > n; i--) node = node->prev;
+  return node;
+}
+
+static inline LST_Node * LST_IMPL_prev_nonconst(LST_Node * node, int n) {
+  for(int i = 0; i < n; i++) node = node->prev;
+  for(int i = 0; i > n; i--) node = node->next;
+  return node;
+}
+static inline const LST_Node * LST_IMPL_prev_const(const LST_Node * node, int n) {
+  for(int i = 0; i < n; i++) node = node->prev;
+  for(int i = 0; i > n; i--) node = node->next;
   return node;
 }
 

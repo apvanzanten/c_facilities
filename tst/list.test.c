@@ -150,6 +150,7 @@ Result tst_insert(void * env_p) {
 
     EXPECT_EQ(&r, OK, LST_insert(list, list->sentinel, &vals[i], &new_node));
     EXPECT_NE(&r, NULL, list->sentinel);
+    EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
     if(HAS_FAILED(&r)) return r;
 
     EXPECT_NE(&r, NULL, list->sentinel->prev);
@@ -179,6 +180,137 @@ Result tst_insert(void * env_p) {
     prev = node;
     node = node->next;
     i++;
+  }
+
+  return r;
+}
+
+Result tst_get_len(void * env_p) {
+  Result     r    = PASS;
+  LST_List * list = (LST_List *)env_p;
+
+  const double vals[]   = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0};
+  const size_t num_vals = sizeof(vals) / sizeof(double);
+
+  for(size_t i = 0; i < num_vals; i++) {
+    LST_Node * new_node = NULL;
+
+    EXPECT_EQ(&r, OK, LST_insert(list, list->sentinel, &vals[i], &new_node));
+    EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
+
+    EXPECT_EQ(&r, i + 1, LST_get_len(list));
+
+    if(HAS_FAILED(&r)) return r;
+  }
+
+  return r;
+}
+
+Result tst_first_last_end(void * env_p) {
+  Result     r    = PASS;
+  LST_List * list = (LST_List *)env_p;
+
+  const double vals[]   = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0};
+  const size_t num_vals = sizeof(vals) / sizeof(double);
+
+  LST_Node * first_node = NULL;
+
+  for(size_t i = 0; i < num_vals; i++) {
+    LST_Node * new_node = NULL;
+
+    EXPECT_EQ(&r, OK, LST_insert(list, list->sentinel, &vals[i], &new_node));
+    EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
+    if(HAS_FAILED(&r)) return r;
+
+    if(i == 0) first_node = new_node;
+
+    EXPECT_EQ(&r, first_node, LST_first(list));
+    EXPECT_EQ(&r, new_node, LST_last(list));
+    EXPECT_EQ(&r, list->sentinel, LST_end(list));
+
+    EXPECT_EQ(&r, first_node, LST_first((const LST_List *)list));
+    EXPECT_EQ(&r, new_node, LST_last((const LST_List *)list));
+    EXPECT_EQ(&r, list->sentinel, LST_end((const LST_List *)list));
+
+    if(HAS_FAILED(&r)) return r;
+  }
+
+  return r;
+}
+
+Result tst_next_prev(void * env_p) {
+  Result     r    = PASS;
+  LST_List * list = (LST_List *)env_p;
+
+  const double vals[]   = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0};
+  const size_t num_vals = sizeof(vals) / sizeof(double);
+
+  for(size_t i = 0; i < num_vals; i++) {
+    LST_Node * new_node = NULL;
+
+    EXPECT_EQ(&r, OK, LST_insert(list, list->sentinel, &vals[i], &new_node));
+    EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
+    if(HAS_FAILED(&r)) return r;
+
+    for(int j = 0; j <= (int)i; j++) {
+      const double val             = vals[j];
+      const int    dist_from_first = j;
+      const int    dist_from_last  = (int)i - j;
+
+      LST_Node *       first       = LST_first(list);
+      const LST_Node * first_const = LST_first((const LST_List *)list);
+      LST_Node *       last        = LST_last(list);
+      const LST_Node * last_const  = LST_last((const LST_List *)list);
+
+      EXPECT_EQ(&r, val, *(double *)LST_data(LST_next(first, dist_from_first)));
+      EXPECT_EQ(&r, val, *(double *)LST_data(LST_next(last, -dist_from_last)));
+      EXPECT_EQ(&r, val, *(const double *)LST_data(LST_next(first_const, dist_from_first)));
+      EXPECT_EQ(&r, val, *(const double *)LST_data(LST_next(last_const, -dist_from_last)));
+
+      EXPECT_EQ(&r, val, *(double *)LST_data(LST_prev(first, -dist_from_first)));
+      EXPECT_EQ(&r, val, *(double *)LST_data(LST_prev(last, dist_from_last)));
+      EXPECT_EQ(&r, val, *(const double *)LST_data(LST_prev(first_const, -dist_from_first)));
+      EXPECT_EQ(&r, val, *(const double *)LST_data(LST_prev(last_const, dist_from_last)));
+    }
+
+    if(HAS_FAILED(&r)) return r;
+  }
+
+  return r;
+}
+
+Result tst_contains_and_find(void * env_p) {
+  Result     r    = PASS;
+  LST_List * list = (LST_List *)env_p;
+
+  const double vals[]   = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0};
+  const size_t num_vals = sizeof(vals) / sizeof(double);
+
+  for(size_t i = 0; i < num_vals; i++) {
+    LST_Node * new_node = NULL;
+
+    EXPECT_EQ(&r, OK, LST_insert(list, list->sentinel, &vals[i], &new_node));
+    EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
+    if(HAS_FAILED(&r)) return r;
+
+    for(size_t j = 0; j < num_vals; j++) {
+      if(j <= i) {
+        EXPECT_TRUE(&r, LST_contains(list, &vals[j]));
+
+        LST_Node * found_node = NULL;
+        EXPECT_EQ(&r, OK, LST_find(list, &vals[j], &found_node));
+        EXPECT_NE(&r, NULL, found_node);
+        EXPECT_EQ(&r, vals[j], *(double *)LST_data(found_node));
+      } else {
+        EXPECT_FALSE(&r, LST_contains(list, &vals[j]));
+
+        LST_Node * found_node = NULL;
+        EXPECT_EQ(&r, STAT_OK_NOT_FOUND, LST_find(list, &vals[j], &found_node));
+        EXPECT_EQ(&r, NULL, found_node);
+      }
+    }
+
+    if(HAS_FAILED(&r)) return r;
   }
 
   return r;
@@ -331,6 +463,10 @@ int main() {
 
   TestWithFixture tests_with_fixture[] = {
       tst_insert,
+      tst_get_len,
+      tst_first_last_end,
+      tst_next_prev,
+      tst_contains_and_find,
       tst_insert_from_array,
       tst_remove,
       tst_extract_and_inject,
