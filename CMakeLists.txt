@@ -61,6 +61,9 @@ target_link_libraries(span PUBLIC log)
 add_library(darray ${SRC_DIR}/darray.c)
 target_link_libraries(darray PUBLIC log span)
 
+add_library(list ${SRC_DIR}/list.c)
+target_link_libraries(list PUBLIC log)
+
 
 # --- tests ---
 
@@ -80,3 +83,4 @@ AddTest(stat_test stat.test.c)
 AddTest(log_test log.test.c log)
 AddTest(darray_test darray.test.c darray)
 AddTest(span_test span.test.c span)
+AddTest(list_test list.test.c list)
