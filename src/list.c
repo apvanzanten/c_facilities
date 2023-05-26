@@ -7,6 +7,11 @@
 
 #define OK STAT_OK
 
+static void connect(LST_Node * first, LST_Node * second) {
+  first->next  = second;
+  second->prev = first;
+}
+
 static size_t get_node_size(size_t element_size) {
   // we add to sizeof(LST_Node) and round up to nearest multiple of align_max_t.
   // Having this be a multiple of sizeof(align_max_t) is required to be able to allocate memory
@@ -104,6 +109,8 @@ STAT_Val LST_insert(LST_List * this,
   if(successor == NULL) return LOG_STAT(STAT_ERR_ARGS, "successor is NULL");
   if(data == NULL) return LOG_STAT(STAT_ERR_ARGS, "data is NULL");
 
+  LST_Node * predecessor = successor->prev;
+
   LST_Node * new_node = NULL;
   if(!STAT_is_OK(create_node(&new_node, this->element_size))) {
     return LOG_STAT(STAT_ERR_INTERNAL, "failed to create new node for insertion");
@@ -111,12 +118,61 @@ STAT_Val LST_insert(LST_List * this,
 
   memcpy(new_node->data, data, this->element_size);
 
-  new_node->next       = successor;
-  new_node->prev       = successor->prev;
-  new_node->next->prev = new_node;
-  new_node->prev->next = new_node;
+  connect(predecessor, new_node);
+  connect(new_node, successor);
 
   if(o_inserted_node != NULL) *o_inserted_node = new_node;
+
+  return OK;
+}
+
+STAT_Val LST_insert_from_array(LST_List * this,
+                               LST_Node *   successor,
+                               const void * arr,
+                               size_t       n,
+                               LST_Node **  o_first_inserted_node) {
+  if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
+  if(successor == NULL) return LOG_STAT(STAT_ERR_ARGS, "successor is NULL");
+  if(arr == NULL) return LOG_STAT(STAT_ERR_ARGS, "arr is NULL");
+
+  // we first create a sequence of connected nodes, then when finished inject it whole into the list
+
+  LST_Node * previously_created_node = NULL;
+  LST_Node * first_new_node          = NULL;
+
+  for(size_t i = 0; i < n; i++) {
+    LST_Node *   new_node  = NULL;
+    const void * node_data = (const void *)(((const uint8_t *)arr) + (this->element_size * i));
+
+    if(!STAT_is_OK(create_node(&new_node, this->element_size))) {
+      LST_Node * curr = first_new_node;
+
+      while(curr != NULL) {
+        LST_Node * to_be_removed = curr;
+        curr                     = curr->next;
+        free(to_be_removed);
+      }
+
+      return LOG_STAT(STAT_ERR_INTERNAL, "failed to create new node #%zu", i);
+    }
+
+    memcpy(new_node->data, node_data, this->element_size);
+
+    if(previously_created_node == NULL) {
+      first_new_node = new_node;
+    } else {
+      connect(previously_created_node, new_node);
+    }
+
+    previously_created_node = new_node;
+  }
+
+  if(n > 0) {
+    connect(successor->prev, first_new_node);
+    connect(previously_created_node, successor);
+
+    if(o_first_inserted_node != NULL) *o_first_inserted_node = first_new_node;
+  }
 
   return OK;
 }
@@ -135,4 +191,53 @@ STAT_Val LST_clear(LST_List * this) {
   this->sentinel->prev = this->sentinel;
 
   return OK;
+}
+
+STAT_Val LST_remove(LST_Node * to_be_removed) {
+  if(to_be_removed == NULL) return LOG_STAT(STAT_ERR_ARGS, "to-be-removed node pointer is NULL");
+
+  to_be_removed->prev->next = to_be_removed->next;
+  to_be_removed->next->prev = to_be_removed->prev;
+
+  free(to_be_removed);
+
+  return OK;
+}
+
+size_t LST_get_len(const LST_List * this) {
+  if(this == NULL || this->sentinel == NULL) return 0;
+  size_t len = 0;
+
+  const LST_Node * curr = LST_first_const(this);
+  while(curr != LST_end_const(this)) {
+    len++;
+    curr = curr->next;
+  }
+
+  return len;
+}
+
+static bool is_circular_and_has_bidirectional_integrity(const LST_List * this) {
+  const LST_Node * curr = this->sentinel;
+
+  do {
+    if(curr == NULL) return false;
+    if(curr->next == NULL) return false;
+    if(curr->prev == NULL) return false;
+    if(curr->next->prev != curr) return false;
+    curr = curr->next;
+    // NOTE as we start on the sentinel, and check that the next node connects back to curr before
+    // moving on, it is impossible to end up in a cycle that does not include the sentinel.
+  } while(curr != this->sentinel);
+
+  return true;
+}
+
+bool LST_is_valid(const LST_List * this) {
+  if(this == NULL) return false;
+  if(this->element_size == 0) return false;
+  if(this->sentinel == NULL) return false;
+  if(!is_circular_and_has_bidirectional_integrity(this)) return false;
+
+  return true;
 }

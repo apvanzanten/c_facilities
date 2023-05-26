@@ -19,6 +19,7 @@ Result tst_create_destroy_on_heap() {
   LST_List * list = NULL;
   EXPECT_EQ(&r, OK, LST_create_on_heap(&list, sizeof(int)));
   EXPECT_NE(&r, NULL, list);
+  EXPECT_TRUE(&r, LST_is_valid(list));
   if(HAS_FAILED(&r)) return r;
 
   EXPECT_EQ(&r, sizeof(int), list->element_size);
@@ -39,6 +40,8 @@ Result tst_create_destroy_in_place() {
 
   LST_List list = {0};
   EXPECT_EQ(&r, OK, LST_create_in_place(&list, sizeof(int)));
+  EXPECT_TRUE(&r, LST_is_valid(&list));
+
   EXPECT_EQ(&r, sizeof(int), list.element_size);
 
   EXPECT_NE(&r, NULL, list.sentinel);
@@ -181,6 +184,78 @@ Result tst_insert(void * env_p) {
   return r;
 }
 
+Result tst_insert_from_array(void * env_p) {
+  Result     r    = PASS;
+  LST_List * list = (LST_List *)env_p;
+
+  const double vals[]   = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0};
+  const size_t num_vals = sizeof(vals) / sizeof(double);
+
+  LST_Node * first_node = NULL;
+
+  EXPECT_EQ(&r, OK, LST_insert_from_array(list, LST_end(list), vals, num_vals, &first_node));
+  EXPECT_TRUE(&r, LST_is_valid(list));
+  EXPECT_EQ(&r, num_vals, LST_get_len(list));
+  EXPECT_EQ(&r, first_node, LST_first(list));
+  if(HAS_FAILED(&r)) return r;
+
+  EXPECT_EQ(&r, vals[0], *((double *)LST_data(first_node)));
+  EXPECT_EQ(&r, vals[num_vals - 1], *((double *)LST_data(LST_last(list))));
+
+  EXPECT_EQ(&r, OK, LST_insert_from_array(list, first_node, vals, num_vals, &first_node));
+  EXPECT_TRUE(&r, LST_is_valid(list));
+  EXPECT_EQ(&r, num_vals * 2, LST_get_len(list));
+  EXPECT_EQ(&r, first_node, LST_first(list));
+  if(HAS_FAILED(&r)) return r;
+
+  EXPECT_EQ(&r, vals[0], *((double *)LST_data(first_node)));
+
+  LST_Node * prev = list->sentinel;
+  LST_Node * node = list->sentinel->next;
+  size_t     i    = 0;
+  while(node != list->sentinel) {
+    EXPECT_TRUE(&r, i < (num_vals * 2));
+    if(HAS_FAILED(&r)) return r;
+
+    EXPECT_EQ(&r, prev, node->prev);
+    EXPECT_EQ(&r, node, prev->next);
+    EXPECT_EQ(&r, vals[(i % num_vals)], *((double *)LST_data(node)));
+
+    prev = node;
+    node = node->next;
+    i++;
+  }
+
+  return r;
+}
+
+Result tst_remove(void * env_p) {
+  Result     r    = PASS;
+  LST_List * list = (LST_List *)env_p;
+
+  const double vals[]   = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0};
+  const size_t num_vals = sizeof(vals) / sizeof(double);
+
+  EXPECT_EQ(&r, OK, LST_insert_from_array(list, LST_end(list), vals, num_vals, NULL));
+  EXPECT_TRUE(&r, LST_is_valid(list));
+  EXPECT_EQ(&r, num_vals, LST_get_len(list));
+
+  EXPECT_EQ(&r, OK, LST_remove(LST_first(list)));
+  EXPECT_TRUE(&r, LST_is_valid(list));
+  EXPECT_EQ(&r, num_vals - 1, LST_get_len(list));
+
+  EXPECT_EQ(&r, vals[1], *((double *)LST_data(LST_first(list))));
+
+  EXPECT_EQ(&r, OK, LST_remove(LST_first(list)->next));
+  EXPECT_TRUE(&r, LST_is_valid(list));
+  EXPECT_EQ(&r, num_vals - 2, LST_get_len(list));
+
+  EXPECT_EQ(&r, vals[1], *((double *)LST_data(LST_first(list))));
+  EXPECT_EQ(&r, vals[3], *((double *)LST_data(LST_first(list)->next)));
+
+  return r;
+}
+
 int main() {
   Test tests[] = {
       tst_create_destroy_on_heap,
@@ -191,6 +266,8 @@ int main() {
 
   TestWithFixture tests_with_fixture[] = {
       tst_insert,
+      tst_insert_from_array,
+      tst_remove,
   };
 
   const Result test_res = run_tests(tests, sizeof(tests) / sizeof(Test));
@@ -208,6 +285,7 @@ static Result setup(void ** env_pp) {
   LST_List ** list_pp = (LST_List **)env_pp;
 
   EXPECT_EQ(&r, OK, LST_create_on_heap(list_pp, sizeof(double)));
+  EXPECT_TRUE(&r, LST_is_valid(*list_pp));
 
   return r;
 }

@@ -32,7 +32,17 @@ STAT_Val LST_insert(LST_List * this,
                     const void * data,
                     LST_Node **  o_inserted_node);
 
+STAT_Val LST_insert_from_array(LST_List * this,
+                               LST_Node *   successor,
+                               const void * arr,
+                               size_t       n,
+                               LST_Node **  o_first_inserted_node);
+
+STAT_Val LST_remove(LST_Node * to_be_removed);
+
 STAT_Val LST_clear(LST_List * this);
+
+size_t LST_get_len(const LST_List * this);
 
 static inline LST_Node *       LST_first(LST_List * this) { return this->sentinel->next; }
 static inline LST_Node *       LST_last(LST_List * this) { return this->sentinel->prev; }
@@ -44,5 +54,16 @@ static inline const LST_Node * LST_last_const(const LST_List * this) {
   return this->sentinel->prev;
 }
 static inline const LST_Node * LST_end_const(const LST_List * this) { return this->sentinel; }
+
+// We have these because our data member is not void (because arrays can't be members, and flexible
+// array members must be arrays so can't be void), but casting directly from uint8_t to whatever is
+// the relevant data type will likely result in warnings/errors from compilers and linters.
+// It's not a perfect solution but it is slightly more convenient.
+static inline void *       LST_data(LST_Node * node) { return (void *)node->data; }
+static inline const void * LST_data_const(const LST_Node * node) {
+  return (const void *)node->data;
+}
+
+bool LST_is_valid(const LST_List * this);
 
 #endif
