@@ -282,7 +282,7 @@ STAT_Val DAR_clear_and_shrink(DAR_DArray * this) {
   return OK;
 }
 
-STAT_Val DAR_get_checked(DAR_DArray * this, uint32_t idx, void ** out) {
+STAT_Val DAR_IMPL_get_checked_nonconst(DAR_DArray * this, uint32_t idx, void ** out) {
   if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
   if(out == NULL) return LOG_STAT(STAT_ERR_ARGS, "out is NULL");
 
@@ -295,7 +295,7 @@ STAT_Val DAR_get_checked(DAR_DArray * this, uint32_t idx, void ** out) {
   return OK;
 }
 
-STAT_Val DAR_get_checked_const(const DAR_DArray * this, uint32_t idx, const void ** out) {
+STAT_Val DAR_IMPL_get_checked_const(const DAR_DArray * this, uint32_t idx, const void ** out) {
   if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
   if(out == NULL) return LOG_STAT(STAT_ERR_ARGS, "out is NULL");
 
@@ -303,7 +303,7 @@ STAT_Val DAR_get_checked_const(const DAR_DArray * this, uint32_t idx, const void
     return LOG_STAT(STAT_ERR_RANGE, "idx %u out of range (size=%u)", idx, this->size);
   }
 
-  *out = DAR_get_const(this, idx);
+  *out = DAR_get(this, idx);
 
   return OK;
 }

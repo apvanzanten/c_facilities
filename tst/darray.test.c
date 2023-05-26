@@ -538,7 +538,7 @@ Result tst_get(void * env) {
 
   for(uint32_t i = 0; i < max_size; i++) {
     double *       arr_val       = DAR_get(arr, i);
-    const double * arr_val_const = DAR_get_const((const DAR_DArray *)arr, i);
+    const double * arr_val_const = DAR_get((const DAR_DArray *)arr, i);
 
     EXPECT_EQ(&r, 0, memcmp(&(vals[i]), arr_val, sizeof(double)));
     EXPECT_EQ(&r, 0, memcmp(&(vals[i]), arr_val_const, sizeof(double)));
@@ -569,18 +569,18 @@ Result tst_get_checked(void * env) {
     const double * arr_val_const = NULL;
 
     EXPECT_EQ(&r, OK, DAR_get_checked(arr, i, (void **)(&arr_val)));
-    EXPECT_EQ(&r,
-              OK,
-              DAR_get_checked_const((const DAR_DArray *)arr, i, (const void **)(&arr_val_const)));
+    EXPECT_EQ(&r, OK, DAR_get_checked((const DAR_DArray *)arr, i, (const void **)(&arr_val_const)));
 
     EXPECT_EQ(&r, 0, memcmp(&(vals[i]), arr_val, sizeof(double)));
     EXPECT_EQ(&r, 0, memcmp(&(vals[i]), arr_val_const, sizeof(double)));
 
-    EXPECT_EQ(&r, STAT_ERR_ARGS, DAR_get_checked(NULL, i, (void **)(&arr_val)));
-    EXPECT_EQ(&r, STAT_ERR_ARGS, DAR_get_checked_const(NULL, i, (const void **)(&arr_val_const)));
+    EXPECT_EQ(&r, STAT_ERR_ARGS, DAR_get_checked((DAR_DArray *)NULL, i, (void **)(&arr_val)));
+    EXPECT_EQ(&r,
+              STAT_ERR_ARGS,
+              DAR_get_checked((const DAR_DArray *)NULL, i, (const void **)(&arr_val_const)));
 
     EXPECT_EQ(&r, STAT_ERR_ARGS, DAR_get_checked(arr, i, NULL));
-    EXPECT_EQ(&r, STAT_ERR_ARGS, DAR_get_checked_const((const DAR_DArray *)arr, i, NULL));
+    EXPECT_EQ(&r, STAT_ERR_ARGS, DAR_get_checked((const DAR_DArray *)arr, i, NULL));
 
     if(HAS_FAILED(&r)) return r;
   }
@@ -592,7 +592,7 @@ Result tst_get_checked(void * env) {
     EXPECT_EQ(&r, STAT_ERR_RANGE, DAR_get_checked(arr, i, (void **)(&arr_val)));
     EXPECT_EQ(&r,
               STAT_ERR_RANGE,
-              DAR_get_checked_const((const DAR_DArray *)arr, i, (const void **)(&arr_val_const)));
+              DAR_get_checked((const DAR_DArray *)arr, i, (const void **)(&arr_val_const)));
 
     EXPECT_EQ(&r, NULL, arr_val);
     EXPECT_EQ(&r, NULL, arr_val_const);
@@ -821,10 +821,15 @@ Result tst_first_last(void * env) {
   if(HAS_FAILED(&r)) return r;
 
   EXPECT_EQ(&r, vals[0], *((double *)DAR_first(arr)));
-  EXPECT_EQ(&r, vals[0], *((const double *)DAR_first_const((const DAR_DArray *)arr)));
+  EXPECT_EQ(&r, vals[0], *((const double *)DAR_first((const DAR_DArray *)arr)));
 
   EXPECT_EQ(&r, vals[num_vals - 1], *((double *)DAR_last(arr)));
-  EXPECT_EQ(&r, vals[num_vals - 1], *((const double *)DAR_last_const((const DAR_DArray *)arr)));
+  EXPECT_EQ(&r, vals[num_vals - 1], *((const double *)DAR_last((const DAR_DArray *)arr)));
+
+  EXPECT_EQ(&r, (((double *)DAR_last(arr)) + 1), DAR_end(arr));
+  EXPECT_EQ(&r,
+            (((const double *)DAR_last((const DAR_DArray *)arr)) + 1),
+            DAR_end((const DAR_DArray *)arr));
 
   return r;
 }

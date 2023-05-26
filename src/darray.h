@@ -43,12 +43,13 @@ STAT_Val DAR_reserve(DAR_DArray * this, uint32_t num_elements);
 STAT_Val DAR_clear(DAR_DArray * this);
 STAT_Val DAR_clear_and_shrink(DAR_DArray * this);
 
-static inline void *       DAR_get(DAR_DArray * this, uint32_t idx);
-static inline const void * DAR_get_const(const DAR_DArray * this, uint32_t idx);
-static inline void         DAR_set(DAR_DArray * this, uint32_t idx, const void * value);
+static inline void *       DAR_IMPL_get_nonconst(DAR_DArray * this, uint32_t idx);
+static inline const void * DAR_IMPL_get_const(const DAR_DArray * this, uint32_t idx);
 
-STAT_Val DAR_get_checked(DAR_DArray * this, uint32_t idx, void ** out);
-STAT_Val DAR_get_checked_const(const DAR_DArray * this, uint32_t idx, const void ** out);
+static inline void DAR_set(DAR_DArray * this, uint32_t idx, const void * value);
+
+STAT_Val DAR_IMPL_get_checked_nonconst(DAR_DArray * this, uint32_t idx, void ** out);
+STAT_Val DAR_IMPL_get_checked_const(const DAR_DArray * this, uint32_t idx, const void ** out);
 
 STAT_Val DAR_set_checked(DAR_DArray * this, uint32_t idx, const void * value);
 
@@ -61,23 +62,52 @@ size_t DAR_get_capacity(const DAR_DArray * this);
 size_t DAR_get_capacity_in_bytes(const DAR_DArray * this);
 size_t DAR_get_size_in_bytes(const DAR_DArray * this);
 
-static inline void *       DAR_first(DAR_DArray * this);
-static inline void *       DAR_last(DAR_DArray * this);
-static inline const void * DAR_first_const(const DAR_DArray * this);
-static inline const void * DAR_last_const(const DAR_DArray * this);
+static inline size_t DAR_get_byte_idx(const DAR_DArray * this, uint32_t element_idx);
+
+static inline void *       DAR_IMPL_first_nonconst(DAR_DArray * this);
+static inline const void * DAR_IMPL_first_const(const DAR_DArray * this);
+static inline void *       DAR_IMPL_last_nonconst(DAR_DArray * this);
+static inline const void * DAR_IMPL_last_const(const DAR_DArray * this);
+static inline void *       DAR_IMPL_end_nonconst(DAR_DArray * this);
+static inline const void * DAR_IMPL_end_const(const DAR_DArray * this);
 
 SPN_Span DAR_to_span(const DAR_DArray * this);
 STAT_Val DAR_create_on_heap_from_span(DAR_DArray ** this_p, SPN_Span span);
 STAT_Val DAR_create_in_place_from_span(DAR_DArray * this, SPN_Span span);
 
-static size_t DAR_get_byte_idx(const DAR_DArray * this, uint32_t element_idx) {
+// generic definitions
+
+#define DAR_get(this, idx)                                                                         \
+  _Generic((this),                                                                                 \
+      const DAR_DArray *: DAR_IMPL_get_const,                                                      \
+      DAR_DArray *: DAR_IMPL_get_nonconst)(this, idx)
+
+#define DAR_get_checked(this, idx, out)                                                            \
+  _Generic((this),                                                                                 \
+      const DAR_DArray *: DAR_IMPL_get_checked_const,                                              \
+      DAR_DArray *: DAR_IMPL_get_checked_nonconst)(this, idx, out)
+
+#define DAR_first(this)                                                                            \
+  _Generic((this),                                                                                 \
+      const DAR_DArray *: DAR_IMPL_first_const,                                                    \
+      DAR_DArray *: DAR_IMPL_first_nonconst)(this)
+#define DAR_last(this)                                                                             \
+  _Generic((this), const DAR_DArray *: DAR_IMPL_last_const, DAR_DArray *: DAR_IMPL_last_nonconst)( \
+      this)
+#define DAR_end(this)                                                                              \
+  _Generic((this), const DAR_DArray *: DAR_IMPL_end_const, DAR_DArray *: DAR_IMPL_end_nonconst)(   \
+      this)
+
+// inline function definitions
+
+static inline size_t DAR_get_byte_idx(const DAR_DArray * this, uint32_t element_idx) {
   return this->element_size * element_idx;
 }
 
-static inline void * DAR_get(DAR_DArray * this, uint32_t idx) {
+static inline void * DAR_IMPL_get_nonconst(DAR_DArray * this, uint32_t idx) {
   return &(((uint8_t *)this->data)[DAR_get_byte_idx(this, idx)]);
 }
-static inline const void * DAR_get_const(const DAR_DArray * this, uint32_t idx) {
+static inline const void * DAR_IMPL_get_const(const DAR_DArray * this, uint32_t idx) {
   return &(((const uint8_t *)this->data)[DAR_get_byte_idx(this, idx)]);
 }
 static inline void DAR_set(DAR_DArray * this, uint32_t idx, const void * value) {
@@ -97,11 +127,18 @@ static inline void DAR_set(DAR_DArray * this, uint32_t idx, const void * value) 
   }
 }
 
-static inline void *       DAR_first(DAR_DArray * this) { return this->data; }
-static inline void *       DAR_last(DAR_DArray * this) { return DAR_get(this, this->size - 1); }
-static inline const void * DAR_first_const(const DAR_DArray * this) { return this->data; }
-static inline const void * DAR_last_const(const DAR_DArray * this) {
-  return DAR_get_const(this, this->size - 1);
+static inline void * DAR_IMPL_first_nonconst(DAR_DArray * this) { return this->data; }
+static inline void * DAR_IMPL_last_nonconst(DAR_DArray * this) {
+  return DAR_get(this, this->size - 1);
+}
+static inline const void * DAR_IMPL_first_const(const DAR_DArray * this) { return this->data; }
+static inline const void * DAR_IMPL_last_const(const DAR_DArray * this) {
+  return DAR_get(this, this->size - 1);
+}
+
+static inline void * DAR_IMPL_end_nonconst(DAR_DArray * this) { return DAR_get(this, this->size); }
+static inline const void * DAR_IMPL_end_const(const DAR_DArray * this) {
+  return DAR_get(this, this->size);
 }
 
 #endif
