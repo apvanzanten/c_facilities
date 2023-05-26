@@ -186,6 +186,32 @@ STAT_Val LST_extract(LST_Node * to_be_extracted) {
   return OK;
 }
 
+STAT_Val LST_inject_sequence(LST_Node * first, LST_Node * last, LST_Node * successor) {
+  if(first == NULL) return LOG_STAT(STAT_ERR_ARGS, "first is NULL");
+  if(last == NULL) return LOG_STAT(STAT_ERR_ARGS, "last is NULL");
+  if(successor == NULL) return LOG_STAT(STAT_ERR_ARGS, "successor is NULL");
+
+  LST_Node * predecessor = successor->prev;
+  connect(predecessor, first);
+  connect(last, successor);
+
+  return OK;
+}
+
+STAT_Val LST_extract_sequence(LST_Node * first, LST_Node * successor) {
+  if(first == NULL) return LOG_STAT(STAT_ERR_ARGS, "first is NULL");
+  if(successor == NULL) return LOG_STAT(STAT_ERR_ARGS, "successor is NULL");
+
+  LST_Node * last = successor->prev;
+
+  connect(first->prev, successor);
+
+  last->next  = NULL;
+  first->prev = NULL;
+
+  return OK;
+}
+
 // =============
 // == queries ==
 

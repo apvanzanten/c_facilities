@@ -51,6 +51,9 @@ STAT_Val LST_remove(LST_Node * to_be_removed);
 STAT_Val LST_inject(LST_Node * to_be_injected, LST_Node * successor);
 STAT_Val LST_extract(LST_Node * to_be_extracted);
 
+STAT_Val LST_inject_sequence(LST_Node * first, LST_Node * last, LST_Node * successor);
+STAT_Val LST_extract_sequence(LST_Node * first, LST_Node * successor);
+
 STAT_Val LST_clear(LST_List * this);
 
 // =============
@@ -147,14 +150,10 @@ static inline const LST_Node * LST_IMPL_next_const(const LST_Node * node, int n)
 }
 
 static inline LST_Node * LST_IMPL_prev_nonconst(LST_Node * node, int n) {
-  for(int i = 0; i < n; i++) node = node->prev;
-  for(int i = 0; i > n; i--) node = node->next;
-  return node;
+  return LST_IMPL_next_nonconst(node, -n);
 }
 static inline const LST_Node * LST_IMPL_prev_const(const LST_Node * node, int n) {
-  for(int i = 0; i < n; i++) node = node->prev;
-  for(int i = 0; i > n; i--) node = node->next;
-  return node;
+  return LST_IMPL_next_const(node, -n);
 }
 
 // ===============
