@@ -19,7 +19,7 @@ Result tst_create_destroy_on_heap() {
   LST_List * list = NULL;
   EXPECT_EQ(&r, OK, LST_create_on_heap(&list, sizeof(int)));
   EXPECT_NE(&r, NULL, list);
-  EXPECT_TRUE(&r, LST_is_valid(list));
+  EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
   if(HAS_FAILED(&r)) return r;
 
   EXPECT_EQ(&r, sizeof(int), list->element_size);
@@ -40,7 +40,7 @@ Result tst_create_destroy_in_place() {
 
   LST_List list = {0};
   EXPECT_EQ(&r, OK, LST_create_in_place(&list, sizeof(int)));
-  EXPECT_TRUE(&r, LST_is_valid(&list));
+  EXPECT_TRUE(&r, LST_IMPL_is_valid(&list));
 
   EXPECT_EQ(&r, sizeof(int), list.element_size);
 
@@ -194,7 +194,7 @@ Result tst_insert_from_array(void * env_p) {
   LST_Node * first_node = NULL;
 
   EXPECT_EQ(&r, OK, LST_insert_from_array(list, LST_end(list), vals, num_vals, &first_node));
-  EXPECT_TRUE(&r, LST_is_valid(list));
+  EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
   EXPECT_EQ(&r, num_vals, LST_get_len(list));
   EXPECT_EQ(&r, first_node, LST_first(list));
   if(HAS_FAILED(&r)) return r;
@@ -203,7 +203,7 @@ Result tst_insert_from_array(void * env_p) {
   EXPECT_EQ(&r, vals[num_vals - 1], *((double *)LST_data(LST_last(list))));
 
   EXPECT_EQ(&r, OK, LST_insert_from_array(list, first_node, vals, num_vals, &first_node));
-  EXPECT_TRUE(&r, LST_is_valid(list));
+  EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
   EXPECT_EQ(&r, num_vals * 2, LST_get_len(list));
   EXPECT_EQ(&r, first_node, LST_first(list));
   if(HAS_FAILED(&r)) return r;
@@ -237,17 +237,17 @@ Result tst_remove(void * env_p) {
   const size_t num_vals = sizeof(vals) / sizeof(double);
 
   EXPECT_EQ(&r, OK, LST_insert_from_array(list, LST_end(list), vals, num_vals, NULL));
-  EXPECT_TRUE(&r, LST_is_valid(list));
+  EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
   EXPECT_EQ(&r, num_vals, LST_get_len(list));
 
   EXPECT_EQ(&r, OK, LST_remove(LST_first(list)));
-  EXPECT_TRUE(&r, LST_is_valid(list));
+  EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
   EXPECT_EQ(&r, num_vals - 1, LST_get_len(list));
 
   EXPECT_EQ(&r, vals[1], *((double *)LST_data(LST_first(list))));
 
   EXPECT_EQ(&r, OK, LST_remove(LST_first(list)->next));
-  EXPECT_TRUE(&r, LST_is_valid(list));
+  EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
   EXPECT_EQ(&r, num_vals - 2, LST_get_len(list));
 
   EXPECT_EQ(&r, vals[1], *((double *)LST_data(LST_first(list))));
@@ -285,7 +285,7 @@ static Result setup(void ** env_pp) {
   LST_List ** list_pp = (LST_List **)env_pp;
 
   EXPECT_EQ(&r, OK, LST_create_on_heap(list_pp, sizeof(double)));
-  EXPECT_TRUE(&r, LST_is_valid(*list_pp));
+  EXPECT_TRUE(&r, LST_IMPL_is_valid(*list_pp));
 
   return r;
 }

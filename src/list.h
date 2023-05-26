@@ -44,26 +44,36 @@ STAT_Val LST_clear(LST_List * this);
 
 size_t LST_get_len(const LST_List * this);
 
-static inline LST_Node *       LST_first(LST_List * this) { return this->sentinel->next; }
-static inline LST_Node *       LST_last(LST_List * this) { return this->sentinel->prev; }
-static inline LST_Node *       LST_end(LST_List * this) { return this->sentinel; }
-static inline const LST_Node * LST_first_const(const LST_List * this) {
+static inline LST_Node * LST_IMPL_first_nonconst(LST_List * this) { return this->sentinel->next; }
+static inline LST_Node * LST_IMPL_last_nonconst(LST_List * this) { return this->sentinel->prev; }
+static inline LST_Node * LST_IMPL_end_nonconst(LST_List * this) { return this->sentinel; }
+static inline const LST_Node * LST_IMPL_first_const(const LST_List * this) {
   return this->sentinel->next;
 }
-static inline const LST_Node * LST_last_const(const LST_List * this) {
+static inline const LST_Node * LST_IMPL_last_const(const LST_List * this) {
   return this->sentinel->prev;
 }
-static inline const LST_Node * LST_end_const(const LST_List * this) { return this->sentinel; }
+static inline const LST_Node * LST_IMPL_end_const(const LST_List * this) { return this->sentinel; }
 
 // We have these because our data member is not void (because arrays can't be members, and flexible
 // array members must be arrays so can't be void), but casting directly from uint8_t to whatever is
 // the relevant data type will likely result in warnings/errors from compilers and linters.
 // It's not a perfect solution but it is slightly more convenient.
-static inline void *       LST_data(LST_Node * node) { return (void *)node->data; }
-static inline const void * LST_data_const(const LST_Node * node) {
+static inline void *       LST_IMPL_data_nonconst(LST_Node * node) { return (void *)node->data; }
+static inline const void * LST_IMPL_data_const(const LST_Node * node) {
   return (const void *)node->data;
 }
 
-bool LST_is_valid(const LST_List * this);
+#define LST_first(list)                                                                            \
+  _Generic((list), const LST_List *: LST_IMPL_first_const, LST_List *: LST_IMPL_first_nonconst)(   \
+      list)
+#define LST_last(list)                                                                             \
+  _Generic((list), const LST_List *: LST_IMPL_last_const, LST_List *: LST_IMPL_last_nonconst)(list)
+#define LST_end(list)                                                                              \
+  _Generic((list), const LST_List *: LST_IMPL_end_const, LST_List *: LST_IMPL_end_nonconst)(list)
+#define LST_data(node)                                                                             \
+  _Generic((node), const LST_Node *: LST_IMPL_data_const, LST_Node *: LST_IMPL_data_nonconst)(node)
+
+bool LST_IMPL_is_valid(const LST_List * this);
 
 #endif

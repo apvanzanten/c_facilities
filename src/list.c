@@ -208,8 +208,8 @@ size_t LST_get_len(const LST_List * this) {
   if(this == NULL || this->sentinel == NULL) return 0;
   size_t len = 0;
 
-  const LST_Node * curr = LST_first_const(this);
-  while(curr != LST_end_const(this)) {
+  const LST_Node * curr = LST_first(this);
+  while(curr != LST_end(this)) {
     len++;
     curr = curr->next;
   }
@@ -233,7 +233,7 @@ static bool is_circular_and_has_bidirectional_integrity(const LST_List * this) {
   return true;
 }
 
-bool LST_is_valid(const LST_List * this) {
+bool LST_IMPL_is_valid(const LST_List * this) {
   if(this == NULL) return false;
   if(this->element_size == 0) return false;
   if(this->sentinel == NULL) return false;

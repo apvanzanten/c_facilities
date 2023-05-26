@@ -45,6 +45,7 @@ if (HAS_CPPCHECK)
                     --suppress=missingIncludeSystem; # cppcheck can't find system headers and I don't care to help it
                     --suppress=unmatchedSuppression;
                     --suppress=redundantAssignment; # generates some false positives in some cases where functions with side-effects are used
+                    --suppress=internalAstError; # cppcheck doesn't deal with generics very well, I don't particulary care to hear about it.
     )
 endif()
 
