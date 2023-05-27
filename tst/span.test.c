@@ -9,7 +9,7 @@
 
 #define OK STAT_OK
 
-Result tst_create_from_cstr() {
+static Result tst_create_from_cstr(void) {
   Result r = PASS;
 
   const char str[] = "As I drove away sadly on my motorbike";
@@ -23,7 +23,7 @@ Result tst_create_from_cstr() {
   return r;
 }
 
-Result tst_get_size_in_bytes() {
+static Result tst_get_size_in_bytes(void) {
   Result r = PASS;
 
   const char data[] = "this will do as a stand-in for some data";
@@ -36,7 +36,7 @@ Result tst_get_size_in_bytes() {
   return r;
 }
 
-Result tst_get_char() {
+static Result tst_get_char(void) {
   Result r = PASS;
 
   const char     str[] = "But this one's jucky on the inside!";
@@ -49,7 +49,7 @@ Result tst_get_char() {
   return r;
 }
 
-Result tst_get_int() {
+static Result tst_get_int(void) {
   Result r = PASS;
 
   const int      vals[] = {1, 2, 3, 4, 5, 6, 7, 8};
@@ -64,7 +64,7 @@ Result tst_get_int() {
   return r;
 }
 
-Result tst_equals() {
+static Result tst_equals(void) {
   Result r = PASS;
 
   const char str[]       = "we were to understand there would be punch and pie?";
@@ -117,7 +117,7 @@ Result tst_equals() {
   return r;
 }
 
-Result tst_subspan_char() {
+static Result tst_subspan_char(void) {
   Result r = PASS;
 
   const char str[] = "Don't draw on my planet.";
@@ -174,7 +174,7 @@ Result tst_subspan_char() {
   return r;
 }
 
-Result tst_subspan_double() {
+static Result tst_subspan_double(void) {
   Result r = PASS;
 
   const double   vals[] = {0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0};
@@ -225,7 +225,7 @@ Result tst_subspan_double() {
   return r;
 }
 
-Result tst_constains_subspan_cstr() {
+static Result tst_constains_subspan_cstr(void) {
   Result r = PASS;
 
   EXPECT_TRUE(&r, SPN_contains_subspan(SPN_from_cstr("hi"), SPN_from_cstr("hi")));
@@ -260,7 +260,7 @@ Result tst_constains_subspan_cstr() {
   return r;
 }
 
-Result tst_constains_subspan_int() {
+static Result tst_constains_subspan_int(void) {
   Result r = PASS;
 
   const int      span_vals[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
@@ -332,7 +332,7 @@ Result tst_constains_subspan_int() {
   return r;
 }
 
-Result tst_find_char() {
+static Result tst_find_char(void) {
   Result r = PASS;
 
   const char     str[] = "0123456789abcdefghijklmnopqrstuvwxyz"; // should have unique letters only
@@ -393,7 +393,7 @@ Result tst_find_char() {
   return r;
 }
 
-Result tst_find_int() {
+static Result tst_find_int(void) {
   Result r = PASS;
 
   const int      vals[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
@@ -470,7 +470,7 @@ Result tst_find_int() {
   return r;
 }
 
-Result tst_find_at_and_reverse_with_duplicates() {
+static Result tst_find_at_and_reverse_with_duplicates(void) {
   Result r = PASS;
 
   const char str[] = "01234567890123456789";
@@ -502,7 +502,7 @@ Result tst_find_at_and_reverse_with_duplicates() {
   return r;
 }
 
-Result tst_find_at_likely_usage() {
+static Result tst_find_at_likely_usage(void) {
   Result r = PASS;
 
   // Let's face it, the most likely use case for a function like this (or indeed any function), is
@@ -544,7 +544,7 @@ Result tst_find_at_likely_usage() {
   return r;
 }
 
-Result tst_find_subspan_basic() {
+static Result tst_find_subspan_basic(void) {
   Result r = PASS;
 
   uint32_t tmp = 9999;
@@ -578,7 +578,7 @@ Result tst_find_subspan_basic() {
   return r;
 }
 
-Result tst_find_subspan_at_basic() {
+static Result tst_find_subspan_at_basic(void) {
   Result r = PASS;
 
   uint32_t tmp = 9999;
@@ -622,7 +622,7 @@ Result tst_find_subspan_at_basic() {
   return r;
 }
 
-Result tst_find_subspan_monster() {
+static Result tst_find_subspan_monster(void) {
   Result r = PASS;
 
   // this monstrous test case does the following
@@ -761,7 +761,7 @@ Result tst_find_subspan_monster() {
   return r;
 }
 
-int main() {
+int main(void) {
   Test tests[] = {
       tst_create_from_cstr,
       tst_get_size_in_bytes,

@@ -17,7 +17,7 @@
 static Result setup(void ** env_p);
 static Result teardown(void ** env_p);
 
-Result tst_create_destroy_on_heap() {
+static Result tst_create_destroy_on_heap(void) {
   Result r = PASS;
 
   DAR_DArray * arr = NULL;
@@ -38,7 +38,7 @@ Result tst_create_destroy_on_heap() {
   return r;
 }
 
-Result tst_create_destroy_in_place() {
+static Result tst_create_destroy_in_place(void) {
   Result r = PASS;
 
   DAR_DArray arr = {0};
@@ -56,7 +56,7 @@ Result tst_create_destroy_in_place() {
   return r;
 }
 
-Result tst_create_on_heap_from_cstr() {
+static Result tst_create_on_heap_from_cstr(void) {
   Result r = PASS;
 
   DAR_DArray * arr = NULL;
@@ -80,7 +80,7 @@ Result tst_create_on_heap_from_cstr() {
   return r;
 }
 
-Result tst_create_in_place_from_cstr() {
+static Result tst_create_in_place_from_cstr(void) {
   Result r = PASS;
 
   DAR_DArray arr = {0};
@@ -103,7 +103,7 @@ Result tst_create_in_place_from_cstr() {
   return r;
 }
 
-Result tst_create_on_heap_from_span() {
+static Result tst_create_on_heap_from_span(void) {
   Result r = PASS;
 
   DAR_DArray * arr = NULL;
@@ -157,7 +157,7 @@ Result tst_create_on_heap_from_span() {
   return r;
 }
 
-Result tst_create_in_place_from_span() {
+static Result tst_create_in_place_from_span(void) {
   Result r = PASS;
 
   DAR_DArray arr = {0};
@@ -211,7 +211,7 @@ Result tst_create_in_place_from_span() {
   return r;
 }
 
-Result tst_fixture(void * env) {
+static Result tst_fixture(void * env) {
   Result       r   = PASS;
   DAR_DArray * arr = env;
 
@@ -226,7 +226,7 @@ Result tst_fixture(void * env) {
   return r;
 }
 
-Result tst_push_back(void * env) {
+static Result tst_push_back(void * env) {
   Result       r   = PASS;
   DAR_DArray * arr = env;
 
@@ -247,7 +247,7 @@ Result tst_push_back(void * env) {
   return r;
 }
 
-Result tst_pop_back(void * env) {
+static Result tst_pop_back(void * env) {
   Result       r   = PASS;
   DAR_DArray * arr = env;
 
@@ -279,7 +279,7 @@ Result tst_pop_back(void * env) {
   return r;
 }
 
-Result tst_capacity(void * env) {
+static Result tst_capacity(void * env) {
   Result       r   = PASS;
   DAR_DArray * arr = env;
 
@@ -327,7 +327,7 @@ Result tst_capacity(void * env) {
   return r;
 }
 
-Result tst_reserve(void * env) {
+static Result tst_reserve(void * env) {
   Result       r   = PASS;
   DAR_DArray * arr = env;
 
@@ -362,7 +362,7 @@ Result tst_reserve(void * env) {
   return r;
 }
 
-Result tst_resize(void * env) {
+static Result tst_resize(void * env) {
   Result       r   = PASS;
   DAR_DArray * arr = env;
 
@@ -399,7 +399,7 @@ Result tst_resize(void * env) {
   return r;
 }
 
-Result tst_resize_zeroed(void * env) {
+static Result tst_resize_zeroed(void * env) {
   Result       r   = PASS;
   DAR_DArray * arr = env;
 
@@ -435,7 +435,7 @@ Result tst_resize_zeroed(void * env) {
   return r;
 }
 
-Result tst_resize_with_value(void * env) {
+static Result tst_resize_with_value(void * env) {
   Result       r   = PASS;
   DAR_DArray * arr = env;
 
@@ -471,7 +471,7 @@ Result tst_resize_with_value(void * env) {
   return r;
 }
 
-Result tst_clear(void * env) {
+static Result tst_clear(void * env) {
   Result       r   = PASS;
   DAR_DArray * arr = env;
 
@@ -488,7 +488,7 @@ Result tst_clear(void * env) {
   return r;
 }
 
-Result tst_clear_and_shrink(void * env) {
+static Result tst_clear_and_shrink(void * env) {
   Result       r   = PASS;
   DAR_DArray * arr = env;
 
@@ -516,7 +516,7 @@ Result tst_clear_and_shrink(void * env) {
   return r;
 }
 
-Result tst_get(void * env) {
+static Result tst_get(void * env) {
   Result       r   = PASS;
   DAR_DArray * arr = env;
 
@@ -549,7 +549,7 @@ Result tst_get(void * env) {
   return r;
 }
 
-Result tst_get_checked(void * env) {
+static Result tst_get_checked(void * env) {
   Result       r   = PASS;
   DAR_DArray * arr = env;
 
@@ -603,7 +603,7 @@ Result tst_get_checked(void * env) {
   return r;
 }
 
-Result tst_set(void * env) {
+static Result tst_set(void * env) {
   Result       r   = PASS;
   DAR_DArray * arr = env;
 
@@ -624,7 +624,7 @@ Result tst_set(void * env) {
   return r;
 }
 
-Result tst_set_checked(void * env) {
+static Result tst_set_checked(void * env) {
   Result       r   = PASS;
   DAR_DArray * arr = env;
 
@@ -656,7 +656,7 @@ Result tst_set_checked(void * env) {
   return r;
 }
 
-Result tst_push_back_array(void * env) {
+static Result tst_push_back_array(void * env) {
   Result       r   = PASS;
   DAR_DArray * arr = env;
 
@@ -684,7 +684,7 @@ Result tst_push_back_array(void * env) {
   return r;
 }
 
-Result tst_push_back_darray(void * env) {
+static Result tst_push_back_darray(void * env) {
   Result       r         = PASS;
   DAR_DArray * arr       = env;
   DAR_DArray   other_arr = {0};
@@ -717,7 +717,7 @@ Result tst_push_back_darray(void * env) {
   return r;
 }
 
-Result tst_create_in_place_from(void * env) {
+static Result tst_create_in_place_from(void * env) {
   Result       r         = PASS;
   DAR_DArray * arr       = env;
   DAR_DArray   other_arr = {0};
@@ -743,7 +743,7 @@ Result tst_create_in_place_from(void * env) {
   return r;
 }
 
-Result tst_create_on_heap_from(void * env) {
+static Result tst_create_on_heap_from(void * env) {
   Result       r         = PASS;
   DAR_DArray * arr       = env;
   DAR_DArray * other_arr = NULL;
@@ -772,7 +772,7 @@ Result tst_create_on_heap_from(void * env) {
   return r;
 }
 
-Result tst_equals(void * env) {
+static Result tst_equals(void * env) {
   Result       r         = PASS;
   DAR_DArray * arr       = env;
   DAR_DArray   other_arr = {0};
@@ -810,7 +810,7 @@ Result tst_equals(void * env) {
   return r;
 }
 
-Result tst_first_last(void * env) {
+static Result tst_first_last(void * env) {
   Result       r   = PASS;
   DAR_DArray * arr = env;
 
@@ -834,7 +834,7 @@ Result tst_first_last(void * env) {
   return r;
 }
 
-Result tst_many_random_push_pop(void * env) {
+static Result tst_many_random_push_pop(void * env) {
   Result       r   = PASS;
   DAR_DArray * arr = env;
 
@@ -883,7 +883,7 @@ Result tst_many_random_push_pop(void * env) {
   return r;
 }
 
-Result tst_to_span(void * env) {
+static Result tst_to_span(void * env) {
   Result       r   = PASS;
   DAR_DArray * arr = env;
 
@@ -902,7 +902,7 @@ Result tst_to_span(void * env) {
   return r;
 }
 
-int main() {
+int main(void) {
   Test tests[] = {
       tst_create_destroy_on_heap,
       tst_create_destroy_in_place,

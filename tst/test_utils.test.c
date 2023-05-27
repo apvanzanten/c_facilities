@@ -5,7 +5,7 @@
 
 #include "test_utils.h"
 
-Result tst_expects_boolean() {
+static Result tst_expects_boolean(void) {
   Result r = PASS;
 
   bool truthy = true;
@@ -32,7 +32,7 @@ Result tst_expects_boolean() {
   return PASS;
 }
 
-Result tst_expects_equality() {
+static Result tst_expects_equality(void) {
   Result r = PASS;
 
   const int five = 5;
@@ -57,7 +57,7 @@ Result tst_expects_equality() {
   return PASS;
 }
 
-Result tst_expects_str() {
+static Result tst_expects_str(void) {
   Result r = PASS;
 
   EXPECT_STREQ(&r, "milk and cereal", "milk and cereal");
@@ -84,7 +84,7 @@ Result tst_expects_str() {
   return PASS;
 }
 
-Result tst_expects_arr_int() {
+static Result tst_expects_arr_int(void) {
   Result r = PASS;
 
   const int arr_10_primes[10] = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29};
@@ -108,7 +108,7 @@ Result tst_expects_arr_int() {
   return PASS;
 }
 
-Result tst_expects_arr_double() {
+static Result tst_expects_arr_double(void) {
   Result r = PASS;
 
   const double arr_some_reals[] = {
@@ -134,7 +134,7 @@ Result tst_expects_arr_double() {
   return PASS;
 }
 
-Result tst_has_failed() {
+static Result tst_has_failed(void) {
   Result r = PASS;
 
   if(HAS_FAILED(&r)) return FAIL;
@@ -145,7 +145,7 @@ Result tst_has_failed() {
   return PASS;
 }
 
-int main() {
+int main(void) {
   Test tests[] = {
       tst_expects_boolean,
       tst_expects_equality,

@@ -14,7 +14,7 @@
 static Result setup(void ** env_p);
 static Result teardown(void ** env_p);
 
-Result tst_create_destroy_on_heap() {
+static Result tst_create_destroy_on_heap(void) {
   Result r = PASS;
 
   LST_List * list = NULL;
@@ -36,7 +36,7 @@ Result tst_create_destroy_on_heap() {
   return r;
 }
 
-Result tst_create_destroy_in_place() {
+static Result tst_create_destroy_in_place(void) {
   Result r = PASS;
 
   LST_List list = {0};
@@ -60,7 +60,7 @@ static bool is_aligned(size_t alignment_bytes, const void * ptr) {
   return ((((uintptr_t)ptr) % alignment_bytes) == 0);
 }
 
-Result tst_memory_alignment_of_nodes() {
+static Result tst_memory_alignment_of_nodes(void) {
   Result r = PASS;
 
   // expect alignment of sizeof(max_align_t) for both struct and data flexible array member
@@ -96,7 +96,7 @@ Result tst_memory_alignment_of_nodes() {
   return r;
 }
 
-Result tst_memory_alignment_of_nodes_in_list() {
+static Result tst_memory_alignment_of_nodes_in_list(void) {
   Result r = PASS;
 
   LST_List     list             = {0};
@@ -138,7 +138,7 @@ Result tst_memory_alignment_of_nodes_in_list() {
   return r;
 }
 
-Result tst_insert(void * env_p) {
+static Result tst_insert(void * env_p) {
   Result     r    = PASS;
   LST_List * list = (LST_List *)env_p;
 
@@ -186,7 +186,7 @@ Result tst_insert(void * env_p) {
   return r;
 }
 
-Result tst_get_len(void * env_p) {
+static Result tst_get_len(void * env_p) {
   Result     r    = PASS;
   LST_List * list = (LST_List *)env_p;
 
@@ -207,7 +207,7 @@ Result tst_get_len(void * env_p) {
   return r;
 }
 
-Result tst_first_last_end(void * env_p) {
+static Result tst_first_last_end(void * env_p) {
   Result     r    = PASS;
   LST_List * list = (LST_List *)env_p;
 
@@ -239,7 +239,7 @@ Result tst_first_last_end(void * env_p) {
   return r;
 }
 
-Result tst_next_prev(void * env_p) {
+static Result tst_next_prev(void * env_p) {
   Result     r    = PASS;
   LST_List * list = (LST_List *)env_p;
 
@@ -280,7 +280,7 @@ Result tst_next_prev(void * env_p) {
   return r;
 }
 
-Result tst_contains_and_find(void * env_p) {
+static Result tst_contains_and_find(void * env_p) {
   Result     r    = PASS;
   LST_List * list = (LST_List *)env_p;
 
@@ -317,7 +317,7 @@ Result tst_contains_and_find(void * env_p) {
   return r;
 }
 
-Result tst_insert_from_array(void * env_p) {
+static Result tst_insert_from_array(void * env_p) {
   Result     r    = PASS;
   LST_List * list = (LST_List *)env_p;
 
@@ -362,7 +362,7 @@ Result tst_insert_from_array(void * env_p) {
   return r;
 }
 
-Result tst_remove(void * env_p) {
+static Result tst_remove(void * env_p) {
   Result     r    = PASS;
   LST_List * list = (LST_List *)env_p;
 
@@ -389,7 +389,7 @@ Result tst_remove(void * env_p) {
   return r;
 }
 
-Result tst_remove_sequence(void * env_p) {
+static Result tst_remove_sequence(void * env_p) {
   Result     r    = PASS;
   LST_List * list = (LST_List *)env_p;
 
@@ -422,7 +422,7 @@ Result tst_remove_sequence(void * env_p) {
   return r;
 }
 
-Result tst_extract_and_inject(void * env_p) {
+static Result tst_extract_and_inject(void * env_p) {
   Result     r    = PASS;
   LST_List * list = (LST_List *)env_p;
 
@@ -487,7 +487,7 @@ Result tst_extract_and_inject(void * env_p) {
   return r;
 }
 
-Result tst_extract_and_inject_sequence_front_to_back(void * env_p) {
+static Result tst_extract_and_inject_sequence_front_to_back(void * env_p) {
   Result     r    = PASS;
   LST_List * list = (LST_List *)env_p;
 
@@ -537,7 +537,7 @@ Result tst_extract_and_inject_sequence_front_to_back(void * env_p) {
   return r;
 }
 
-Result tst_extract_and_inject_sequence_middle(void * env_p) {
+static Result tst_extract_and_inject_sequence_middle(void * env_p) {
   Result     r    = PASS;
   LST_List * list = (LST_List *)env_p;
 
@@ -591,7 +591,7 @@ Result tst_extract_and_inject_sequence_middle(void * env_p) {
   return r;
 }
 
-Result tst_many_random_actions(void) {
+static Result tst_many_random_actions(void) {
   // randomly generate sequence of actions with sequence of parameters:
   // * insert node
   //    - position to insert
@@ -796,7 +796,7 @@ Result tst_many_random_actions(void) {
   return r;
 }
 
-int main() {
+int main(void) {
   Test tests[] = {
       tst_create_destroy_on_heap,
       tst_create_destroy_in_place,

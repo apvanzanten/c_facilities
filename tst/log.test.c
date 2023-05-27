@@ -16,7 +16,7 @@ typedef struct {
 
 static LogBuffer g_log_buff;
 
-static void init_log_buff() { g_log_buff = (LogBuffer){0}; }
+static void init_log_buff(void) { g_log_buff = (LogBuffer){0}; }
 
 static void log_func(const char * msg, size_t n) {
   printf("logging: %.*s", (int)n, msg);
@@ -31,12 +31,12 @@ static void log_func(const char * msg, size_t n) {
   }
 }
 
-static void setup_log_buffer_and_func() {
+static void setup_log_buffer_and_func(void) {
   init_log_buff();
   LOG_set_log_func(log_func);
 }
 
-Result tst_LOG_STAT() {
+static Result tst_LOG_STAT(void) {
   Result r = PASS;
 
   setup_log_buffer_and_func();
@@ -64,7 +64,7 @@ Result tst_LOG_STAT() {
   return r;
 }
 
-Result tst_LOG_STAT_IF() {
+static Result tst_LOG_STAT_IF(void) {
   Result r = PASS;
 
   setup_log_buffer_and_func();
@@ -88,7 +88,7 @@ Result tst_LOG_STAT_IF() {
   return r;
 }
 
-Result tst_LOG_STAT_IF_ERR() {
+static Result tst_LOG_STAT_IF_ERR(void) {
   Result r = PASS;
 
   setup_log_buffer_and_func();
@@ -119,7 +119,7 @@ Result tst_LOG_STAT_IF_ERR() {
   return r;
 }
 
-Result tst_LOG_STAT_IF_NOK() {
+static Result tst_LOG_STAT_IF_NOK(void) {
 
   Result r = PASS;
 
@@ -152,7 +152,7 @@ Result tst_LOG_STAT_IF_NOK() {
   return r;
 }
 
-int main() {
+int main(void) {
   Test tests[] = {
       tst_LOG_STAT,
       tst_LOG_STAT_IF,

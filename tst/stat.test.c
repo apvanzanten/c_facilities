@@ -6,7 +6,7 @@
 
 #include "stat.h"
 
-Result tst_ranges_are_positive() {
+static Result tst_ranges_are_positive(void) {
   Result r = PASS;
 
   EXPECT_TRUE(&r, STAT_IMPL_OK_RANGE_FIRST <= STAT_IMPL_OK_RANGE_LAST);
@@ -16,7 +16,7 @@ Result tst_ranges_are_positive() {
   return r;
 }
 
-Result tst_ranges_are_disjoint() {
+static Result tst_ranges_are_disjoint(void) {
   Result r = PASS;
 
   EXPECT_TRUE(&r, STAT_IMPL_OK_RANGE_LAST < STAT_IMPL_WRN_RANGE_FIRST);
@@ -25,7 +25,7 @@ Result tst_ranges_are_disjoint() {
   return r;
 }
 
-Result tst_enum_storage_size() {
+static Result tst_enum_storage_size(void) {
   Result r = PASS;
 
   EXPECT_TRUE(&r, sizeof(STAT_Val) <= sizeof(int));
@@ -33,7 +33,7 @@ Result tst_enum_storage_size() {
   return r;
 }
 
-Result tst_is_OK_is_WRN_is_ERR() {
+static Result tst_is_OK_is_WRN_is_ERR(void) {
   Result r = PASS;
 
   EXPECT_TRUE(&r, STAT_is_OK(STAT_OK));
@@ -57,7 +57,7 @@ Result tst_is_OK_is_WRN_is_ERR() {
   return r;
 }
 
-Result tst_is_valid() {
+static Result tst_is_valid(void) {
   Result r = PASS;
 
   EXPECT_TRUE(&r, STAT_is_valid(STAT_OK));
@@ -74,7 +74,7 @@ Result tst_is_valid() {
   return r;
 }
 
-Result tst_to_str() {
+static Result tst_to_str(void) {
   Result r = PASS;
 
 #define CHECK(val) EXPECT_STREQ(&r, #val, STAT_to_str(val))
@@ -92,7 +92,7 @@ Result tst_to_str() {
   return r;
 }
 
-int main() {
+int main(void) {
   Test tests[] = {
       tst_ranges_are_positive,
       tst_ranges_are_disjoint,
