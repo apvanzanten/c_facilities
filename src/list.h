@@ -47,6 +47,7 @@ STAT_Val LST_insert_from_array(LST_List * this,
                                LST_Node **  o_first_inserted_node);
 
 STAT_Val LST_remove(LST_Node * to_be_removed);
+STAT_Val LST_remove_sequence(LST_Node * first, LST_Node * successor);
 
 STAT_Val LST_inject(LST_Node * to_be_injected, LST_Node * successor);
 STAT_Val LST_extract(LST_Node * to_be_extracted);

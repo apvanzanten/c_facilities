@@ -164,6 +164,19 @@ STAT_Val LST_remove(LST_Node * to_be_removed) {
   return OK;
 }
 
+STAT_Val LST_remove_sequence(LST_Node * first, LST_Node * successor) {
+  if(first == NULL) return LOG_STAT(STAT_ERR_ARGS, "first is NULL");
+  if(successor == NULL) return LOG_STAT(STAT_ERR_ARGS, "successor is NULL");
+
+  if(!STAT_is_OK(LST_extract_sequence(first, successor))) {
+    return LOG_STAT(STAT_ERR_INTERNAL, "failed to extract sequence for removal");
+  }
+
+  destroy_chain_of_nodes(first);
+
+  return OK;
+}
+
 STAT_Val LST_inject(LST_Node * to_be_injected, LST_Node * successor) {
   if(to_be_injected == NULL) return LOG_STAT(STAT_ERR_ARGS, "to_be_injected is NULL");
   if(successor == NULL) return LOG_STAT(STAT_ERR_ARGS, "successor is NULL");
