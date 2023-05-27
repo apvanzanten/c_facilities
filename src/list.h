@@ -60,8 +60,9 @@ STAT_Val LST_clear(LST_List * this);
 // =============
 // == queries ==
 
-size_t LST_get_len(const LST_List * this);
-bool   LST_contains(const LST_List * this, const void * value);
+size_t             LST_get_len(const LST_List * this);
+bool               LST_contains(const LST_List * this, const void * value);
+static inline bool LST_is_empty(const LST_List * this);
 
 // STAT_Val LST_find([const] LST_List * this, const void * value, [const] LST_Node ** o_found_node);
 #define LST_find(list, value, o_found_node)                                                        \
@@ -155,6 +156,10 @@ static inline LST_Node * LST_IMPL_prev_nonconst(LST_Node * node, int n) {
 }
 static inline const LST_Node * LST_IMPL_prev_const(const LST_Node * node, int n) {
   return LST_IMPL_next_const(node, -n);
+}
+
+static inline bool LST_is_empty(const LST_List * this) {
+  return (this == NULL || this->sentinel == this->sentinel->next);
 }
 
 // ===============

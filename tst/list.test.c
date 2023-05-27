@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include "stat.h"
 #include "test_utils.h"
@@ -590,12 +591,224 @@ Result tst_extract_and_inject_sequence_middle(void * env_p) {
   return r;
 }
 
+Result tst_many_random_actions(void) {
+  // randomly generate sequence of actions with sequence of parameters:
+  // * insert node
+  //    - position to insert
+  // * insert from array
+  //    - size of array
+  //    - position to insert
+  // * remove node, only if list is not empty
+  //    - position to remove
+  // * remove sequence, only if list is not empty
+  //    - first node
+  //    - successor node
+  // * extract and inject node, only if list is not empty
+  //    - position of node to extract
+  //    - position to inject
+  // * extract and inject sequence, only if list is not empty
+  //    - position of first node to extract
+  //    - position of successor
+  //    - position to inject
+  //
+  // check along the way:
+  // * validity
+  // * length
+  // * sum of values
+
+  Result r = PASS;
+
+  srand(time(NULL) + clock());
+
+  const size_t num_iterations       = 5000;
+  const size_t num_possible_actions = 6; // see list above
+  const size_t element_size         = sizeof(uint32_t);
+  const size_t max_sequence_size    = 32;
+
+  LST_List list = {0};
+  EXPECT_EQ(&r, OK, LST_create_in_place(&list, element_size));
+  if(HAS_FAILED(&r)) return r;
+
+  size_t list_len         = 0;
+  size_t list_element_sum = 0;
+
+  size_t action_histogram[6] = {0};
+  EXPECT_EQ(&r, num_possible_actions, sizeof(action_histogram) / sizeof(size_t));
+  if(HAS_FAILED(&r)) return r;
+
+  for(size_t iteration = 0; iteration < num_iterations; iteration++) {
+    // pick one of six actions
+    const size_t  num_possible_actions_adjusted = (list_len == 0 ? 2 : num_possible_actions);
+    const uint8_t action_nr                     = ((size_t)rand() % num_possible_actions_adjusted);
+    EXPECT_TRUE(&r, action_nr < num_possible_actions);
+    if(HAS_FAILED(&r)) return r;
+
+    switch(action_nr) {
+    case 0: { // insert node
+      const uint32_t val_to_insert = (iteration & 0xfff);
+      const int      pos_to_insert = (rand() % (list_len + 1));
+      LST_Node *     successor     = LST_next(LST_first(&list), pos_to_insert);
+      LST_Node *     inserted_node = NULL;
+
+      EXPECT_EQ(&r, OK, LST_insert(&list, successor, &val_to_insert, &inserted_node));
+      EXPECT_EQ(&r, val_to_insert, *((uint32_t *)LST_data(inserted_node)));
+
+      list_len++;
+      list_element_sum += val_to_insert;
+      action_histogram[0]++;
+      break;
+    }
+    case 1: { // insert from array
+      const size_t array_size    = (rand() % max_sequence_size) + 1;
+      const int    pos_to_insert = (rand() % (list_len + 1));
+      LST_Node *   successor     = LST_next(LST_first(&list), pos_to_insert);
+      LST_Node *   first_node    = NULL;
+
+      uint32_t * array = malloc(array_size * element_size);
+      EXPECT_NE(&r, NULL, array);
+      if(HAS_FAILED(&r)) return r;
+
+      for(uint32_t i = 0; i < array_size; i++) {
+        array[i] = i;
+        list_element_sum += i;
+      }
+
+      EXPECT_EQ(&r, OK, LST_insert_from_array(&list, successor, array, array_size, &first_node));
+      EXPECT_EQ(&r, array[0], *((uint32_t *)LST_data(first_node)));
+
+      free(array);
+
+      list_len += array_size;
+      action_histogram[1]++;
+      break;
+    }
+    case 2: { // remove node
+      if(list_len > 0) {
+        const int  pos_to_remove  = (rand() % list_len);
+        LST_Node * node_to_remove = LST_next(LST_first(&list), pos_to_remove);
+
+        list_element_sum -= *((uint32_t *)LST_data(node_to_remove));
+
+        EXPECT_EQ(&r, OK, LST_remove(node_to_remove));
+
+        list_len--;
+        action_histogram[2]++;
+      }
+      break;
+    }
+    case 3: { // remove sequence
+      if(list_len > 0) {
+        const size_t max_to_remove = (max_sequence_size > list_len) ? list_len : max_sequence_size;
+        const size_t num_to_remove = (rand() % max_to_remove) + 1;
+        const size_t max_first_pos_to_remove = (list_len - num_to_remove);
+        const int    first_pos_to_remove =
+            (max_first_pos_to_remove == 0 ? max_first_pos_to_remove
+                                          : (rand() % max_first_pos_to_remove));
+        LST_Node * first_node_to_remove = LST_next(LST_first(&list), first_pos_to_remove);
+        LST_Node * successor            = LST_next(first_node_to_remove, num_to_remove);
+
+        for(LST_Node * node = first_node_to_remove; node != successor; node = node->next) {
+          list_element_sum -= *((uint32_t *)LST_data(node));
+        }
+
+        EXPECT_EQ(&r, OK, LST_remove_sequence(first_node_to_remove, successor));
+
+        list_len -= num_to_remove;
+        action_histogram[3]++;
+      }
+      break;
+    }
+    case 4: { // extract and inject node
+      if(list_len > 0) {
+        const int    pos_to_extract   = (rand() % list_len);
+        const size_t interim_list_len = (list_len - 1);
+        const int    pos_to_inject    = (interim_list_len == 0 ? 0 : (rand() % (interim_list_len)));
+        LST_Node *   node             = LST_next(LST_first(&list), pos_to_extract);
+
+        EXPECT_EQ(&r, OK, LST_extract(node));
+        EXPECT_EQ(&r, interim_list_len, LST_get_len(&list));
+        if(HAS_FAILED(&r)) return r;
+
+        LST_Node * successor = LST_next(LST_first(&list), pos_to_inject);
+        EXPECT_EQ(&r, OK, LST_inject(node, successor));
+        EXPECT_EQ(&r, list_len, LST_get_len(&list));
+
+        action_histogram[4]++;
+      }
+      break;
+    }
+    case 5: { // extract and inject sequence
+      if(list_len > 0) {
+        const size_t max_to_extract = (max_sequence_size > list_len) ? list_len : max_sequence_size;
+        const size_t num_to_extract = (rand() % max_to_extract) + 1;
+        const size_t max_pos_to_extract = (list_len - num_to_extract);
+        const int    pos_to_extract =
+            (max_pos_to_extract == 0 ? max_pos_to_extract : (rand() % max_pos_to_extract));
+        const size_t interim_list_len = (list_len - num_to_extract);
+        const size_t pos_to_inject    = (interim_list_len == 0 ? 0 : (rand() % interim_list_len));
+
+        LST_Node * first_node        = LST_next(LST_first(&list), pos_to_extract);
+        LST_Node * extract_successor = LST_next(first_node, num_to_extract);
+        LST_Node * last_node         = extract_successor->prev;
+
+        EXPECT_EQ(&r, OK, LST_extract_sequence(first_node, extract_successor));
+        EXPECT_EQ(&r, interim_list_len, LST_get_len(&list));
+        if(HAS_FAILED(&r)) return r;
+
+        LST_Node * inject_successor = LST_next(LST_first(&list), pos_to_inject);
+        EXPECT_EQ(&r, OK, LST_inject_sequence(first_node, last_node, inject_successor));
+        EXPECT_EQ(&r, list_len, LST_get_len(&list));
+
+        action_histogram[5]++;
+      }
+      break;
+    }
+    default: EXPECT_FALSE(&r, true); return r;
+    }
+
+    EXPECT_TRUE(&r, LST_IMPL_is_valid(&list));
+    EXPECT_EQ(&r, list_len, LST_get_len(&list));
+    if(HAS_FAILED(&r)) return r;
+
+    size_t sum = 0;
+    for(LST_Node * node = LST_first(&list); node != LST_end(&list); node = node->next) {
+      sum += *((uint32_t *)LST_data(node));
+    }
+    EXPECT_EQ(&r, list_element_sum, sum);
+
+    if(HAS_FAILED(&r)) return r;
+
+    if((iteration & 0xff) == 0) {
+      printf("it %zu, list_len: %zu, list_element_sum: %zu, ",
+             iteration,
+             list_len,
+             list_element_sum);
+      printf("action hist: [ ");
+      for(size_t i = 0; i < num_possible_actions; i++) {
+        printf("%zu ", action_histogram[i]);
+      }
+      printf("]\n");
+    }
+  }
+
+  LST_destroy_in_place(&list);
+
+  return r;
+}
+
 int main() {
   Test tests[] = {
       tst_create_destroy_on_heap,
       tst_create_destroy_in_place,
       tst_memory_alignment_of_nodes,
       tst_memory_alignment_of_nodes_in_list,
+
+      // run this test a couple times, it gets a new seed every time
+      tst_many_random_actions,
+      tst_many_random_actions,
+      tst_many_random_actions,
+      tst_many_random_actions,
+      tst_many_random_actions,
   };
 
   TestWithFixture tests_with_fixture[] = {
