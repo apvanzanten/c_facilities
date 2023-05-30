@@ -23,6 +23,8 @@ void print_failure(const char * file, const char * func, int line, const char * 
 
 #define PRINT_FAIL(...) print_failure(__FILE__, __func__, __LINE__, __VA_ARGS__)
 
+// EXPECT_OK?
+
 #define EXPECT_EQ(rPtr, a, b)                                                                      \
   do {                                                                                             \
     if((a) != (b)) {                                                                               \

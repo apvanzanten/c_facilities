@@ -56,6 +56,8 @@ add_library(test_utils ${SRC_DIR}/test_utils.c)
 
 add_library(log ${SRC_DIR}/log.c)
 
+add_library(refcount ${SRC_DIR}/refcount.c)
+
 add_library(span ${SRC_DIR}/span.c)
 target_link_libraries(span PUBLIC log)
 
@@ -85,3 +87,4 @@ AddTest(log_test log.test.c log)
 AddTest(darray_test darray.test.c darray)
 AddTest(span_test span.test.c span)
 AddTest(list_test list.test.c list)
+AddTest(refcount_test refcount.test.c refcount)
