@@ -10,7 +10,7 @@
 typedef struct {
   const void * begin;        // NOTE non-owning
   uint32_t     len;          // len in number of elements
-  uint8_t      element_size; // size of an element in bytes
+  uint32_t     element_size; // size of an element in bytes
 } SPN_Span;
 
 SPN_Span SPN_from_cstr(const char * cstr);

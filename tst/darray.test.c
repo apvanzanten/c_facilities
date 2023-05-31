@@ -211,6 +211,55 @@ static Result tst_create_in_place_from_span(void) {
   return r;
 }
 
+typedef struct {
+  double  numbers[1000];
+  uint8_t bytes[10000];
+} BigStruct;
+
+static Result tst_large_elements(void) {
+  Result r = PASS;
+
+  DAR_DArray arr = {0};
+
+  BigStruct elements[8] = {0};
+  for(size_t i = 0; i < sizeof(elements) / sizeof(BigStruct); i++) {
+    for(size_t j = 0; j < sizeof(elements[i].numbers) / sizeof(double); j++) {
+      elements[i].numbers[j] = (double)i * (double)j;
+    }
+    for(size_t j = 0; j < sizeof(elements[i].bytes) / sizeof(uint8_t); j++) {
+      elements[i].bytes[j] = i * j;
+    }
+  }
+
+  EXPECT_EQ(&r, OK, DAR_create_in_place(&arr, sizeof(BigStruct)));
+
+  EXPECT_NE(&r, NULL, arr.data);
+  if(HAS_FAILED(&r)) return r;
+
+  for(size_t i = 0; i < sizeof(elements) / sizeof(BigStruct); i++) {
+    EXPECT_EQ(&r, OK, DAR_push_back(&arr, &elements[i]));
+    if(HAS_FAILED(&r)) return r;
+  }
+
+  for(size_t i = 0; i < sizeof(elements) / sizeof(BigStruct); i++) {
+    BigStruct * a = &elements[i];
+    BigStruct * b = (BigStruct *)DAR_get(&arr, i);
+
+    for(size_t j = 0; j < sizeof(elements[i].numbers) / sizeof(double); j++) {
+      EXPECT_EQ(&r, a->numbers[j], b->numbers[j]);
+      if(HAS_FAILED(&r)) return r;
+    }
+    for(size_t j = 0; j < sizeof(elements[i].bytes) / sizeof(uint8_t); j++) {
+      EXPECT_EQ(&r, a->bytes[j], b->bytes[j]);
+      if(HAS_FAILED(&r)) return r;
+    }
+  }
+
+  EXPECT_EQ(&r, OK, DAR_destroy_in_place(&arr));
+
+  return r;
+}
+
 static Result tst_fixture(void * env) {
   Result       r   = PASS;
   DAR_DArray * arr = env;
@@ -910,6 +959,7 @@ int main(void) {
       tst_create_in_place_from_cstr,
       tst_create_on_heap_from_span,
       tst_create_in_place_from_span,
+      tst_large_elements,
   };
 
   TestWithFixture tests_with_fixture[] = {

@@ -761,6 +761,42 @@ static Result tst_find_subspan_monster(void) {
   return r;
 }
 
+typedef struct {
+  double  numbers[1000];
+  uint8_t bytes[10000];
+} BigStruct;
+
+static Result tst_large_elements(void) {
+  Result r = PASS;
+
+  BigStruct      elements[16] = {0};
+  const uint32_t element_size = sizeof(BigStruct);
+  const uint32_t len          = sizeof(elements) / sizeof(BigStruct);
+  for(uint32_t i = 0; i < len; i++) {
+    for(uint32_t j = 0; j < sizeof(elements[i].numbers) / sizeof(double); j++) {
+      elements[i].numbers[j] = (double)i * (double)j;
+    }
+    for(uint32_t j = 0; j < sizeof(elements[i].bytes) / sizeof(uint8_t); j++) {
+      elements[i].bytes[j] = i * j;
+    }
+  }
+
+  const SPN_Span span = {.begin = elements, .element_size = element_size, .len = len};
+
+  for(uint32_t i = 0; i < len; i++) {
+    uint32_t idx = 0;
+    EXPECT_EQ(&r, OK, SPN_find(span, &elements[i], &idx));
+    EXPECT_EQ(&r, i, idx);
+  }
+  for(uint32_t i = 0; i < len; i++) {
+    uint32_t idx = 0;
+    EXPECT_EQ(&r, OK, SPN_find_reverse(span, &elements[i], &idx));
+    EXPECT_EQ(&r, i, idx);
+  }
+
+  return r;
+}
+
 int main(void) {
   Test tests[] = {
       tst_create_from_cstr,
@@ -779,6 +815,7 @@ int main(void) {
       tst_find_subspan_basic,
       tst_find_subspan_at_basic,
       tst_find_subspan_monster,
+      tst_large_elements,
   };
 
   return (run_tests(tests, sizeof(tests) / sizeof(Test)) == PASS) ? 0 : 1;

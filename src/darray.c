@@ -11,17 +11,18 @@
 
 #define MAX_SIZE               UINT32_MAX
 #define MIN_CAPACITY_MAGNITUDE 3
-#define MAX_CAPACITY_MAGNITUDE 32
+#define MAX_CAPACITY_MAGNITUDE 63
+#define MAX_CAPACITY           (1LL << MAX_CAPACITY_MAGNITUDE)
 
 static size_t get_capacity(const DAR_DArray * this);
 static size_t get_capacity_from_magnitude(uint8_t magnitude);
-static size_t get_capacity_in_bytes_from_magnitude(uint8_t element_size, uint8_t magnitude);
+static size_t get_capacity_in_bytes_from_magnitude(uint32_t element_size, uint8_t magnitude);
 
 static uint8_t get_minimum_required_capacity_magnitude(uint32_t size);
 
 static STAT_Val grow_capacity_as_needed(DAR_DArray * this, uint32_t num_elements_to_fit);
 
-STAT_Val DAR_create_on_heap(DAR_DArray ** this_p, uint8_t element_size) {
+STAT_Val DAR_create_on_heap(DAR_DArray ** this_p, uint32_t element_size) {
   if(this_p == NULL || *this_p != NULL) return LOG_STAT(STAT_ERR_ARGS, "bad arg 'this_p'");
 
   DAR_DArray * this = (DAR_DArray *)malloc(sizeof(DAR_DArray));
@@ -71,7 +72,7 @@ STAT_Val DAR_create_on_heap_from_cstr(DAR_DArray ** this_p, const char * str) {
   return OK;
 }
 
-STAT_Val DAR_create_in_place(DAR_DArray * this, uint8_t element_size) {
+STAT_Val DAR_create_in_place(DAR_DArray * this, uint32_t element_size) {
   if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this arg is NULL");
 
   this->size               = 0;
@@ -370,11 +371,15 @@ static size_t get_capacity(const DAR_DArray * this) {
   return get_capacity_from_magnitude(this->capacity_magnitude);
 }
 
-static size_t get_capacity_in_bytes_from_magnitude(uint8_t element_size, uint8_t magnitude) {
+static size_t get_capacity_in_bytes_from_magnitude(uint32_t element_size, uint8_t magnitude) {
   return element_size * get_capacity_from_magnitude(magnitude);
 }
 
 static STAT_Val grow_capacity_as_needed(DAR_DArray * this, uint32_t num_elements_to_fit) {
+  if(this->capacity_magnitude == MAX_CAPACITY_MAGNITUDE) {
+    return LOG_STAT(STAT_ERR_FULL, "array capacity at max");
+  }
+
   const uint8_t req_cap_magnitude = get_minimum_required_capacity_magnitude(num_elements_to_fit);
   if(this->capacity_magnitude >= req_cap_magnitude) return OK;
 
@@ -397,6 +402,7 @@ static STAT_Val grow_capacity_as_needed(DAR_DArray * this, uint32_t num_elements
 }
 
 static uint8_t get_minimum_required_capacity_magnitude(uint32_t size) {
+  // TODO make less awful
   // TODO optimize to use existing magnitude, that probably saves a lot of time in many cases
   // NOTE this can probably be done more efficiently with some intrinsics (or bit twiddling)
   //      this is probably good enough, I may optimize it later when I have benchmarks set up

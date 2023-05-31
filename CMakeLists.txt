@@ -67,6 +67,9 @@ target_link_libraries(darray PUBLIC log span)
 add_library(list ${SRC_DIR}/list.c)
 target_link_libraries(list PUBLIC log)
 
+add_library(hashtable ${SRC_DIR}/hashtable.c)
+target_link_libraries(hashtable PUBLIC log)
+
 
 # --- tests ---
 
@@ -88,3 +91,4 @@ AddTest(darray_test darray.test.c darray)
 AddTest(span_test span.test.c span)
 AddTest(list_test list.test.c list)
 AddTest(refcount_test refcount.test.c refcount)
+AddTest(hashtable_test hashtable.test.c hashtable)

@@ -14,7 +14,7 @@
 
 typedef struct {
   void *   data;
-  uint8_t  element_size;       // size of each element in bytes
+  uint32_t element_size;       // size of each element in bytes
   uint8_t  capacity_magnitude; // magnitude of capacity in elements
   uint32_t size;               // size of array in elements
 
@@ -25,11 +25,11 @@ typedef struct {
 // ==============================
 // == creation and destruction ==
 
-STAT_Val DAR_create_on_heap(DAR_DArray ** this_p, uint8_t element_size);
+STAT_Val DAR_create_on_heap(DAR_DArray ** this_p, uint32_t element_size);
 STAT_Val DAR_create_on_heap_from(DAR_DArray ** this_p, const DAR_DArray * src);
 STAT_Val DAR_create_on_heap_from_cstr(DAR_DArray ** this_p, const char * str);
 
-STAT_Val DAR_create_in_place(DAR_DArray * this, uint8_t element_size);
+STAT_Val DAR_create_in_place(DAR_DArray * this, uint32_t element_size);
 STAT_Val DAR_create_in_place_from(DAR_DArray * this, const DAR_DArray * src);
 STAT_Val DAR_create_in_place_from_cstr(DAR_DArray * this, const char * str);
 
