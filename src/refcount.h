@@ -4,17 +4,17 @@
 #include <stddef.h>
 #include <stdint.h>
 
-typedef struct RC_Entry {
+typedef struct RC_RefCountedBlock {
   size_t  ref_count;
   uint8_t data[] __attribute__((aligned(sizeof(max_align_t))));
-} __attribute__((aligned(sizeof(max_align_t)))) RC_Entry;
+} __attribute__((aligned(sizeof(max_align_t)))) RC_RefCountedBlock;
 
 typedef struct {
-  RC_Entry * entry;
+  RC_RefCountedBlock * block;
 } RC_Ref;
 
 typedef struct {
-  RC_Entry * entry;
+  RC_RefCountedBlock * block;
 } RC_ConstRef;
 
 RC_Ref RC_allocate(size_t element_size);
@@ -47,36 +47,36 @@ static inline const void * RC_IMPL_get_const(RC_ConstRef ref);
 static inline size_t RC_IMPL_get_ref_count_nonconst(RC_Ref ref);
 static inline size_t RC_IMPL_get_ref_count_const(RC_ConstRef ref);
 
-void RC_IMPL_free(RC_Entry * entry);
+void RC_IMPL_free(RC_RefCountedBlock * block);
 
-static inline RC_ConstRef RC_as_const(RC_Ref ref) { return (RC_ConstRef){.entry = ref.entry}; }
+static inline RC_ConstRef RC_as_const(RC_Ref ref) { return (RC_ConstRef){.block = ref.block}; }
 
 static inline RC_Ref RC_IMPL_copy_nonconst(RC_Ref orig) {
-  orig.entry->ref_count++;
+  orig.block->ref_count++;
   return orig;
 }
 static inline RC_ConstRef RC_IMPL_copy_const(RC_ConstRef orig) {
-  orig.entry->ref_count++;
+  orig.block->ref_count++;
   return orig;
 }
 
 static inline void RC_IMPL_release_nonconst(RC_Ref ref) {
-  if((ref.entry->ref_count--) <= 1) RC_IMPL_free(ref.entry);
+  if((ref.block->ref_count--) <= 1) RC_IMPL_free(ref.block);
 }
 static inline void RC_IMPL_release_const(RC_ConstRef ref) {
-  if((ref.entry->ref_count--) <= 1) RC_IMPL_free(ref.entry);
+  if((ref.block->ref_count--) <= 1) RC_IMPL_free(ref.block);
 }
 
-static inline void *       RC_IMPL_get_nonconst(RC_Ref ref) { return ((void *)(ref.entry->data)); }
+static inline void *       RC_IMPL_get_nonconst(RC_Ref ref) { return ((void *)(ref.block->data)); }
 static inline const void * RC_IMPL_get_const(RC_ConstRef ref) {
-  return ((const void *)(ref.entry->data));
+  return ((const void *)(ref.block->data));
 }
 
 static inline size_t RC_IMPL_get_ref_count_nonconst(RC_Ref ref) {
-  return (ref.entry == NULL) ? 0 : ref.entry->ref_count;
+  return (ref.block == NULL) ? 0 : ref.block->ref_count;
 }
 static inline size_t RC_IMPL_get_ref_count_const(RC_ConstRef ref) {
-  return (ref.entry == NULL) ? 0 : ref.entry->ref_count;
+  return (ref.block == NULL) ? 0 : ref.block->ref_count;
 }
 
 #endif
