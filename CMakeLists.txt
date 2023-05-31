@@ -68,7 +68,7 @@ add_library(list ${SRC_DIR}/list.c)
 target_link_libraries(list PUBLIC log)
 
 add_library(hashtable ${SRC_DIR}/hashtable.c)
-target_link_libraries(hashtable PUBLIC log)
+target_link_libraries(hashtable PUBLIC log darray)
 
 
 # --- tests ---
