@@ -16,7 +16,7 @@ typedef struct {
   void *   data;
   uint32_t element_size;       // size of each element in bytes
   uint8_t  capacity_magnitude; // magnitude of capacity in elements
-  uint32_t size;               // size of array in elements
+  uint32_t size;               // size of array in elements TODO should be size_t?
 
   // NOTE size of data memory should always be: element_size * (2^capacity_magnitude)
   // NOTE and always (2^capacity_magnitude) >= size
@@ -38,6 +38,7 @@ STAT_Val DAR_destroy_in_place(DAR_DArray * this);
 
 // ==================
 // == modification ==
+// TODO add something akin to erase-remove idiom
 
 STAT_Val DAR_push_back(DAR_DArray * this, const void * element);
 STAT_Val DAR_pop_back(DAR_DArray * this);

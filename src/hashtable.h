@@ -5,22 +5,27 @@
 #include <stdint.h>
 
 #include "darray.h"
+#include "span.h"
 #include "stat.h"
 
 typedef struct {
-  uint32_t   count;
-  uint32_t   capacity;
-  uint32_t   key_size;
-  uint32_t   value_size;
-  bool       has_indirect_key; // indicates whether key has memory indirection (e.g. in a string)
-  DAR_DArray key_store;
-  DAR_DArray value_store;
+  DAR_DArray store;
+  size_t     count;
+  size_t     tombstone_count;
+  size_t     value_size;
+  uint16_t   key_size; // if this is 0, that means the key size is variable (e.g. a string)
 } HT_HashTable;
 
-STAT_Val HT_create_in_place(HT_HashTable * this, uint32_t key_size, uint32_t value_size);
-STAT_Val HT_create_on_heap(HT_HashTable ** this_p, uint32_t key_size, uint32_t value_size);
+STAT_Val HT_create(HT_HashTable * this, uint16_t key_size, size_t value_size);
+STAT_Val HT_destroy(HT_HashTable * this);
 
-STAT_Val HT_destroy_in_place(HT_HashTable * this);
-STAT_Val HT_destroy_on_heap(HT_HashTable ** this_p);
+STAT_Val HT_set(HT_HashTable * this, const void * key, const void * value);
+STAT_Val HT_get(const HT_HashTable * this, const void * key, const void ** o_value);
+STAT_Val HT_remove(HT_HashTable * this, const void * key);
+
+static inline uint32_t HT_get_capacity(const HT_HashTable * this) {
+  if(this == NULL) return 0;
+  return this->store.size;
+}
 
 #endif
