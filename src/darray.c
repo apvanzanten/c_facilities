@@ -18,9 +18,9 @@ static size_t get_capacity(const DAR_DArray * this);
 static size_t get_capacity_from_magnitude(uint8_t magnitude);
 static size_t get_capacity_in_bytes_from_magnitude(uint32_t element_size, uint8_t magnitude);
 
-static uint8_t get_minimum_required_capacity_magnitude(uint32_t size);
-
 static STAT_Val grow_capacity_as_needed(DAR_DArray * this, uint32_t num_elements_to_fit);
+static uint8_t  get_required_capacity_magnitude(uint8_t  current_cap_mag,
+                                                uint32_t num_elements_to_fit);
 
 STAT_Val DAR_create(DAR_DArray * this, uint32_t element_size) {
   if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this arg is NULL");
@@ -114,7 +114,8 @@ STAT_Val DAR_pop_back(DAR_DArray * this) {
 STAT_Val DAR_shrink_to_fit(DAR_DArray * this) {
   if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
 
-  uint8_t new_capacity_magnitude = get_minimum_required_capacity_magnitude(this->size);
+  const uint8_t new_capacity_magnitude =
+      get_required_capacity_magnitude(this->capacity_magnitude, this->size);
   if(new_capacity_magnitude == this->capacity_magnitude) return OK;
 
   const size_t new_capacity_in_bytes =
@@ -318,7 +319,9 @@ static STAT_Val grow_capacity_as_needed(DAR_DArray * this, uint32_t num_elements
     return LOG_STAT(STAT_ERR_FULL, "array capacity at max");
   }
 
-  const uint8_t req_cap_magnitude = get_minimum_required_capacity_magnitude(num_elements_to_fit);
+  const uint8_t req_cap_magnitude =
+      get_required_capacity_magnitude(this->capacity_magnitude, num_elements_to_fit);
+
   if(this->capacity_magnitude >= req_cap_magnitude) return OK;
 
   const size_t new_capacity_in_bytes =
@@ -339,21 +342,24 @@ static STAT_Val grow_capacity_as_needed(DAR_DArray * this, uint32_t num_elements
   return OK;
 }
 
-static uint8_t get_minimum_required_capacity_magnitude(uint32_t size) {
-  // TODO make less awful
-  // TODO optimize to use existing magnitude, that probably saves a lot of time in many cases
-  // NOTE this can probably be done more efficiently with some intrinsics (or bit twiddling)
+static uint8_t get_required_capacity_magnitude(uint8_t  current_cap_mag,
+                                               uint32_t num_elements_to_fit) {
+  // NOTE this can possibly be done more efficiently with some intrinsics (or bit twiddling)
   //      this is probably good enough, I may optimize it later when I have benchmarks set up
-  for(uint8_t magnitude = MIN_CAPACITY_MAGNITUDE; magnitude < MAX_CAPACITY_MAGNITUDE; magnitude++) {
-    const size_t capacity = get_capacity_from_magnitude(magnitude);
-    if(capacity >= (size_t)size) return magnitude;
+  uint8_t cap_mag = current_cap_mag;
+  while((cap_mag > MIN_CAPACITY_MAGNITUDE) &&
+        (get_capacity_from_magnitude(cap_mag) > num_elements_to_fit)) {
+    cap_mag--;
   }
-  return MAX_CAPACITY_MAGNITUDE;
+  while((cap_mag < MAX_CAPACITY_MAGNITUDE) &&
+        (get_capacity_from_magnitude(cap_mag) < num_elements_to_fit)) {
+    cap_mag++;
+  }
+  return cap_mag;
 }
 
 SPN_Span DAR_to_span(const DAR_DArray * this) {
   if(this == NULL) return (SPN_Span){0};
-
   return (SPN_Span){.begin = this->data, .len = this->size, .element_size = this->element_size};
 }
 
