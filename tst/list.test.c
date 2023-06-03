@@ -14,33 +14,11 @@
 static Result setup(void ** env_p);
 static Result teardown(void ** env_p);
 
-static Result tst_create_destroy_on_heap(void) {
-  Result r = PASS;
-
-  LST_List * list = NULL;
-  EXPECT_EQ(&r, OK, LST_create_on_heap(&list, sizeof(int)));
-  EXPECT_NE(&r, NULL, list);
-  EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
-  if(HAS_FAILED(&r)) return r;
-
-  EXPECT_EQ(&r, sizeof(int), list->element_size);
-
-  EXPECT_NE(&r, NULL, list->sentinel);
-  if(HAS_FAILED(&r)) return r;
-
-  EXPECT_EQ(&r, list->sentinel, list->sentinel->next);
-  EXPECT_EQ(&r, list->sentinel, list->sentinel->prev);
-
-  EXPECT_EQ(&r, OK, LST_destroy_on_heap(&list));
-
-  return r;
-}
-
 static Result tst_create_destroy_in_place(void) {
   Result r = PASS;
 
   LST_List list = {0};
-  EXPECT_EQ(&r, OK, LST_create_in_place(&list, sizeof(int)));
+  EXPECT_EQ(&r, OK, LST_create(&list, sizeof(int)));
   EXPECT_TRUE(&r, LST_IMPL_is_valid(&list));
 
   EXPECT_EQ(&r, sizeof(int), list.element_size);
@@ -51,7 +29,7 @@ static Result tst_create_destroy_in_place(void) {
   EXPECT_EQ(&r, list.sentinel, list.sentinel->next);
   EXPECT_EQ(&r, list.sentinel, list.sentinel->prev);
 
-  EXPECT_EQ(&r, OK, LST_destroy_in_place(&list));
+  EXPECT_EQ(&r, OK, LST_destroy(&list));
 
   return r;
 }
@@ -112,7 +90,7 @@ static Result tst_memory_alignment_of_nodes_in_list(void) {
   }
 
   for(size_t element_size = min_element_size; element_size < max_element_size; element_size++) {
-    EXPECT_EQ(&r, OK, LST_create_in_place(&list, element_size));
+    EXPECT_EQ(&r, OK, LST_create(&list, element_size));
     if(HAS_FAILED(&r)) return r;
 
     for(size_t node_idx = 0; node_idx < num_nodes; node_idx++) {
@@ -129,7 +107,7 @@ static Result tst_memory_alignment_of_nodes_in_list(void) {
       if(HAS_FAILED(&r)) return r;
     }
 
-    EXPECT_EQ(&r, OK, LST_destroy_in_place(&list));
+    EXPECT_EQ(&r, OK, LST_destroy(&list));
     if(HAS_FAILED(&r)) return r;
   }
 
@@ -626,7 +604,7 @@ static Result tst_many_random_actions(void) {
   const size_t max_sequence_size    = 32;
 
   LST_List list = {0};
-  EXPECT_EQ(&r, OK, LST_create_in_place(&list, element_size));
+  EXPECT_EQ(&r, OK, LST_create(&list, element_size));
   if(HAS_FAILED(&r)) return r;
 
   size_t list_len         = 0;
@@ -791,14 +769,13 @@ static Result tst_many_random_actions(void) {
     }
   }
 
-  LST_destroy_in_place(&list);
+  LST_destroy(&list);
 
   return r;
 }
 
 int main(void) {
   Test tests[] = {
-      tst_create_destroy_on_heap,
       tst_create_destroy_in_place,
       tst_memory_alignment_of_nodes,
       tst_memory_alignment_of_nodes_in_list,
@@ -839,7 +816,14 @@ static Result setup(void ** env_pp) {
   Result      r       = PASS;
   LST_List ** list_pp = (LST_List **)env_pp;
 
-  EXPECT_EQ(&r, OK, LST_create_on_heap(list_pp, sizeof(double)));
+  EXPECT_NE(&r, NULL, list_pp);
+  if(HAS_FAILED(&r)) return r;
+
+  *list_pp = malloc(sizeof(LST_List));
+  EXPECT_NE(&r, NULL, *list_pp);
+  if(HAS_FAILED(&r)) return r;
+
+  EXPECT_EQ(&r, OK, LST_create(*list_pp, sizeof(double)));
   EXPECT_TRUE(&r, LST_IMPL_is_valid(*list_pp));
 
   return r;
@@ -849,7 +833,13 @@ static Result teardown(void ** env_pp) {
   Result      r       = PASS;
   LST_List ** list_pp = (LST_List **)env_pp;
 
-  EXPECT_EQ(&r, OK, LST_destroy_on_heap(list_pp));
+  EXPECT_NE(&r, NULL, list_pp);
+  if(HAS_FAILED(&r)) return r;
+
+  EXPECT_EQ(&r, OK, LST_destroy(*list_pp));
+
+  free(*list_pp);
+  *list_pp = NULL;
 
   return r;
 }

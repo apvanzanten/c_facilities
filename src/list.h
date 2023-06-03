@@ -27,11 +27,8 @@ typedef struct LST_List {
 // ==============================
 // == creation and destruction ==
 
-STAT_Val LST_create_on_heap(LST_List ** this_p, size_t element_size);
-STAT_Val LST_create_in_place(LST_List * this, size_t element_size);
-
-STAT_Val LST_destroy_on_heap(LST_List ** this_p);
-STAT_Val LST_destroy_in_place(LST_List * this);
+STAT_Val LST_create(LST_List * this, size_t element_size);
+STAT_Val LST_destroy(LST_List * this);
 
 // ==================
 // == modification ==

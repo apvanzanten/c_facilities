@@ -24,25 +24,7 @@ static STAT_Val create_chain_of_nodes(const void * data_arr,
 // ==========================
 // == creation/destruction ==
 
-STAT_Val LST_create_on_heap(LST_List ** this_p, size_t element_size) {
-  if(this_p == NULL) return LOG_STAT(STAT_ERR_ARGS, "this_p is NULL");
-  if(*this_p != NULL) return LOG_STAT(STAT_ERR_ARGS, "this_p points to non-NULL");
-  if(element_size == 0) return LOG_STAT(STAT_ERR_ARGS, "element size is 0");
-
-  LST_List * this = (LST_List *)malloc(sizeof(LST_List));
-  if(this == NULL) return LOG_STAT(STAT_ERR_ALLOC, "failed to allocate for LST_List");
-
-  if(!STAT_is_OK(LST_create_in_place(this, element_size))) {
-    free(this);
-    return LOG_STAT(STAT_ERR_INTERNAL, "failed to create LST_List");
-  }
-
-  *this_p = this;
-
-  return OK;
-}
-
-STAT_Val LST_create_in_place(LST_List * this, size_t element_size) {
+STAT_Val LST_create(LST_List * this, size_t element_size) {
   if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
   if(element_size == 0) return LOG_STAT(STAT_ERR_ARGS, "element size is 0");
 
@@ -55,20 +37,7 @@ STAT_Val LST_create_in_place(LST_List * this, size_t element_size) {
   return OK;
 }
 
-STAT_Val LST_destroy_on_heap(LST_List ** this_p) {
-  if(this_p == NULL) return LOG_STAT(STAT_ERR_ARGS, "this_p is NULL");
-  if(*this_p == NULL) return OK;
-
-  if(!STAT_is_OK(LST_destroy_in_place(*this_p))) {
-    return LOG_STAT(STAT_ERR_INTERNAL, "failed to destroy LST_List");
-  }
-
-  free(*this_p);
-
-  return OK;
-}
-
-STAT_Val LST_destroy_in_place(LST_List * this) {
+STAT_Val LST_destroy(LST_List * this) {
   if(this == NULL) return OK;
 
   if(this->sentinel != NULL) {
