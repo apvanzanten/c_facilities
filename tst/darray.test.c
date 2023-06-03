@@ -17,32 +17,11 @@
 static Result setup(void ** env_p);
 static Result teardown(void ** env_p);
 
-static Result tst_create_destroy_on_heap(void) {
-  Result r = PASS;
-
-  DAR_DArray * arr = NULL;
-  EXPECT_EQ(&r, OK, DAR_create_on_heap(&arr, sizeof(int)));
-
-  EXPECT_NE(&r, NULL, arr);
-  if(HAS_FAILED(&r)) return r;
-
-  EXPECT_NE(&r, NULL, arr->data);
-  if(HAS_FAILED(&r)) return r;
-
-  EXPECT_EQ(&r, sizeof(int), arr->element_size);
-  EXPECT_EQ(&r, 0, arr->size);
-
-  EXPECT_EQ(&r, OK, DAR_destroy_on_heap(&arr));
-  EXPECT_EQ(&r, NULL, arr);
-
-  return r;
-}
-
-static Result tst_create_destroy_in_place(void) {
+static Result tst_create_destroy(void) {
   Result r = PASS;
 
   DAR_DArray arr = {0};
-  EXPECT_EQ(&r, OK, DAR_create_in_place(&arr, sizeof(int)));
+  EXPECT_EQ(&r, OK, DAR_create(&arr, sizeof(int)));
 
   EXPECT_NE(&r, NULL, arr.data);
   if(HAS_FAILED(&r)) return r;
@@ -50,37 +29,13 @@ static Result tst_create_destroy_in_place(void) {
   EXPECT_EQ(&r, sizeof(int), arr.element_size);
   EXPECT_EQ(&r, 0, arr.size);
 
-  EXPECT_EQ(&r, OK, DAR_destroy_in_place(&arr));
+  EXPECT_EQ(&r, OK, DAR_destroy(&arr));
   EXPECT_EQ(&r, NULL, arr.data);
 
   return r;
 }
 
-static Result tst_create_on_heap_from_cstr(void) {
-  Result r = PASS;
-
-  DAR_DArray * arr = NULL;
-
-  const char str[] = "mind if I do a little window shopping first?";
-  const int  len   = strlen(str);
-  const int  size  = len + 1; // +1 for null termination
-
-  EXPECT_EQ(&r, OK, DAR_create_on_heap_from_cstr(&arr, str));
-  EXPECT_NE(&r, NULL, arr);
-  if(HAS_FAILED(&r)) return r;
-
-  EXPECT_EQ(&r, size, arr->size);
-  EXPECT_EQ(&r, '\0', *(char *)DAR_get(arr, len));
-  if(HAS_FAILED(&r)) return r;
-
-  EXPECT_STREQ(&r, str, arr->data);
-
-  EXPECT_EQ(&r, OK, DAR_destroy_on_heap(&arr));
-
-  return r;
-}
-
-static Result tst_create_in_place_from_cstr(void) {
+static Result tst_create_from_cstr(void) {
   Result r = PASS;
 
   DAR_DArray arr = {0};
@@ -89,7 +44,7 @@ static Result tst_create_in_place_from_cstr(void) {
   const int  len   = strlen(str);
   const int  size  = len + 1; // +1 for null termination
 
-  EXPECT_EQ(&r, OK, DAR_create_in_place_from_cstr(&arr, str));
+  EXPECT_EQ(&r, OK, DAR_create_from_cstr(&arr, str));
   if(HAS_FAILED(&r)) return r;
 
   EXPECT_EQ(&r, size, arr.size);
@@ -98,66 +53,12 @@ static Result tst_create_in_place_from_cstr(void) {
 
   EXPECT_STREQ(&r, str, arr.data);
 
-  EXPECT_EQ(&r, OK, DAR_destroy_in_place(&arr));
+  EXPECT_EQ(&r, OK, DAR_destroy(&arr));
 
   return r;
 }
 
-static Result tst_create_on_heap_from_span(void) {
-  Result r = PASS;
-
-  DAR_DArray * arr = NULL;
-
-  {
-    const char     str[] = "They're waiting for you Gordon, in the *test* chamber.";
-    const SPN_Span span  = SPN_from_cstr(str);
-
-    EXPECT_EQ(&r, OK, DAR_create_on_heap_from_span(&arr, span));
-
-    EXPECT_EQ(&r, span.len, arr->size);
-    EXPECT_EQ(&r, span.element_size, arr->element_size);
-    EXPECT_NE(&r, span.begin, arr->data);
-
-    EXPECT_ARREQ(&r, char, span.begin, arr->data, span.len);
-
-    EXPECT_EQ(&r, OK, DAR_destroy_on_heap(&arr));
-  }
-  {
-    const int      vals[] = {1, 2, 3, 4, 6, 7};
-    const SPN_Span span =
-        (SPN_Span){.begin = vals, .len = sizeof(vals) / sizeof(int), .element_size = sizeof(int)};
-
-    EXPECT_EQ(&r, OK, DAR_create_on_heap_from_span(&arr, span));
-
-    EXPECT_EQ(&r, span.len, arr->size);
-    EXPECT_EQ(&r, span.element_size, arr->element_size);
-    EXPECT_NE(&r, span.begin, arr->data);
-
-    EXPECT_ARREQ(&r, int, span.begin, arr->data, span.len);
-
-    EXPECT_EQ(&r, OK, DAR_destroy_on_heap(&arr));
-  }
-  {
-    const double   vals[] = {1.0, 2.0, 3.0, 4.0, 6.0, 7.0};
-    const SPN_Span span   = (SPN_Span){.begin        = vals,
-                                       .len          = sizeof(vals) / sizeof(double),
-                                       .element_size = sizeof(double)};
-
-    EXPECT_EQ(&r, OK, DAR_create_on_heap_from_span(&arr, span));
-
-    EXPECT_EQ(&r, span.len, arr->size);
-    EXPECT_EQ(&r, span.element_size, arr->element_size);
-    EXPECT_NE(&r, span.begin, arr->data);
-
-    EXPECT_ARREQ(&r, double, span.begin, arr->data, span.len);
-
-    EXPECT_EQ(&r, OK, DAR_destroy_on_heap(&arr));
-  }
-
-  return r;
-}
-
-static Result tst_create_in_place_from_span(void) {
+static Result tst_create_from_span(void) {
   Result r = PASS;
 
   DAR_DArray arr = {0};
@@ -166,7 +67,7 @@ static Result tst_create_in_place_from_span(void) {
     const char     str[] = "The Shire's this way.";
     const SPN_Span span  = SPN_from_cstr(str);
 
-    EXPECT_EQ(&r, OK, DAR_create_in_place_from_span(&arr, span));
+    EXPECT_EQ(&r, OK, DAR_create_from_span(&arr, span));
 
     EXPECT_EQ(&r, span.len, arr.size);
     EXPECT_EQ(&r, span.element_size, arr.element_size);
@@ -174,14 +75,14 @@ static Result tst_create_in_place_from_span(void) {
 
     EXPECT_ARREQ(&r, char, span.begin, arr.data, span.len);
 
-    EXPECT_EQ(&r, OK, DAR_destroy_in_place(&arr));
+    EXPECT_EQ(&r, OK, DAR_destroy(&arr));
   }
   {
     const int      vals[] = {1, 2, 3, 4, 6, 7};
     const SPN_Span span =
         (SPN_Span){.begin = vals, .len = sizeof(vals) / sizeof(int), .element_size = sizeof(int)};
 
-    EXPECT_EQ(&r, OK, DAR_create_in_place_from_span(&arr, span));
+    EXPECT_EQ(&r, OK, DAR_create_from_span(&arr, span));
 
     EXPECT_EQ(&r, span.len, arr.size);
     EXPECT_EQ(&r, span.element_size, arr.element_size);
@@ -189,7 +90,7 @@ static Result tst_create_in_place_from_span(void) {
 
     EXPECT_ARREQ(&r, int, span.begin, arr.data, span.len);
 
-    EXPECT_EQ(&r, OK, DAR_destroy_in_place(&arr));
+    EXPECT_EQ(&r, OK, DAR_destroy(&arr));
   }
   {
     const double   vals[] = {1.0, 2.0, 3.0, 4.0, 6.0, 7.0};
@@ -197,7 +98,7 @@ static Result tst_create_in_place_from_span(void) {
                                        .len          = sizeof(vals) / sizeof(double),
                                        .element_size = sizeof(double)};
 
-    EXPECT_EQ(&r, OK, DAR_create_in_place_from_span(&arr, span));
+    EXPECT_EQ(&r, OK, DAR_create_from_span(&arr, span));
 
     EXPECT_EQ(&r, span.len, arr.size);
     EXPECT_EQ(&r, span.element_size, arr.element_size);
@@ -205,7 +106,7 @@ static Result tst_create_in_place_from_span(void) {
 
     EXPECT_ARREQ(&r, double, span.begin, arr.data, span.len);
 
-    EXPECT_EQ(&r, OK, DAR_destroy_in_place(&arr));
+    EXPECT_EQ(&r, OK, DAR_destroy(&arr));
   }
 
   return r;
@@ -231,7 +132,7 @@ static Result tst_large_elements(void) {
     }
   }
 
-  EXPECT_EQ(&r, OK, DAR_create_in_place(&arr, sizeof(BigStruct)));
+  EXPECT_EQ(&r, OK, DAR_create(&arr, sizeof(BigStruct)));
 
   EXPECT_NE(&r, NULL, arr.data);
   if(HAS_FAILED(&r)) return r;
@@ -255,7 +156,7 @@ static Result tst_large_elements(void) {
     }
   }
 
-  EXPECT_EQ(&r, OK, DAR_destroy_in_place(&arr));
+  EXPECT_EQ(&r, OK, DAR_destroy(&arr));
 
   return r;
 }
@@ -774,7 +675,7 @@ static Result tst_push_back_darray(void * env) {
   const uint32_t num_vals_a = sizeof(vals_a) / sizeof(double);
   const uint32_t num_vals_b = sizeof(vals_b) / sizeof(double);
 
-  EXPECT_EQ(&r, OK, DAR_create_in_place(&other_arr, sizeof(double)));
+  EXPECT_EQ(&r, OK, DAR_create(&other_arr, sizeof(double)));
   if(HAS_FAILED(&r)) return r;
 
   EXPECT_EQ(&r, OK, DAR_push_back_array(arr, vals_a, num_vals_a));
@@ -792,12 +693,12 @@ static Result tst_push_back_darray(void * env) {
   EXPECT_EQ(&r, 0, memcmp(DAR_get(arr, 0), vals_a, num_vals_a));
   EXPECT_EQ(&r, 0, memcmp(DAR_get(arr, num_vals_a), vals_b, num_vals_b));
 
-  EXPECT_EQ(&r, OK, DAR_destroy_in_place(&other_arr));
+  EXPECT_EQ(&r, OK, DAR_destroy(&other_arr));
 
   return r;
 }
 
-static Result tst_create_in_place_from(void * env) {
+static Result tst_create_from(void * env) {
   Result       r         = PASS;
   DAR_DArray * arr       = env;
   DAR_DArray   other_arr = {0};
@@ -809,7 +710,7 @@ static Result tst_create_in_place_from(void * env) {
   EXPECT_EQ(&r, num_vals, arr->size);
   if(HAS_FAILED(&r)) return r;
 
-  EXPECT_EQ(&r, OK, DAR_create_in_place_from(&other_arr, (const DAR_DArray *)arr));
+  EXPECT_EQ(&r, OK, DAR_create_from(&other_arr, (const DAR_DArray *)arr));
   EXPECT_NE(&r, NULL, other_arr.data);
   EXPECT_NE(&r, arr->data, other_arr.data);
   EXPECT_EQ(&r, arr->size, other_arr.size);
@@ -818,36 +719,7 @@ static Result tst_create_in_place_from(void * env) {
 
   EXPECT_EQ(&r, 0, memcmp(arr->data, other_arr.data, arr->size));
 
-  EXPECT_EQ(&r, OK, DAR_destroy_in_place(&other_arr));
-
-  return r;
-}
-
-static Result tst_create_on_heap_from(void * env) {
-  Result       r         = PASS;
-  DAR_DArray * arr       = env;
-  DAR_DArray * other_arr = NULL;
-
-  const double   vals[]   = {1.0, 2.0, 3.0, 4.0, 5.0};
-  const uint32_t num_vals = sizeof(vals) / sizeof(double);
-
-  EXPECT_EQ(&r, OK, DAR_push_back_array(arr, vals, num_vals));
-  EXPECT_EQ(&r, num_vals, arr->size);
-  if(HAS_FAILED(&r)) return r;
-
-  EXPECT_EQ(&r, OK, DAR_create_on_heap_from(&other_arr, (const DAR_DArray *)arr));
-  EXPECT_NE(&r, NULL, other_arr);
-  if(HAS_FAILED(&r)) return r;
-
-  EXPECT_NE(&r, NULL, other_arr->data);
-  EXPECT_NE(&r, arr->data, other_arr->data);
-  EXPECT_EQ(&r, arr->size, other_arr->size);
-  EXPECT_EQ(&r, arr->element_size, other_arr->element_size);
-  if(HAS_FAILED(&r)) return r;
-
-  EXPECT_EQ(&r, 0, memcmp(arr->data, other_arr->data, arr->size));
-
-  EXPECT_EQ(&r, OK, DAR_destroy_on_heap(&other_arr));
+  EXPECT_EQ(&r, OK, DAR_destroy(&other_arr));
 
   return r;
 }
@@ -862,7 +734,7 @@ static Result tst_equals(void * env) {
   const uint32_t num_vals_a = sizeof(vals_a) / sizeof(double);
   const uint32_t num_vals_b = sizeof(vals_b) / sizeof(double);
 
-  EXPECT_EQ(&r, OK, DAR_create_in_place(&other_arr, sizeof(double)));
+  EXPECT_EQ(&r, OK, DAR_create(&other_arr, sizeof(double)));
   if(HAS_FAILED(&r)) return r;
 
   EXPECT_EQ(&r, OK, DAR_push_back_array(arr, vals_a, num_vals_a));
@@ -885,7 +757,7 @@ static Result tst_equals(void * env) {
 
   EXPECT_FALSE(&r, DAR_equals((const DAR_DArray *)arr, (const DAR_DArray *)&other_arr));
 
-  EXPECT_EQ(&r, OK, DAR_destroy_in_place(&other_arr));
+  EXPECT_EQ(&r, OK, DAR_destroy(&other_arr));
 
   return r;
 }
@@ -984,12 +856,9 @@ static Result tst_to_span(void * env) {
 
 int main(void) {
   Test tests[] = {
-      tst_create_destroy_on_heap,
-      tst_create_destroy_in_place,
-      tst_create_on_heap_from_cstr,
-      tst_create_in_place_from_cstr,
-      tst_create_on_heap_from_span,
-      tst_create_in_place_from_span,
+      tst_create_destroy,
+      tst_create_from_cstr,
+      tst_create_from_span,
       tst_large_elements,
   };
 
@@ -1011,8 +880,7 @@ int main(void) {
       tst_push_back_array,
       tst_push_back_span,
       tst_push_back_darray,
-      tst_create_in_place_from,
-      tst_create_on_heap_from,
+      tst_create_from,
       tst_equals,
       tst_first_last,
 
@@ -1043,7 +911,14 @@ static Result setup(void ** env_p) {
   // use both time and clock so we get a different seed even if we call this many times per second
   srand(time(NULL) + clock());
 
-  EXPECT_EQ(&r, OK, DAR_create_on_heap(arr_p, sizeof(double)));
+  EXPECT_NE(&r, NULL, arr_p);
+  if(HAS_FAILED(&r)) return r;
+
+  *arr_p = malloc(sizeof(DAR_DArray));
+  EXPECT_NE(&r, NULL, *arr_p);
+  if(HAS_FAILED(&r)) return r;
+
+  EXPECT_EQ(&r, OK, DAR_create(*arr_p, sizeof(double)));
 
   return r;
 }
@@ -1052,7 +927,13 @@ static Result teardown(void ** env_p) {
   Result        r     = PASS;
   DAR_DArray ** arr_p = (DAR_DArray **)env_p;
 
-  EXPECT_EQ(&r, OK, DAR_destroy_on_heap(arr_p));
+  EXPECT_NE(&r, NULL, arr_p);
+  if(HAS_FAILED(&r)) return r;
+
+  EXPECT_EQ(&r, OK, DAR_destroy(*arr_p));
+
+  free(*arr_p);
+  *arr_p = NULL;
 
   return r;
 }

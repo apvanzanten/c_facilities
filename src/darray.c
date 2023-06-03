@@ -22,57 +22,7 @@ static uint8_t get_minimum_required_capacity_magnitude(uint32_t size);
 
 static STAT_Val grow_capacity_as_needed(DAR_DArray * this, uint32_t num_elements_to_fit);
 
-STAT_Val DAR_create_on_heap(DAR_DArray ** this_p, uint32_t element_size) {
-  if(this_p == NULL || *this_p != NULL) return LOG_STAT(STAT_ERR_ARGS, "bad arg 'this_p'");
-
-  DAR_DArray * this = (DAR_DArray *)malloc(sizeof(DAR_DArray));
-  if(this == NULL) return LOG_STAT(STAT_ERR_ALLOC, "failed to allocate for DAR_DArray");
-
-  if(!STAT_is_OK(DAR_create_in_place(this, element_size))) {
-    free(this);
-    return LOG_STAT(STAT_ERR_INTERNAL, "failed to create DAR_DArray");
-  }
-
-  *this_p = this;
-
-  return OK;
-}
-
-STAT_Val DAR_create_on_heap_from(DAR_DArray ** this_p, const DAR_DArray * src) {
-  if(this_p == NULL || *this_p != NULL) return LOG_STAT(STAT_ERR_ARGS, "bad arg 'this_p'");
-  if(src == NULL) return LOG_STAT(STAT_ERR_ARGS, "src is NULL");
-
-  DAR_DArray * this = (DAR_DArray *)malloc(sizeof(DAR_DArray));
-  if(this == NULL) return LOG_STAT(STAT_ERR_ALLOC, "failed to allocate for DAR_DArray");
-
-  if(!STAT_is_OK(DAR_create_in_place_from(this, src))) {
-    free(this);
-    return LOG_STAT(STAT_ERR_INTERNAL, "failed to create DAR_DArray");
-  }
-
-  *this_p = this;
-
-  return OK;
-}
-
-STAT_Val DAR_create_on_heap_from_cstr(DAR_DArray ** this_p, const char * str) {
-  if(this_p == NULL || *this_p != NULL) return LOG_STAT(STAT_ERR_ARGS, "bad arg 'this_p'");
-  if(str == NULL) return LOG_STAT(STAT_ERR_ARGS, "str is NULL");
-
-  DAR_DArray * this = (DAR_DArray *)malloc(sizeof(DAR_DArray));
-  if(this == NULL) return LOG_STAT(STAT_ERR_ALLOC, "failed to allocate for DAR_DArray");
-
-  if(!STAT_is_OK(DAR_create_in_place_from_cstr(this, str))) {
-    free(this);
-    return LOG_STAT(STAT_ERR_INTERNAL, "failed to create DAR_DArray");
-  }
-
-  *this_p = this;
-
-  return OK;
-}
-
-STAT_Val DAR_create_in_place(DAR_DArray * this, uint32_t element_size) {
+STAT_Val DAR_create(DAR_DArray * this, uint32_t element_size) {
   if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this arg is NULL");
 
   this->size               = 0;
@@ -94,54 +44,39 @@ STAT_Val DAR_create_in_place(DAR_DArray * this, uint32_t element_size) {
   return OK;
 }
 
-STAT_Val DAR_create_in_place_from(DAR_DArray * this, const DAR_DArray * src) {
+STAT_Val DAR_create_from(DAR_DArray * this, const DAR_DArray * src) {
   if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
   if(src == NULL) return LOG_STAT(STAT_ERR_ARGS, "src is NULL");
 
-  if(!STAT_is_OK(DAR_create_in_place(this, src->element_size))) {
+  if(!STAT_is_OK(DAR_create(this, src->element_size))) {
     return LOG_STAT(STAT_ERR_INTERNAL, "failed to create new array");
   }
 
   if(!STAT_is_OK(DAR_push_back_darray(this, src))) {
-    DAR_destroy_in_place(this);
+    DAR_destroy(this);
     return LOG_STAT(STAT_ERR_INTERNAL, "failed to push src data into this array");
   }
 
   return OK;
 }
 
-STAT_Val DAR_create_in_place_from_cstr(DAR_DArray * this, const char * str) {
+STAT_Val DAR_create_from_cstr(DAR_DArray * this, const char * str) {
   if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
   if(str == NULL) return LOG_STAT(STAT_ERR_ARGS, "str is NULL");
 
-  if(!STAT_is_OK(DAR_create_in_place(this, sizeof(char)))) {
+  if(!STAT_is_OK(DAR_create(this, sizeof(char)))) {
     return LOG_STAT(STAT_ERR_INTERNAL, "failed to create new array");
   }
 
   if(!STAT_is_OK(DAR_push_back_array(this, str, strlen(str) + 1))) { // +1 for null termination
-    DAR_destroy_in_place(this);
+    DAR_destroy(this);
     return LOG_STAT(STAT_ERR_INTERNAL, "failed to push str data into this array");
   }
 
   return OK;
 }
 
-STAT_Val DAR_destroy_on_heap(DAR_DArray ** this_p) {
-  if(this_p == NULL) return LOG_STAT(STAT_ERR_ARGS, "this_p arg is NULL");
-
-  if(*this_p == NULL) return OK;
-
-  if(!STAT_is_OK(DAR_destroy_in_place(*this_p))) {
-    return LOG_STAT(STAT_ERR_INTERNAL, "failed to destroy DAR_Array");
-  }
-
-  free(*this_p);
-  *this_p = NULL;
-
-  return OK;
-}
-
-STAT_Val DAR_destroy_in_place(DAR_DArray * this) {
+STAT_Val DAR_destroy(DAR_DArray * this) {
   if(this == NULL) return OK;
 
   free(this->data);
@@ -422,32 +357,17 @@ SPN_Span DAR_to_span(const DAR_DArray * this) {
   return (SPN_Span){.begin = this->data, .len = this->size, .element_size = this->element_size};
 }
 
-STAT_Val DAR_create_on_heap_from_span(DAR_DArray ** this_p, SPN_Span span) {
-  if(this_p == NULL || *this_p != NULL) return LOG_STAT(STAT_ERR_ARGS, "bad arg 'this_p'");
-
-  DAR_DArray * this = (DAR_DArray *)malloc(sizeof(DAR_DArray));
-  if(this == NULL) return LOG_STAT(STAT_ERR_ALLOC, "failed to allocate for DAR_DArray");
-
-  if(!STAT_is_OK(DAR_create_in_place_from_span(this, span))) {
-    return LOG_STAT(STAT_ERR_INTERNAL, "failed to create new array");
-  }
-
-  *this_p = this;
-
-  return OK;
-}
-
-STAT_Val DAR_create_in_place_from_span(DAR_DArray * this, SPN_Span span) {
+STAT_Val DAR_create_from_span(DAR_DArray * this, SPN_Span span) {
   if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
   if(span.element_size == 0) return LOG_STAT(STAT_ERR_ARGS, "span has invalid element size");
   if(span.begin == NULL) return LOG_STAT(STAT_ERR_ARGS, "span has invalid data pointer");
 
-  if(!STAT_is_OK(DAR_create_in_place(this, span.element_size))) {
+  if(!STAT_is_OK(DAR_create(this, span.element_size))) {
     return LOG_STAT(STAT_ERR_INTERNAL, "failed to create new array");
   }
 
   if(!STAT_is_OK(DAR_push_back_array(this, span.begin, span.len))) {
-    DAR_destroy_in_place(this);
+    DAR_destroy(this);
     return LOG_STAT(STAT_ERR_INTERNAL, "failed to copy span data into array");
   }
 

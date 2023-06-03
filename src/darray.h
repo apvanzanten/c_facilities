@@ -25,16 +25,11 @@ typedef struct {
 // ==============================
 // == creation and destruction ==
 
-STAT_Val DAR_create_on_heap(DAR_DArray ** this_p, uint32_t element_size);
-STAT_Val DAR_create_on_heap_from(DAR_DArray ** this_p, const DAR_DArray * src);
-STAT_Val DAR_create_on_heap_from_cstr(DAR_DArray ** this_p, const char * str);
+STAT_Val DAR_create(DAR_DArray * this, uint32_t element_size);
+STAT_Val DAR_create_from(DAR_DArray * this, const DAR_DArray * src);
+STAT_Val DAR_create_from_cstr(DAR_DArray * this, const char * str);
 
-STAT_Val DAR_create_in_place(DAR_DArray * this, uint32_t element_size);
-STAT_Val DAR_create_in_place_from(DAR_DArray * this, const DAR_DArray * src);
-STAT_Val DAR_create_in_place_from_cstr(DAR_DArray * this, const char * str);
-
-STAT_Val DAR_destroy_on_heap(DAR_DArray ** this_p);
-STAT_Val DAR_destroy_in_place(DAR_DArray * this);
+STAT_Val DAR_destroy(DAR_DArray * this);
 
 // ==================
 // == modification ==
@@ -78,8 +73,7 @@ static inline bool   DAR_is_empty(const DAR_DArray * this);
 // == span interop ==
 
 SPN_Span DAR_to_span(const DAR_DArray * this);
-STAT_Val DAR_create_on_heap_from_span(DAR_DArray ** this_p, SPN_Span span);
-STAT_Val DAR_create_in_place_from_span(DAR_DArray * this, SPN_Span span);
+STAT_Val DAR_create_from_span(DAR_DArray * this, SPN_Span span);
 
 // ===============
 // == accessors ==

@@ -49,8 +49,8 @@ static Result tst_many_random_sets_gets_removes(void) {
   for(uint16_t key_size = 1; key_size <= 8; key_size *= 2) {
     for(size_t value_size = 1; value_size <= 8; value_size *= 2) {
       EXPECT_EQ(&r, OK, HT_create(&table));
-      EXPECT_EQ(&r, OK, DAR_create_in_place(&keys, key_size));
-      EXPECT_EQ(&r, OK, DAR_create_in_place(&values, value_size));
+      EXPECT_EQ(&r, OK, DAR_create(&keys, key_size));
+      EXPECT_EQ(&r, OK, DAR_create(&values, value_size));
       if(HAS_FAILED(&r)) return r;
 
       SPN_Span key   = {.begin = NULL, .element_size = 1, .len = key_size};
@@ -127,8 +127,8 @@ static Result tst_many_random_sets_gets_removes(void) {
       free(tmp_key_data);
 
       EXPECT_EQ(&r, OK, HT_destroy(&table));
-      EXPECT_EQ(&r, OK, DAR_destroy_in_place(&keys));
-      EXPECT_EQ(&r, OK, DAR_destroy_in_place(&values));
+      EXPECT_EQ(&r, OK, DAR_destroy(&keys));
+      EXPECT_EQ(&r, OK, DAR_destroy(&values));
       if(HAS_FAILED(&r)) return r;
     }
   }

@@ -44,11 +44,11 @@ STAT_Val HT_create(HT_HashTable * this) {
 
   *this = (HT_HashTable){0};
 
-  if(!STAT_is_OK(DAR_create_in_place(&this->store, sizeof(HT_Entry)))) {
+  if(!STAT_is_OK(DAR_create(&this->store, sizeof(HT_Entry)))) {
     return LOG_STAT(STAT_ERR_INTERNAL, "failed to create hash table store");
   }
   if(!STAT_is_OK(DAR_resize_zeroed(&this->store, MIN_CAPACITY))) {
-    DAR_destroy_in_place(&this->store);
+    DAR_destroy(&this->store);
     return LOG_STAT(STAT_ERR_INTERNAL, "failed to resize stores to meet minimum capacity");
   }
 
@@ -62,7 +62,7 @@ STAT_Val HT_destroy(HT_HashTable * this) {
     destroy_entry(p);
   }
 
-  if(!STAT_is_OK(DAR_destroy_in_place(&(this->store)))) {
+  if(!STAT_is_OK(DAR_destroy(&(this->store)))) {
     return LOG_STAT(STAT_ERR_INTERNAL, "failed to destroy hash table store");
   }
 
@@ -96,9 +96,9 @@ STAT_Val HT_set(HT_HashTable * this, SPN_Span key, SPN_Span value) {
     this->count = new_count;
   } else {
     // this is the existing entry for this key, copy the new value over the old one
-    if(has_value(entry)) DAR_destroy_in_place(&(entry->value));
+    if(has_value(entry)) DAR_destroy(&(entry->value));
     if(!SPN_is_empty(value)) {
-      if(!STAT_is_OK(DAR_create_in_place_from_span(&(entry->value), value))) {
+      if(!STAT_is_OK(DAR_create_from_span(&(entry->value), value))) {
         return LOG_STAT(STAT_ERR_INTERNAL, "failed to write value to entry");
       }
     }
@@ -184,7 +184,7 @@ static STAT_Val grow_capacity_as_needed(HT_HashTable * this, uint32_t new_count)
     DAR_DArray old_store = this->store; // NOTE deliberate shallow copy; equivalent to C++ 'move'
     this->store          = (DAR_DArray){0};
 
-    if(!STAT_is_OK(DAR_create_in_place(&this->store, sizeof(HT_Entry)))) {
+    if(!STAT_is_OK(DAR_create(&this->store, sizeof(HT_Entry)))) {
       return LOG_STAT(STAT_ERR_INTERNAL, "failed to create replacement hash table store");
     }
     if(!STAT_is_OK(DAR_resize_zeroed(&this->store, new_capacity))) {
@@ -209,7 +209,7 @@ static STAT_Val grow_capacity_as_needed(HT_HashTable * this, uint32_t new_count)
       }
     }
 
-    if(!STAT_is_OK(DAR_destroy_in_place(&old_store))) {
+    if(!STAT_is_OK(DAR_destroy(&old_store))) {
       return LOG_STAT(STAT_ERR_INTERNAL, "failed to destroy old store");
     }
   }
@@ -271,12 +271,12 @@ static STAT_Val create_entry(HT_Entry * entry, uint32_t hash, SPN_Span key, SPN_
   entry->hash         = hash;
   entry->is_tombstone = false;
 
-  if(!STAT_is_OK(DAR_create_in_place_from_span(&(entry->key), key))) {
+  if(!STAT_is_OK(DAR_create_from_span(&(entry->key), key))) {
     return LOG_STAT(STAT_ERR_INTERNAL, "failed to write key to new entry");
   }
 
   if(!SPN_is_empty(value)) {
-    if(!STAT_is_OK(DAR_create_in_place_from_span(&(entry->value), value))) {
+    if(!STAT_is_OK(DAR_create_from_span(&(entry->value), value))) {
       return LOG_STAT(STAT_ERR_INTERNAL, "failed to write value to new entry");
     }
   }
@@ -286,8 +286,8 @@ static STAT_Val create_entry(HT_Entry * entry, uint32_t hash, SPN_Span key, SPN_
 
 static void destroy_entry(HT_Entry * entry) {
   if(entry != NULL) {
-    if(!is_empty(entry)) DAR_destroy_in_place(&(entry->key));
-    if(has_value(entry)) DAR_destroy_in_place(&(entry->value));
+    if(!is_empty(entry)) DAR_destroy(&(entry->key));
+    if(has_value(entry)) DAR_destroy(&(entry->value));
 
     *entry = (HT_Entry){0};
   }
