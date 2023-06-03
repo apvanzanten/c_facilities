@@ -13,19 +13,18 @@
 
 #define OK STAT_OK
 
-static Result setup_fixed_size_key_fixture(void ** env_p);
+static Result setup(void ** env_p);
 static Result teardown(void ** env_p);
 
 static Result tst_create_destroy(void) {
   Result       r     = PASS;
   HT_HashTable table = {0};
 
-  EXPECT_EQ(&r, OK, HT_create(&table, sizeof(int), sizeof(int64_t)));
+  EXPECT_EQ(&r, OK, HT_create(&table));
   if(HAS_FAILED(&r)) return r;
 
   EXPECT_EQ(&r, 0, table.count);
-  EXPECT_EQ(&r, sizeof(int), table.key_size);
-  EXPECT_EQ(&r, sizeof(int64_t), table.value_size);
+  EXPECT_EQ(&r, 0, table.tombstone_count);
   EXPECT_NE(&r, NULL, table.store.data);
 
   EXPECT_EQ(&r, OK, HT_destroy(&table));
@@ -49,16 +48,15 @@ static Result tst_many_random_sets_gets_removes(void) {
 
   for(uint16_t key_size = 1; key_size <= 8; key_size *= 2) {
     for(size_t value_size = 1; value_size <= 8; value_size *= 2) {
-      EXPECT_EQ(&r, OK, HT_create(&table, key_size, value_size));
+      EXPECT_EQ(&r, OK, HT_create(&table));
       EXPECT_EQ(&r, OK, DAR_create_in_place(&keys, key_size));
       EXPECT_EQ(&r, OK, DAR_create_in_place(&values, value_size));
       if(HAS_FAILED(&r)) return r;
 
-      void * key   = malloc(key_size);
-      void * value = malloc(value_size);
-      EXPECT_NE(&r, NULL, key);
-      EXPECT_NE(&r, NULL, value);
-      if(HAS_FAILED(&r)) return r;
+      SPN_Span key   = {.begin = NULL, .element_size = 1, .len = key_size};
+      SPN_Span value = {.begin = NULL, .element_size = 1, .len = value_size};
+
+      void * tmp_key_data = malloc(key_size);
 
       for(size_t iteration = 0; iteration < 1000; iteration++) {
         if((iteration % 256) == 0) {
@@ -74,8 +72,9 @@ static Result tst_many_random_sets_gets_removes(void) {
 
         if(do_remove) {
           const uint32_t item_idx = (rand() % keys.size);
+          key.begin               = DAR_get(&keys, item_idx);
 
-          EXPECT_EQ(&r, OK, HT_remove(&table, DAR_get(&keys, item_idx)));
+          EXPECT_EQ(&r, OK, HT_remove(&table, key));
           if(HAS_FAILED(&r)) return r;
 
           memcpy(DAR_get(&keys, item_idx), DAR_last(&keys), key_size);
@@ -83,32 +82,41 @@ static Result tst_many_random_sets_gets_removes(void) {
           memcpy(DAR_get(&values, item_idx), DAR_last(&values), value_size);
           EXPECT_EQ(&r, OK, DAR_resize(&values, values.size - 1));
         } else {
-          make_rand_val(key, key_size);
-          make_rand_val(value, value_size);
+          make_rand_val(tmp_key_data, key_size);
+
+          uint32_t   item_idx = 0;
+          const bool is_pre_existing_key =
+              (SPN_find(DAR_to_span(&keys), tmp_key_data, &item_idx) == OK);
+
+          if(!is_pre_existing_key) {
+            EXPECT_EQ(&r, OK, DAR_push_back(&keys, tmp_key_data));
+            EXPECT_EQ(&r, OK, DAR_resize(&values, keys.size));
+            item_idx = (keys.size - 1);
+          }
+
+          key.begin   = DAR_get(&keys, item_idx);
+          value.begin = DAR_get(&values, item_idx);
+
+          make_rand_val((void *)value.begin, value_size);
 
           EXPECT_EQ(&r, OK, HT_set(&table, key, value));
           if(HAS_FAILED(&r)) return r;
-
-          uint32_t item_idx = 0;
-          if(SPN_find(DAR_to_span(&keys), key, &item_idx) == OK) {
-            // item already existed, overwrite its value
-            memcpy(DAR_get(&values, item_idx), value, value_size);
-          } else { // item did not yet exist, add to local arrays
-            EXPECT_EQ(&r, OK, DAR_push_back(&keys, key));
-            EXPECT_EQ(&r, OK, DAR_push_back(&values, value));
-          }
         }
 
         // check all items in table
         for(uint32_t item_idx = 0; item_idx < keys.size; item_idx++) {
-          const void *   expected_value  = DAR_get(&values, item_idx);
-          const void *   retrieved_value = NULL;
-          const STAT_Val st = HT_get(&table, DAR_get(&keys, item_idx), &retrieved_value);
-          EXPECT_EQ(&r, OK, st);
-          EXPECT_NE(&r, NULL, retrieved_value);
+          key.begin = DAR_get(&keys, item_idx);
+
+          EXPECT_TRUE(&r, HT_contains(&table, key));
           if(HAS_FAILED(&r)) return r;
 
-          EXPECT_ARREQ(&r, uint8_t, expected_value, retrieved_value, value_size);
+          SPN_Span retrieved_value = {0};
+          EXPECT_EQ(&r, OK, HT_get(&table, key, &retrieved_value));
+          EXPECT_FALSE(&r, SPN_is_empty(retrieved_value));
+          if(HAS_FAILED(&r)) return r;
+
+          const void * expected_value = DAR_get(&values, item_idx);
+          EXPECT_ARREQ(&r, uint8_t, expected_value, retrieved_value.begin, value_size);
 
           if(HAS_FAILED(&r)) return r;
         }
@@ -116,8 +124,8 @@ static Result tst_many_random_sets_gets_removes(void) {
         if(HAS_FAILED(&r)) return r;
       }
 
-      free(key);
-      free(value);
+      free(tmp_key_data);
+
       EXPECT_EQ(&r, OK, HT_destroy(&table));
       EXPECT_EQ(&r, OK, DAR_destroy_in_place(&keys));
       EXPECT_EQ(&r, OK, DAR_destroy_in_place(&values));
@@ -135,20 +143,46 @@ static Result tst_set_get(void * env) {
   const double max_load_factor = 0.75; // defined inside hashtable.c
 
   for(int i = 1; i <= 1000; i++) {
-    const int     key   = i;
-    const int64_t value = ((int64_t)i * 2);
+    const int      key        = i;
+    const int64_t  value      = ((int64_t)i * 2);
+    const SPN_Span key_span   = {.begin = &key, .element_size = 1, .len = sizeof(key)};
+    const SPN_Span value_span = {.begin = &value, .element_size = 1, .len = sizeof(value)};
 
-    EXPECT_EQ(&r, OK, HT_set(table, &key, &value));
+    EXPECT_EQ(&r, OK, HT_set(table, key_span, value_span));
     EXPECT_EQ(&r, (size_t)i, table->count);
     EXPECT_TRUE(&r, table->count < (HT_get_capacity(table) * max_load_factor));
 
-    const int64_t * value_p = NULL;
-    EXPECT_EQ(&r, OK, HT_get(table, &key, ((const void **)&value_p)));
+    SPN_Span retrieved_value_span = {0};
+    EXPECT_EQ(&r, OK, HT_get(table, key_span, &retrieved_value_span));
 
-    EXPECT_NE(&r, NULL, value_p);
+    EXPECT_FALSE(&r, SPN_is_empty(retrieved_value_span));
     if(HAS_FAILED(&r)) return r;
 
-    EXPECT_EQ(&r, value, *value_p);
+    EXPECT_TRUE(&r, SPN_equals(value_span, retrieved_value_span));
+    if(HAS_FAILED(&r)) return r;
+  }
+
+  return r;
+}
+
+static Result tst_set_get_empty_values(void * env) {
+  Result         r     = PASS;
+  HT_HashTable * table = env;
+
+  for(int i = 1; i <= 1000; i++) {
+    const int      key      = i;
+    const SPN_Span key_span = {.begin = &key, .element_size = 1, .len = sizeof(key)};
+
+    EXPECT_EQ(&r, OK, HT_set(table, key_span, (SPN_Span){0}));
+    EXPECT_EQ(&r, (size_t)i, table->count);
+
+    EXPECT_TRUE(&r, HT_contains(table, key_span));
+    if(HAS_FAILED(&r)) return r;
+
+    SPN_Span retrieved_value_span = {0};
+    EXPECT_EQ(&r, OK, HT_get(table, key_span, &retrieved_value_span));
+
+    EXPECT_TRUE(&r, SPN_is_empty(retrieved_value_span));
     if(HAS_FAILED(&r)) return r;
   }
 
@@ -162,10 +196,12 @@ static Result tst_remove(void * env) {
   size_t expect_count = 0;
 
   for(int i = 1; i <= 1000; i++) {
-    const int     key   = i;
-    const int64_t value = ((int64_t)i * 2);
+    const int      key        = i;
+    const int64_t  value      = ((int64_t)i * 2);
+    const SPN_Span key_span   = {.begin = &key, .element_size = 1, .len = sizeof(key)};
+    const SPN_Span value_span = {.begin = &value, .element_size = 1, .len = sizeof(value)};
 
-    EXPECT_EQ(&r, OK, HT_set(table, &key, &value));
+    EXPECT_EQ(&r, OK, HT_set(table, key_span, value_span));
     expect_count++;
 
     EXPECT_EQ(&r, expect_count, table->count);
@@ -173,13 +209,14 @@ static Result tst_remove(void * env) {
   }
 
   for(int i = 1; i <= 1000; i++) {
-    const int key = i;
+    const int      key      = i;
+    const SPN_Span key_span = {.begin = &key, .element_size = 1, .len = sizeof(key)};
 
-    EXPECT_EQ(&r, OK, HT_remove(table, &key));
+    EXPECT_EQ(&r, OK, HT_remove(table, key_span));
     expect_count--;
 
     EXPECT_EQ(&r, expect_count, table->count);
-    EXPECT_EQ(&r, STAT_OK_NOT_FOUND, HT_get(table, &key, NULL));
+    EXPECT_EQ(&r, STAT_OK_NOT_FOUND, HT_get(table, key_span, NULL));
     if(HAS_FAILED(&r)) return r;
   }
 
@@ -192,22 +229,23 @@ int main(void) {
       tst_many_random_sets_gets_removes,
   };
 
-  TestWithFixture tests_with_fixed_size_key_fixture[] = {
+  TestWithFixture tests_with_fixture[] = {
       tst_set_get,
+      tst_set_get_empty_values,
       tst_remove,
   };
 
   const Result test_res = run_tests(tests, sizeof(tests) / sizeof(Test));
-  const Result test_with_fixed_size_key_fixture_res =
-      run_tests_with_fixture(tests_with_fixed_size_key_fixture,
-                             sizeof(tests_with_fixed_size_key_fixture) / sizeof(TestWithFixture),
-                             setup_fixed_size_key_fixture,
+  const Result test_with_fixture_res =
+      run_tests_with_fixture(tests_with_fixture,
+                             sizeof(tests_with_fixture) / sizeof(TestWithFixture),
+                             setup,
                              teardown);
 
-  return ((test_res == PASS) && (test_with_fixed_size_key_fixture_res == PASS)) ? 0 : 1;
+  return ((test_res == PASS) && (test_with_fixture_res == PASS)) ? 0 : 1;
 }
 
-static Result setup_fixed_size_key_fixture(void ** env_p) {
+static Result setup(void ** env_p) {
   Result r = PASS;
 
   HT_HashTable * table = malloc(sizeof(HT_HashTable));
@@ -215,12 +253,11 @@ static Result setup_fixed_size_key_fixture(void ** env_p) {
   EXPECT_NE(&r, NULL, env_p);
   if(HAS_FAILED(&r)) return r;
 
-  EXPECT_EQ(&r, OK, HT_create(table, sizeof(int), sizeof(int64_t)));
+  EXPECT_EQ(&r, OK, HT_create(table));
   if(HAS_FAILED(&r)) return r;
 
   EXPECT_EQ(&r, 0, table->count);
-  EXPECT_EQ(&r, sizeof(int), table->key_size);
-  EXPECT_EQ(&r, sizeof(int64_t), table->value_size);
+  EXPECT_EQ(&r, 0, table->tombstone_count);
   EXPECT_NE(&r, NULL, table->store.data);
   if(HAS_FAILED(&r)) return r;
 

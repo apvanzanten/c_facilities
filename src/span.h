@@ -13,7 +13,7 @@ typedef struct {
   uint32_t     element_size; // size of an element in bytes
 } SPN_Span;
 
-// TODO const span
+// TODO figure out const stuff (currently it is bad)
 
 SPN_Span SPN_from_cstr(const char * cstr);
 

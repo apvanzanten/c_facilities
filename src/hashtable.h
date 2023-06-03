@@ -12,16 +12,26 @@ typedef struct {
   DAR_DArray store;
   size_t     count;
   size_t     tombstone_count;
-  size_t     value_size;
-  uint16_t   key_size; // if this is 0, that means the key size is variable (e.g. a string)
 } HT_HashTable;
 
-STAT_Val HT_create(HT_HashTable * this, uint16_t key_size, size_t value_size);
+typedef struct {
+  DAR_DArray key;
+  DAR_DArray value;
+  uint32_t   hash;
+  bool       is_tombstone;
+} HT_Entry;
+
+STAT_Val HT_create(HT_HashTable * this);
 STAT_Val HT_destroy(HT_HashTable * this);
 
-STAT_Val HT_set(HT_HashTable * this, const void * key, const void * value);
-STAT_Val HT_get(const HT_HashTable * this, const void * key, const void ** o_value);
-STAT_Val HT_remove(HT_HashTable * this, const void * key);
+STAT_Val HT_set(HT_HashTable * this, SPN_Span key, SPN_Span value);
+STAT_Val HT_get(const HT_HashTable * this, SPN_Span key, SPN_Span * o_value);
+STAT_Val HT_remove(HT_HashTable * this, SPN_Span key);
+
+static inline bool HT_contains(const HT_HashTable * this, SPN_Span key) {
+  if(this == NULL || SPN_is_empty(key)) return false;
+  return (HT_get(this, key, NULL) == STAT_OK);
+}
 
 static inline uint32_t HT_get_capacity(const HT_HashTable * this) {
   if(this == NULL) return 0;
