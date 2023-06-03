@@ -188,6 +188,7 @@ static STAT_Val grow_capacity_as_needed(HT_HashTable * this, uint32_t new_count)
       return LOG_STAT(STAT_ERR_INTERNAL, "failed to create replacement hash table store");
     }
     if(!STAT_is_OK(DAR_resize_zeroed(&this->store, new_capacity))) {
+      DAR_destroy(&this->store);
       return LOG_STAT(STAT_ERR_INTERNAL, "failed to resize hash table store");
     }
 
