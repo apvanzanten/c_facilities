@@ -58,6 +58,7 @@ static inline void DAR_set(DAR_DArray * this, uint32_t idx, const void * value);
 STAT_Val           DAR_set_checked(DAR_DArray * this, uint32_t idx, const void * value);
 
 STAT_Val DAR_push_back_array(DAR_DArray * this, const void * arr, uint32_t n);
+STAT_Val DAR_push_back_span(DAR_DArray * this, SPN_Span span);
 STAT_Val DAR_push_back_darray(DAR_DArray * this, const DAR_DArray * other);
 
 // =============
@@ -70,6 +71,8 @@ size_t DAR_get_capacity_in_bytes(const DAR_DArray * this);
 size_t DAR_get_size_in_bytes(const DAR_DArray * this);
 
 static inline size_t DAR_get_byte_idx(const DAR_DArray * this, uint32_t element_idx);
+static inline bool   DAR_is_initialized(const DAR_DArray * this);
+static inline bool   DAR_is_empty(const DAR_DArray * this);
 
 // ==================
 // == span interop ==
@@ -124,6 +127,12 @@ static inline const void * DAR_IMPL_end_const(const DAR_DArray * this);
 
 static inline size_t DAR_get_byte_idx(const DAR_DArray * this, uint32_t element_idx) {
   return this->element_size * element_idx;
+}
+
+static inline bool DAR_is_initialized(const DAR_DArray * this) { return (this->data != NULL); }
+
+static inline bool DAR_is_empty(const DAR_DArray * this) {
+  return (this == NULL || (this->size == 0));
 }
 
 static inline void * DAR_IMPL_get_nonconst(DAR_DArray * this, uint32_t idx) {

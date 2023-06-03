@@ -339,22 +339,25 @@ STAT_Val DAR_push_back_array(DAR_DArray * this, const void * arr, uint32_t n) {
   return OK;
 }
 
+STAT_Val DAR_push_back_span(DAR_DArray * this, SPN_Span span) {
+  if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
+  if(this->element_size != span.element_size) {
+    return LOG_STAT(STAT_ERR_ARGS,
+                    "element size mismatch (%u != %u)",
+                    this->element_size,
+                    span.element_size);
+  }
+
+  if(SPN_is_empty(span)) return OK;
+
+  return DAR_push_back_array(this, span.begin, span.len);
+}
+
 STAT_Val DAR_push_back_darray(DAR_DArray * this, const DAR_DArray * other) {
   if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
   if(other == NULL) return LOG_STAT(STAT_ERR_ARGS, "other is NULL");
 
-  if(this->element_size != other->element_size) {
-    return LOG_STAT(STAT_ERR_ARGS,
-                    "element size mismatch (%u != %u)",
-                    this->element_size,
-                    other->element_size);
-  }
-
-  if(!STAT_is_OK(DAR_push_back_array(this, other->data, other->size))) {
-    return LOG_STAT(STAT_ERR_INTERNAL, "failed to push back data");
-  }
-
-  return OK;
+  return DAR_push_back_span(this, DAR_to_span(other));
 }
 
 bool DAR_equals(const DAR_DArray * lhs, const DAR_DArray * rhs) {

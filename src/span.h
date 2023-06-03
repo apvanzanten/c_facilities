@@ -8,10 +8,12 @@
 #include "stat.h"
 
 typedef struct {
-  const void * begin;        // NOTE non-owning
+  const void * begin;
   uint32_t     len;          // len in number of elements
   uint32_t     element_size; // size of an element in bytes
 } SPN_Span;
+
+// TODO const span
 
 SPN_Span SPN_from_cstr(const char * cstr);
 
@@ -48,6 +50,10 @@ inline static const void * SPN_get(SPN_Span src, uint32_t idx) {
 
 inline static size_t SPN_get_size_in_bytes(SPN_Span span) {
   return ((size_t)span.len * (size_t)span.element_size);
+}
+
+inline static bool SPN_is_empty(SPN_Span span) {
+  return ((span.begin == NULL) || (SPN_get_size_in_bytes(span) == 0));
 }
 
 #endif

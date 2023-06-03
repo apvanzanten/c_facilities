@@ -733,6 +733,37 @@ static Result tst_push_back_array(void * env) {
   return r;
 }
 
+static Result tst_push_back_span(void * env) {
+  Result       r   = PASS;
+  DAR_DArray * arr = env;
+
+  const double   vals_a[]   = {1.0, 2.0, 3.0, 4.0, 5.0};
+  const double   vals_b[]   = {-1.0, -2.0, -3.0};
+  const uint32_t num_vals_a = sizeof(vals_a) / sizeof(double);
+  const uint32_t num_vals_b = sizeof(vals_b) / sizeof(double);
+  const uint32_t num_zeroes = 5;
+
+  SPN_Span span_a = {.begin = vals_a, .element_size = sizeof(vals_a[0]), .len = num_vals_a};
+  SPN_Span span_b = {.begin = vals_b, .element_size = sizeof(vals_b[0]), .len = num_vals_b};
+
+  EXPECT_EQ(&r, OK, DAR_push_back_span(arr, span_a));
+  EXPECT_EQ(&r, num_vals_a, arr->size);
+  if(HAS_FAILED(&r)) return r;
+
+  EXPECT_EQ(&r, OK, DAR_resize_zeroed(arr, num_vals_a + num_zeroes));
+  EXPECT_EQ(&r, num_vals_a + num_zeroes, arr->size);
+  if(HAS_FAILED(&r)) return r;
+
+  EXPECT_EQ(&r, OK, DAR_push_back_span(arr, span_b));
+  EXPECT_EQ(&r, num_vals_a + num_zeroes + num_vals_b, arr->size);
+  if(HAS_FAILED(&r)) return r;
+
+  EXPECT_EQ(&r, 0, memcmp(DAR_get(arr, 0), vals_a, num_vals_a));
+  EXPECT_EQ(&r, 0, memcmp(DAR_get(arr, num_vals_a + num_zeroes), vals_b, num_vals_b));
+
+  return r;
+}
+
 static Result tst_push_back_darray(void * env) {
   Result       r         = PASS;
   DAR_DArray * arr       = env;
@@ -978,6 +1009,7 @@ int main(void) {
       tst_set,
       tst_set_checked,
       tst_push_back_array,
+      tst_push_back_span,
       tst_push_back_darray,
       tst_create_in_place_from,
       tst_create_on_heap_from,
