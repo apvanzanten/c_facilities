@@ -165,6 +165,34 @@ static Result tst_set_get(void * env) {
   return r;
 }
 
+static Result tst_get_set_strings(void * env) {
+  Result         r     = PASS;
+  HT_HashTable * table = env;
+
+  EXPECT_EQ(&r, OK, HT_set(table, SPN_from_cstr(".^."), SPN_from_cstr("happy upside-down")));
+  EXPECT_EQ(&r, OK, HT_set(table, SPN_from_cstr(".v."), SPN_from_cstr("sad upside-down")));
+  EXPECT_EQ(&r, OK, HT_set(table, SPN_from_cstr("O_O"), SPN_from_cstr("shocked")));
+  EXPECT_EQ(&r, OK, HT_set(table, SPN_from_cstr("-_-"), SPN_from_cstr("tired")));
+  EXPECT_EQ(&r, OK, HT_set(table, SPN_from_cstr("d._.b"), SPN_from_cstr("listening to music")));
+  EXPECT_EQ(&r, OK, HT_set(table, SPN_from_cstr("T_T"), SPN_from_cstr("crying twin waterfalls")));
+
+  SPN_Span val = {0};
+  EXPECT_EQ(&r, OK, HT_get(table, SPN_from_cstr(".^."), &val));
+  EXPECT_TRUE(&r, SPN_equals(SPN_from_cstr("happy upside-down"), val));
+  EXPECT_EQ(&r, OK, HT_get(table, SPN_from_cstr(".v."), &val));
+  EXPECT_TRUE(&r, SPN_equals(SPN_from_cstr("sad upside-down"), val));
+  EXPECT_EQ(&r, OK, HT_get(table, SPN_from_cstr("O_O"), &val));
+  EXPECT_TRUE(&r, SPN_equals(SPN_from_cstr("shocked"), val));
+  EXPECT_EQ(&r, OK, HT_get(table, SPN_from_cstr("-_-"), &val));
+  EXPECT_TRUE(&r, SPN_equals(SPN_from_cstr("tired"), val));
+  EXPECT_EQ(&r, OK, HT_get(table, SPN_from_cstr("d._.b"), &val));
+  EXPECT_TRUE(&r, SPN_equals(SPN_from_cstr("listening to music"), val));
+  EXPECT_EQ(&r, OK, HT_get(table, SPN_from_cstr("T_T"), &val));
+  EXPECT_TRUE(&r, SPN_equals(SPN_from_cstr("crying twin waterfalls"), val));
+
+  return r;
+}
+
 static Result tst_set_get_empty_values(void * env) {
   Result         r     = PASS;
   HT_HashTable * table = env;
@@ -231,6 +259,7 @@ int main(void) {
 
   TestWithFixture tests_with_fixture[] = {
       tst_set_get,
+      tst_get_set_strings,
       tst_set_get_empty_values,
       tst_remove,
   };
