@@ -19,9 +19,9 @@ static bool     has_value(const HT_Entry * entry) { return DAR_is_initialized(&(
 static bool     is_tombstone(const HT_Entry * entry) { return entry->is_tombstone; }
 static STAT_Val create_entry(HT_Entry * entry, uint32_t hash, SPN_Span key, SPN_Span value);
 static void     destroy_entry(HT_Entry * entry);
-static uint32_t get_index_from_hash(const HT_HashTable * this, uint32_t hash);
+static size_t   get_index_from_hash(const HT_HashTable * this, uint32_t hash);
 static uint32_t get_hash_for_key(SPN_Span key);
-static STAT_Val grow_capacity_as_needed(HT_HashTable * this, uint32_t new_count);
+static STAT_Val grow_capacity_as_needed(HT_HashTable * this, size_t new_count);
 
 static const HT_Entry * successor(const HT_HashTable * this, const HT_Entry * entry);
 
@@ -35,9 +35,9 @@ static STAT_Val find_entry_or_spot_for_entry(HT_HashTable * this,
                                              HT_Entry ** o_entry);
 
 static STAT_Val find_entry_or_spot_for_entry_impl(const HT_HashTable * this,
-                                                  SPN_Span   key,
-                                                  uint32_t   hash,
-                                                  uint32_t * o_idx);
+                                                  SPN_Span key,
+                                                  uint32_t hash,
+                                                  size_t * o_idx);
 
 STAT_Val HT_create(HT_HashTable * this) {
   if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
@@ -89,7 +89,7 @@ STAT_Val HT_set(HT_HashTable * this, SPN_Span key, SPN_Span value) {
       return LOG_STAT(STAT_ERR_INTERNAL, "failed to create hash table entry");
     }
 
-    const uint32_t new_count = this->count + 1;
+    const size_t new_count = this->count + 1;
     if(!STAT_is_OK(grow_capacity_as_needed(this, new_count))) {
       return LOG_STAT(STAT_ERR_INTERNAL, "failed to grow table capacity after adding new entry");
     }
@@ -163,19 +163,19 @@ static uint32_t get_hash_for_key(SPN_Span key) {
   return hash;
 }
 
-static uint32_t get_index_from_hash(const HT_HashTable * this, uint32_t hash) {
+static size_t get_index_from_hash(const HT_HashTable * this, uint32_t hash) {
   // NOTE There may be a more optimal way to do this, but I am not going to bother with it until I
   // have some benchmarks setup to see if it actually matters. We expect capacity to be a power of
   // two, so this is not as bad as it looks.
   return (hash % HT_get_capacity(this));
 }
 
-static STAT_Val grow_capacity_as_needed(HT_HashTable * this, uint32_t new_count) {
+static STAT_Val grow_capacity_as_needed(HT_HashTable * this, size_t new_count) {
   const size_t net_count         = new_count + this->tombstone_count;
   const size_t required_capacity = ((1.0 / MAX_LOAD_FACTOR) * (double)net_count) + 1;
 
-  const uint32_t old_capacity = HT_get_capacity(this);
-  uint32_t       new_capacity = old_capacity;
+  const size_t old_capacity = HT_get_capacity(this);
+  size_t       new_capacity = old_capacity;
   while(new_capacity < required_capacity) {
     new_capacity *= 2;
   }
@@ -222,7 +222,7 @@ static STAT_Val find_entry_or_spot_for_entry(HT_HashTable * this,
                                              SPN_Span    key,
                                              uint32_t    hash,
                                              HT_Entry ** o_entry) {
-  uint32_t       idx = 0;
+  size_t         idx = 0;
   const STAT_Val st  = find_entry_or_spot_for_entry_impl(this, key, hash, &idx);
   if(STAT_is_OK(st)) *o_entry = DAR_get(&(this->store), idx);
   return st;
@@ -232,22 +232,22 @@ static STAT_Val find_entry_or_spot_for_entry_const(const HT_HashTable * this,
                                                    SPN_Span          key,
                                                    uint32_t          hash,
                                                    const HT_Entry ** o_entry) {
-  uint32_t       idx = 0;
+  size_t         idx = 0;
   const STAT_Val st  = find_entry_or_spot_for_entry_impl(this, key, hash, &idx);
   if(STAT_is_OK(st)) *o_entry = DAR_get(&(this->store), idx);
   return st;
 }
 
 static STAT_Val find_entry_or_spot_for_entry_impl(const HT_HashTable * this,
-                                                  SPN_Span   key,
-                                                  uint32_t   hash,
-                                                  uint32_t * o_idx) {
+                                                  SPN_Span key,
+                                                  uint32_t hash,
+                                                  size_t * o_idx) {
   if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
   if(SPN_is_empty(key)) return LOG_STAT(STAT_ERR_ARGS, "empty key");
   if(o_idx == NULL) return LOG_STAT(STAT_ERR_ARGS, "o_idx is NULL");
 
-  const uint32_t capacity  = HT_get_capacity(this);
-  const uint32_t start_idx = get_index_from_hash(this, hash);
+  const size_t capacity  = HT_get_capacity(this);
+  const size_t start_idx = get_index_from_hash(this, hash);
 
   *o_idx = start_idx;
   do {

@@ -16,13 +16,12 @@
 
 static size_t get_capacity(const DAR_DArray * this);
 static size_t get_capacity_from_magnitude(uint8_t magnitude);
-static size_t get_capacity_in_bytes_from_magnitude(uint32_t element_size, uint8_t magnitude);
+static size_t get_capacity_in_bytes_from_magnitude(size_t element_size, uint8_t magnitude);
 
-static STAT_Val grow_capacity_as_needed(DAR_DArray * this, uint32_t num_elements_to_fit);
-static uint8_t  get_required_capacity_magnitude(uint8_t  current_cap_mag,
-                                                uint32_t num_elements_to_fit);
+static STAT_Val grow_capacity_as_needed(DAR_DArray * this, size_t num_elements_to_fit);
+static uint8_t get_required_capacity_magnitude(uint8_t current_cap_mag, size_t num_elements_to_fit);
 
-STAT_Val DAR_create(DAR_DArray * this, uint32_t element_size) {
+STAT_Val DAR_create(DAR_DArray * this, size_t element_size) {
   if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this arg is NULL");
 
   this->size               = 0;
@@ -89,7 +88,7 @@ STAT_Val DAR_push_back(DAR_DArray * this, const void * element) {
   if(this == NULL || element == NULL) return LOG_STAT(STAT_ERR_ARGS, "this or element is NULL");
   if(this->size == UINT32_MAX) return LOG_STAT(STAT_ERR_FULL, "DAR_Array at maximum size");
 
-  const uint32_t new_size = this->size + 1;
+  const size_t new_size = this->size + 1;
 
   if(!STAT_is_OK(grow_capacity_as_needed(this, new_size))) {
     return LOG_STAT(STAT_ERR_INTERNAL, "failed to grow capacity for push back");
@@ -136,7 +135,7 @@ STAT_Val DAR_shrink_to_fit(DAR_DArray * this) {
   return OK;
 }
 
-STAT_Val DAR_resize(DAR_DArray * this, uint32_t new_size) {
+STAT_Val DAR_resize(DAR_DArray * this, size_t new_size) {
   if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
 
   if(!STAT_is_OK(grow_capacity_as_needed(this, new_size))) {
@@ -147,10 +146,10 @@ STAT_Val DAR_resize(DAR_DArray * this, uint32_t new_size) {
   return OK;
 }
 
-STAT_Val DAR_resize_zeroed(DAR_DArray * this, uint32_t new_size) {
+STAT_Val DAR_resize_zeroed(DAR_DArray * this, size_t new_size) {
   if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
 
-  const uint32_t old_size = this->size;
+  const size_t old_size = this->size;
 
   if(!STAT_is_OK(DAR_resize(this, new_size))) {
     return LOG_STAT(STAT_ERR_INTERNAL, "failed to resize for resize zeroed");
@@ -164,24 +163,24 @@ STAT_Val DAR_resize_zeroed(DAR_DArray * this, uint32_t new_size) {
   return OK;
 }
 
-STAT_Val DAR_resize_with_value(DAR_DArray * this, uint32_t new_size, const void * value) {
+STAT_Val DAR_resize_with_value(DAR_DArray * this, size_t new_size, const void * value) {
   if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
   if(value == NULL) return LOG_STAT(STAT_ERR_ARGS, "value is NULL");
 
-  const uint32_t old_size = this->size;
+  const size_t old_size = this->size;
 
   if(!STAT_is_OK(DAR_resize(this, new_size))) {
     return LOG_STAT(STAT_ERR_INTERNAL, "failed to resize for resize zeroed");
   }
 
-  for(uint32_t idx = old_size; idx < new_size; idx++) {
+  for(size_t idx = old_size; idx < new_size; idx++) {
     memcpy(DAR_get(this, idx), value, this->element_size);
   }
 
   return OK;
 }
 
-STAT_Val DAR_reserve(DAR_DArray * this, uint32_t num_elements) {
+STAT_Val DAR_reserve(DAR_DArray * this, size_t num_elements) {
   if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
 
   if(!STAT_is_OK(grow_capacity_as_needed(this, num_elements))) {
@@ -219,7 +218,7 @@ STAT_Val DAR_clear_and_shrink(DAR_DArray * this) {
   return OK;
 }
 
-STAT_Val DAR_IMPL_get_checked_nonconst(DAR_DArray * this, uint32_t idx, void ** out) {
+STAT_Val DAR_IMPL_get_checked_nonconst(DAR_DArray * this, size_t idx, void ** out) {
   if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
   if(out == NULL) return LOG_STAT(STAT_ERR_ARGS, "out is NULL");
 
@@ -232,7 +231,7 @@ STAT_Val DAR_IMPL_get_checked_nonconst(DAR_DArray * this, uint32_t idx, void ** 
   return OK;
 }
 
-STAT_Val DAR_IMPL_get_checked_const(const DAR_DArray * this, uint32_t idx, const void ** out) {
+STAT_Val DAR_IMPL_get_checked_const(const DAR_DArray * this, size_t idx, const void ** out) {
   if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
   if(out == NULL) return LOG_STAT(STAT_ERR_ARGS, "out is NULL");
 
@@ -245,7 +244,7 @@ STAT_Val DAR_IMPL_get_checked_const(const DAR_DArray * this, uint32_t idx, const
   return OK;
 }
 
-STAT_Val DAR_set_checked(DAR_DArray * this, uint32_t idx, const void * value) {
+STAT_Val DAR_set_checked(DAR_DArray * this, size_t idx, const void * value) {
   if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
   if(value == NULL) return LOG_STAT(STAT_ERR_ARGS, "value is NULL");
 
@@ -258,13 +257,13 @@ STAT_Val DAR_set_checked(DAR_DArray * this, uint32_t idx, const void * value) {
   return OK;
 }
 
-STAT_Val DAR_push_back_array(DAR_DArray * this, const void * arr, uint32_t n) {
+STAT_Val DAR_push_back_array(DAR_DArray * this, const void * arr, size_t n) {
   if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
   if(arr == NULL) return LOG_STAT(STAT_ERR_ARGS, "arr is NULL");
 
   if(n == 0) return OK;
 
-  const uint32_t old_size = this->size;
+  const size_t old_size = this->size;
 
   if(!STAT_is_OK(DAR_resize(this, this->size + n))) {
     return LOG_STAT(STAT_ERR_INTERNAL, "failed to resize");
@@ -310,11 +309,11 @@ static size_t get_capacity(const DAR_DArray * this) {
   return get_capacity_from_magnitude(this->capacity_magnitude);
 }
 
-static size_t get_capacity_in_bytes_from_magnitude(uint32_t element_size, uint8_t magnitude) {
+static size_t get_capacity_in_bytes_from_magnitude(size_t element_size, uint8_t magnitude) {
   return element_size * get_capacity_from_magnitude(magnitude);
 }
 
-static STAT_Val grow_capacity_as_needed(DAR_DArray * this, uint32_t num_elements_to_fit) {
+static STAT_Val grow_capacity_as_needed(DAR_DArray * this, size_t num_elements_to_fit) {
   if(this->capacity_magnitude == MAX_CAPACITY_MAGNITUDE) {
     return LOG_STAT(STAT_ERR_FULL, "array capacity at max");
   }
@@ -342,8 +341,8 @@ static STAT_Val grow_capacity_as_needed(DAR_DArray * this, uint32_t num_elements
   return OK;
 }
 
-static uint8_t get_required_capacity_magnitude(uint8_t  current_cap_mag,
-                                               uint32_t num_elements_to_fit) {
+static uint8_t get_required_capacity_magnitude(uint8_t current_cap_mag,
+                                               size_t  num_elements_to_fit) {
   // NOTE this can possibly be done more efficiently with some intrinsics (or bit twiddling)
   //      this is probably good enough, I may optimize it later when I have benchmarks set up
   uint8_t cap_mag = current_cap_mag;

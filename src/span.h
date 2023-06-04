@@ -9,42 +9,39 @@
 
 typedef struct {
   const void * begin;
-  uint32_t     len;          // len in number of elements
-  uint32_t     element_size; // size of an element in bytes
+  size_t       len;          // len in number of elements
+  size_t       element_size; // size of an element in bytes
 } SPN_Span;
 
 // TODO figure out const stuff (currently it is bad)
 
 SPN_Span SPN_from_cstr(const char * cstr);
 
-SPN_Span SPN_subspan(SPN_Span src, uint32_t begin_idx, uint32_t len);
+SPN_Span SPN_subspan(SPN_Span src, size_t begin_idx, size_t len);
 
 bool SPN_equals(SPN_Span lhs, SPN_Span rhs);
 
 bool SPN_contains_subspan(SPN_Span span, SPN_Span subspan);
 
-STAT_Val SPN_find(SPN_Span span, const void * element, uint32_t * o_idx);
-STAT_Val SPN_find_at(SPN_Span span, const void * element, uint32_t at_idx, uint32_t * o_idx);
+STAT_Val SPN_find(SPN_Span span, const void * element, size_t * o_idx);
+STAT_Val SPN_find_at(SPN_Span span, const void * element, size_t at_idx, size_t * o_idx);
 
-STAT_Val SPN_find_reverse(SPN_Span span, const void * element, uint32_t * o_idx);
-STAT_Val SPN_find_reverse_at(SPN_Span     span,
-                             const void * element,
-                             uint32_t     at_idx,
-                             uint32_t *   o_idx);
+STAT_Val SPN_find_reverse(SPN_Span span, const void * element, size_t * o_idx);
+STAT_Val SPN_find_reverse_at(SPN_Span span, const void * element, size_t at_idx, size_t * o_idx);
 
-STAT_Val SPN_find_subspan(SPN_Span span, SPN_Span subspan, uint32_t * o_idx);
-STAT_Val SPN_find_subspan_at(SPN_Span span, SPN_Span subspan, uint32_t at_idx, uint32_t * o_idx);
-STAT_Val SPN_find_subspan_reverse(SPN_Span span, SPN_Span subspan, uint32_t * o_idx);
-STAT_Val SPN_find_subspan_reverse_at(SPN_Span   span,
-                                     SPN_Span   subspan,
-                                     uint32_t   at_idx,
-                                     uint32_t * o_idx);
+STAT_Val SPN_find_subspan(SPN_Span span, SPN_Span subspan, size_t * o_idx);
+STAT_Val SPN_find_subspan_at(SPN_Span span, SPN_Span subspan, size_t at_idx, size_t * o_idx);
+STAT_Val SPN_find_subspan_reverse(SPN_Span span, SPN_Span subspan, size_t * o_idx);
+STAT_Val SPN_find_subspan_reverse_at(SPN_Span span,
+                                     SPN_Span subspan,
+                                     size_t   at_idx,
+                                     size_t * o_idx);
 
-inline static size_t SPN_get_byte_idx(SPN_Span src, uint32_t idx) {
+inline static size_t SPN_get_byte_idx(SPN_Span src, size_t idx) {
   return ((size_t)src.element_size) * ((size_t)idx);
 }
 
-inline static const void * SPN_get(SPN_Span src, uint32_t idx) {
+inline static const void * SPN_get(SPN_Span src, size_t idx) {
   return (const void *)(&(((const uint8_t *)src.begin)[SPN_get_byte_idx(src, idx)]));
 }
 

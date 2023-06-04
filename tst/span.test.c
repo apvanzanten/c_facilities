@@ -42,7 +42,7 @@ static Result tst_get_char(void) {
   const char     str[] = "But this one's jucky on the inside!";
   const SPN_Span span  = SPN_from_cstr(str);
 
-  for(uint32_t i = 0; i < span.len; i++) {
+  for(size_t i = 0; i < span.len; i++) {
     EXPECT_EQ(&r, &str[i], SPN_get(span, i));
   }
 
@@ -57,7 +57,7 @@ static Result tst_get_int(void) {
                            .len          = sizeof(vals) / sizeof(int),
                            .element_size = sizeof(int)};
 
-  for(uint32_t i = 0; i < span.len; i++) {
+  for(size_t i = 0; i < span.len; i++) {
     EXPECT_EQ(&r, &vals[i], SPN_get(span, i));
   }
 
@@ -335,17 +335,17 @@ static Result tst_constains_subspan_int(void) {
 static Result tst_find_char(void) {
   Result r = PASS;
 
-  const char     str[] = "0123456789abcdefghijklmnopqrstuvwxyz"; // should have unique letters only
-  const uint32_t len   = strlen(str);
+  const char   str[] = "0123456789abcdefghijklmnopqrstuvwxyz"; // should have unique letters only
+  const size_t len   = strlen(str);
 
-  for(uint32_t idx = 0; idx < len; idx++) {
+  for(size_t idx = 0; idx < len; idx++) {
     {
-      uint32_t tmp = 9999;
+      size_t tmp = 9999;
       EXPECT_EQ(&r, OK, SPN_find(SPN_from_cstr(str), &(str[idx]), &tmp));
       EXPECT_EQ(&r, idx, tmp);
     }
     {
-      uint32_t tmp = 9999;
+      size_t tmp = 9999;
       EXPECT_EQ(&r, OK, SPN_find_reverse(SPN_from_cstr(str), &(str[idx]), &tmp));
       EXPECT_EQ(&r, idx, tmp);
     }
@@ -353,7 +353,7 @@ static Result tst_find_char(void) {
   }
 
   {
-    uint32_t tmp = 9999;
+    size_t tmp = 9999;
     EXPECT_EQ(&r, STAT_OK_NOT_FOUND, SPN_find(SPN_from_cstr(str), "A", &tmp));
     EXPECT_EQ(&r, STAT_OK_NOT_FOUND, SPN_find(SPN_from_cstr(str), ";", &tmp));
     EXPECT_EQ(&r, STAT_OK_NOT_FOUND, SPN_find(SPN_from_cstr(str), "&", &tmp));
@@ -364,10 +364,10 @@ static Result tst_find_char(void) {
     EXPECT_EQ(&r, STAT_OK_NOT_FOUND, SPN_find_reverse(SPN_from_cstr(str), "*", &tmp));
   }
 
-  for(uint32_t at_idx = 0; at_idx < len; at_idx++) {
-    for(uint32_t idx = 0; idx < len; idx++) {
+  for(size_t at_idx = 0; at_idx < len; at_idx++) {
+    for(size_t idx = 0; idx < len; idx++) {
       {
-        uint32_t       tmp = 9999;
+        size_t         tmp = 9999;
         const STAT_Val st  = SPN_find_at(SPN_from_cstr(str), &(str[idx]), at_idx, &tmp);
         if(idx >= at_idx) {
           EXPECT_EQ(&r, OK, st);
@@ -377,7 +377,7 @@ static Result tst_find_char(void) {
         }
       }
       {
-        uint32_t       tmp = 9999;
+        size_t         tmp = 9999;
         const STAT_Val st  = SPN_find_reverse_at(SPN_from_cstr(str), &(str[idx]), at_idx, &tmp);
         if(idx <= at_idx) {
           EXPECT_EQ(&r, OK, st);
@@ -401,14 +401,14 @@ static Result tst_find_int(void) {
                            .len          = sizeof(vals) / sizeof(int),
                            .element_size = sizeof(int)};
 
-  for(uint32_t idx = 0; idx < span.len; idx++) {
+  for(size_t idx = 0; idx < span.len; idx++) {
     {
-      uint32_t tmp = 9999;
+      size_t tmp = 9999;
       EXPECT_EQ(&r, OK, SPN_find(span, SPN_get(span, idx), &tmp));
       EXPECT_EQ(&r, idx, tmp);
     }
     {
-      uint32_t tmp = 9999;
+      size_t tmp = 9999;
       EXPECT_EQ(&r, OK, SPN_find_reverse(span, SPN_get(span, idx), &tmp));
       EXPECT_EQ(&r, idx, tmp);
     }
@@ -416,7 +416,7 @@ static Result tst_find_int(void) {
   }
 
   {
-    uint32_t tmp = 9999;
+    size_t tmp = 9999;
     {
       const int to_find = 16;
       EXPECT_EQ(&r, STAT_OK_NOT_FOUND, SPN_find(span, &to_find, &tmp));
@@ -439,10 +439,10 @@ static Result tst_find_int(void) {
     }
   }
 
-  for(uint32_t at_idx = 0; at_idx < span.len; at_idx++) {
-    for(uint32_t idx = 0; idx < span.len; idx++) {
+  for(size_t at_idx = 0; at_idx < span.len; at_idx++) {
+    for(size_t idx = 0; idx < span.len; idx++) {
       {
-        uint32_t       tmp = 9999;
+        size_t         tmp = 9999;
         const STAT_Val st  = SPN_find_at(span, SPN_get(span, idx), at_idx, &tmp);
 
         if(idx >= at_idx) {
@@ -453,7 +453,7 @@ static Result tst_find_int(void) {
         }
       }
       {
-        uint32_t       tmp = 9999;
+        size_t         tmp = 9999;
         const STAT_Val st  = SPN_find_reverse_at(span, SPN_get(span, idx), at_idx, &tmp);
 
         if(idx <= at_idx) {
@@ -476,7 +476,7 @@ static Result tst_find_at_and_reverse_with_duplicates(void) {
   const char str[] = "01234567890123456789";
 
   {
-    uint32_t tmp = 9999;
+    size_t tmp = 9999;
     EXPECT_EQ(&r, OK, SPN_find(SPN_from_cstr(str), "0", &tmp));
     EXPECT_EQ(&r, 0, tmp); // finds only the first
     EXPECT_EQ(&r, OK, SPN_find_at(SPN_from_cstr(str), "0", 1, &tmp));
@@ -488,7 +488,7 @@ static Result tst_find_at_and_reverse_with_duplicates(void) {
   }
 
   {
-    uint32_t tmp = 9999;
+    size_t tmp = 9999;
     EXPECT_EQ(&r, OK, SPN_find(SPN_from_cstr(str), "5", &tmp));
     EXPECT_EQ(&r, 5, tmp); // finds only the first
     EXPECT_EQ(&r, OK, SPN_find_at(SPN_from_cstr(str), "5", 6, &tmp));
@@ -518,9 +518,9 @@ static Result tst_find_at_likely_usage(void) {
   const size_t   num_llamas = sizeof(expected_llamas) / sizeof(uint32_t); // llamas are 32 bit?
 
   {
-    uint32_t at_idx = 0;
+    size_t at_idx = 0;
     for(size_t llama_idx = 0; llama_idx < num_llamas; llama_idx++) {
-      uint32_t tmp = 9999;
+      size_t tmp = 9999;
       EXPECT_EQ(&r, OK, SPN_find_subspan_at(span, llama, at_idx, &tmp));
       EXPECT_EQ(&r, expected_llamas[llama_idx], tmp);
       at_idx = tmp + 1;
@@ -530,9 +530,9 @@ static Result tst_find_at_likely_usage(void) {
   }
 
   { // same but in reverse (we count our llamas twice, as each time brings us joy)
-    uint32_t at_idx = span.len - 1;
+    size_t at_idx = span.len - 1;
     for(int llama_idx = num_llamas - 1; llama_idx >= 0; llama_idx--) {
-      uint32_t tmp = 9999;
+      size_t tmp = 9999;
       EXPECT_EQ(&r, OK, SPN_find_subspan_reverse_at(span, llama, at_idx, &tmp));
       EXPECT_EQ(&r, expected_llamas[llama_idx], tmp);
       at_idx = tmp - 1;
@@ -547,7 +547,7 @@ static Result tst_find_at_likely_usage(void) {
 static Result tst_find_subspan_basic(void) {
   Result r = PASS;
 
-  uint32_t tmp = 9999;
+  size_t tmp = 9999;
   EXPECT_EQ(&r, OK, SPN_find_subspan(SPN_from_cstr("012345"), SPN_from_cstr("012345"), &tmp));
   EXPECT_EQ(&r, 0, tmp);
 
@@ -581,7 +581,7 @@ static Result tst_find_subspan_basic(void) {
 static Result tst_find_subspan_at_basic(void) {
   Result r = PASS;
 
-  uint32_t tmp = 9999;
+  size_t tmp = 9999;
 
   EXPECT_EQ(&r, OK, SPN_find_subspan_at(SPN_from_cstr("012345"), SPN_from_cstr(""), 1, &tmp));
   EXPECT_EQ(&r, 1, tmp);
@@ -640,23 +640,23 @@ static Result tst_find_subspan_monster(void) {
   //      and then check which one we find based on the 'at' idx and 'reverse'. This gap is covered
   //      by other tests (llamas were involved).
 
-  uint32_t       vals[16] = {0};
-  const uint32_t len      = sizeof(vals) / sizeof(int);
-  for(uint32_t i = 0; i < len; i++) {
+  uint32_t     vals[16] = {0};
+  const size_t len      = sizeof(vals) / sizeof(int);
+  for(size_t i = 0; i < len; i++) {
     vals[i] = (2 * i) + 1; // math just to make it distinct from indices
   }
 
-  for(uint32_t span_start_idx = 0; span_start_idx < len; span_start_idx++) {
-    printf("span_start_idx: %u\n", span_start_idx);
+  for(size_t span_start_idx = 0; span_start_idx < len; span_start_idx++) {
+    printf("span_start_idx: %zu\n", span_start_idx);
 
-    for(uint32_t span_len = 0; span_len < (len - span_start_idx); span_len++) {
+    for(size_t span_len = 0; span_len < (len - span_start_idx); span_len++) {
 
       const SPN_Span span = {.begin        = &vals[span_start_idx],
                              .len          = span_len,
                              .element_size = sizeof(int)};
 
-      for(uint32_t subspan_start_idx = 0; subspan_start_idx < len; subspan_start_idx++) {
-        for(uint32_t subspan_len = 0; subspan_len < (len - subspan_start_idx); subspan_len++) {
+      for(size_t subspan_start_idx = 0; subspan_start_idx < len; subspan_start_idx++) {
+        for(size_t subspan_len = 0; subspan_len < (len - subspan_start_idx); subspan_len++) {
 
           const SPN_Span subspan = {.begin        = &vals[subspan_start_idx],
                                     .len          = subspan_len,
@@ -668,7 +668,7 @@ static Result tst_find_subspan_monster(void) {
               (subspan_start_idx + subspan.len) > (span_start_idx + span.len);
           const bool subspan_is_in_span = (!subspan_starts_before_span && !subspan_ends_after_span);
 
-          uint32_t find_idx = 9999;
+          size_t find_idx = 9999;
 
           {
             const STAT_Val st = SPN_find_subspan(span, subspan, &find_idx);
@@ -698,7 +698,7 @@ static Result tst_find_subspan_monster(void) {
             }
           }
 
-          for(uint32_t at_idx = 0; !HAS_FAILED(&r) && at_idx < span.len; at_idx++) {
+          for(size_t at_idx = 0; !HAS_FAILED(&r) && at_idx < span.len; at_idx++) {
             const STAT_Val st = SPN_find_subspan_at(span, subspan, at_idx, &find_idx);
 
             const bool subspan_starts_before_at_idx = subspan_start_idx < (span_start_idx + at_idx);
@@ -714,12 +714,12 @@ static Result tst_find_subspan_monster(void) {
             }
 
             if(HAS_FAILED(&r)) {
-              printf("\tat_idx: %u\n", at_idx);
+              printf("\tat_idx: %zu\n", at_idx);
               printf("\tsubspan_starts_before_at_idx: %u\n", subspan_starts_before_at_idx);
             }
           }
 
-          for(uint32_t at_idx = 0; !HAS_FAILED(&r) && at_idx < span.len; at_idx++) {
+          for(size_t at_idx = 0; !HAS_FAILED(&r) && at_idx < span.len; at_idx++) {
             const STAT_Val st = SPN_find_subspan_reverse_at(span, subspan, at_idx, &find_idx);
 
             const bool subspan_starts_after_at_idx = subspan_start_idx > (span_start_idx + at_idx);
@@ -735,21 +735,21 @@ static Result tst_find_subspan_monster(void) {
             }
 
             if(HAS_FAILED(&r)) {
-              printf("\tat_idx: %u\n", at_idx);
+              printf("\tat_idx: %zu\n", at_idx);
               printf("\tsubspan_starts_after_at_idx: %u\n", subspan_starts_after_at_idx);
             }
           }
 
           if(HAS_FAILED(&r)) {
-            printf("\tspan_start_idx: %u\n", span_start_idx);
-            printf("\tsubspan_start_idx: %u\n", subspan_start_idx);
-            printf("\tspan.len: %u\n", span.len);
-            printf("\tsubspan.len: %u\n", subspan.len);
+            printf("\tspan_start_idx: %zu\n", span_start_idx);
+            printf("\tsubspan_start_idx: %zu\n", subspan_start_idx);
+            printf("\tspan.len: %zu\n", span.len);
+            printf("\tsubspan.len: %zu\n", subspan.len);
             printf("\tsubspan_is_empty: %i\n", subspan_is_empty);
             printf("\tsubspan_starts_before_span: %i\n", subspan_starts_before_span);
             printf("\tsubspan_ends_after_span: %i\n", subspan_ends_after_span);
             printf("\tsubspan_is_in_span: %i\n", subspan_is_in_span);
-            printf("\tfind_idx: %u\n", find_idx);
+            printf("\tfind_idx: %zu\n", find_idx);
 
             return r;
           }
@@ -769,27 +769,27 @@ typedef struct {
 static Result tst_large_elements(void) {
   Result r = PASS;
 
-  BigStruct      elements[16] = {0};
-  const uint32_t element_size = sizeof(BigStruct);
-  const uint32_t len          = sizeof(elements) / sizeof(BigStruct);
-  for(uint32_t i = 0; i < len; i++) {
-    for(uint32_t j = 0; j < sizeof(elements[i].numbers) / sizeof(double); j++) {
+  BigStruct    elements[16] = {0};
+  const size_t element_size = sizeof(BigStruct);
+  const size_t len          = sizeof(elements) / sizeof(BigStruct);
+  for(size_t i = 0; i < len; i++) {
+    for(size_t j = 0; j < sizeof(elements[i].numbers) / sizeof(double); j++) {
       elements[i].numbers[j] = (double)i * (double)j;
     }
-    for(uint32_t j = 0; j < sizeof(elements[i].bytes) / sizeof(uint8_t); j++) {
+    for(size_t j = 0; j < sizeof(elements[i].bytes) / sizeof(uint8_t); j++) {
       elements[i].bytes[j] = i * j;
     }
   }
 
   const SPN_Span span = {.begin = elements, .element_size = element_size, .len = len};
 
-  for(uint32_t i = 0; i < len; i++) {
-    uint32_t idx = 0;
+  for(size_t i = 0; i < len; i++) {
+    size_t idx = 0;
     EXPECT_EQ(&r, OK, SPN_find(span, &elements[i], &idx));
     EXPECT_EQ(&r, i, idx);
   }
-  for(uint32_t i = 0; i < len; i++) {
-    uint32_t idx = 0;
+  for(size_t i = 0; i < len; i++) {
+    size_t idx = 0;
     EXPECT_EQ(&r, OK, SPN_find_reverse(span, &elements[i], &idx));
     EXPECT_EQ(&r, i, idx);
   }

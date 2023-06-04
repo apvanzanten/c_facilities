@@ -33,7 +33,7 @@ static inline bool HT_contains(const HT_HashTable * this, SPN_Span key) {
   return (HT_get(this, key, NULL) == STAT_OK);
 }
 
-static inline uint32_t HT_get_capacity(const HT_HashTable * this) {
+static inline size_t HT_get_capacity(const HT_HashTable * this) {
   if(this == NULL) return 0;
   return this->store.size;
 }

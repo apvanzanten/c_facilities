@@ -316,9 +316,9 @@ static Result tst_resize(void * env) {
   Result       r   = PASS;
   DAR_DArray * arr = env;
 
-  for(uint32_t initial_size = 16; initial_size < 1000; initial_size *= 1.2) {
-    for(uint32_t new_size = 8; new_size < 1000; new_size *= 1.2) {
-      for(uint32_t i = 0; i < initial_size; i++) {
+  for(size_t initial_size = 16; initial_size < 1000; initial_size *= 1.2) {
+    for(size_t new_size = 8; new_size < 1000; new_size *= 1.2) {
+      for(size_t i = 0; i < initial_size; i++) {
         const double val = (double)i;
         EXPECT_EQ(&r, OK, DAR_push_back(arr, &val));
 
@@ -355,11 +355,11 @@ static Result tst_resize_zeroed(void * env) {
 
   const double vals[1024] = {0};
 
-  const uint32_t max_size = sizeof(vals) / sizeof(double);
+  const size_t max_size = sizeof(vals) / sizeof(double);
 
-  for(uint32_t new_size = 8; new_size < max_size; new_size *= 1.2) {
+  for(size_t new_size = 8; new_size < max_size; new_size *= 1.2) {
     // push some garbage data into array
-    for(uint32_t i = 0; i < new_size; i++) {
+    for(size_t i = 0; i < new_size; i++) {
       const double val = (double)i;
       EXPECT_EQ(&r, OK, DAR_push_back(arr, &val));
       if(HAS_FAILED(&r)) return r;
@@ -389,16 +389,16 @@ static Result tst_resize_with_value(void * env) {
   Result       r   = PASS;
   DAR_DArray * arr = env;
 
-  double         vals[1024] = {0};
-  const uint32_t max_size   = sizeof(vals) / sizeof(double);
+  double       vals[1024] = {0};
+  const size_t max_size   = sizeof(vals) / sizeof(double);
 
   // put test data in vals so we can compare against it
   const double test_value = 1.23456;
-  for(uint32_t i = 0; i < max_size; i++) {
+  for(size_t i = 0; i < max_size; i++) {
     vals[i] = test_value;
   }
 
-  for(uint32_t new_size = 8; new_size < max_size; new_size *= 1.2) {
+  for(size_t new_size = 8; new_size < max_size; new_size *= 1.2) {
     // resize zeroed and then back to 0, memory now contains zeroes
     EXPECT_EQ(&r, OK, DAR_resize_zeroed(arr, new_size));
     EXPECT_EQ(&r, new_size, arr->size);
@@ -426,7 +426,7 @@ static Result tst_clear(void * env) {
   DAR_DArray * arr = env;
 
   // push some garbage data into array
-  for(uint32_t i = 0; i < 100; i++) {
+  for(size_t i = 0; i < 100; i++) {
     const double val = (double)i;
     EXPECT_EQ(&r, OK, DAR_push_back(arr, &val));
     if(HAS_FAILED(&r)) return r;
@@ -442,12 +442,12 @@ static Result tst_clear_and_shrink(void * env) {
   Result       r   = PASS;
   DAR_DArray * arr = env;
 
-  const size_t   initial_capacity = DAR_get_capacity(arr);
-  const uint32_t max_size         = 4096;
+  const size_t initial_capacity = DAR_get_capacity(arr);
+  const size_t max_size         = 4096;
 
-  for(uint32_t size = 16; size < max_size; size *= 1.2) {
+  for(size_t size = 16; size < max_size; size *= 1.2) {
     // push some garbage data into array
-    for(uint32_t i = 0; i < size; i++) {
+    for(size_t i = 0; i < size; i++) {
       const double val = (double)i;
       EXPECT_EQ(&r, OK, DAR_push_back(arr, &val));
       if(HAS_FAILED(&r)) return r;
@@ -470,23 +470,23 @@ static Result tst_get(void * env) {
   Result       r   = PASS;
   DAR_DArray * arr = env;
 
-  double         vals[1024] = {0};
-  const uint32_t max_size   = sizeof(vals) / sizeof(double);
+  double       vals[1024] = {0};
+  const size_t max_size   = sizeof(vals) / sizeof(double);
 
   // put some interesting data in both vals and the array so we can compare
   vals[0] = 1.23456;
-  for(uint32_t i = 1; i < max_size; i++) {
+  for(size_t i = 1; i < max_size; i++) {
     vals[i] = vals[i - 1] * -1.1;
   }
 
-  for(uint32_t i = 0; i < max_size; i++) {
+  for(size_t i = 0; i < max_size; i++) {
     EXPECT_EQ(&r, OK, DAR_push_back(arr, &(vals[i])));
 
     EXPECT_EQ(&r, i + 1, arr->size);
     if(HAS_FAILED(&r)) return r;
   }
 
-  for(uint32_t i = 0; i < max_size; i++) {
+  for(size_t i = 0; i < max_size; i++) {
     double *       arr_val       = DAR_get(arr, i);
     const double * arr_val_const = DAR_get((const DAR_DArray *)arr, i);
 
@@ -503,8 +503,8 @@ static Result tst_get_checked(void * env) {
   Result       r   = PASS;
   DAR_DArray * arr = env;
 
-  const double   vals[]   = {1.0, 2.0, 3.0, 4.0, 5.0};
-  const uint32_t num_vals = sizeof(vals) / sizeof(double);
+  const double vals[]   = {1.0, 2.0, 3.0, 4.0, 5.0};
+  const size_t num_vals = sizeof(vals) / sizeof(double);
 
   EXPECT_EQ(&r, OK, DAR_push_back(arr, &vals[0]));
   EXPECT_EQ(&r, OK, DAR_push_back(arr, &vals[1]));
@@ -514,7 +514,7 @@ static Result tst_get_checked(void * env) {
 
   if(HAS_FAILED(&r)) return r;
 
-  for(uint32_t i = 0; i < num_vals; i++) {
+  for(size_t i = 0; i < num_vals; i++) {
     double *       arr_val       = NULL;
     const double * arr_val_const = NULL;
 
@@ -535,7 +535,7 @@ static Result tst_get_checked(void * env) {
     if(HAS_FAILED(&r)) return r;
   }
 
-  for(uint32_t i = num_vals; i < num_vals * 2; i++) {
+  for(size_t i = num_vals; i < num_vals * 2; i++) {
     double *       arr_val       = NULL;
     const double * arr_val_const = NULL;
 
@@ -557,13 +557,13 @@ static Result tst_set(void * env) {
   Result       r   = PASS;
   DAR_DArray * arr = env;
 
-  const double   vals[]   = {1.0, 2.0, 3.0, 4.0, 5.0};
-  const uint32_t num_vals = sizeof(vals) / sizeof(double);
+  const double vals[]   = {1.0, 2.0, 3.0, 4.0, 5.0};
+  const size_t num_vals = sizeof(vals) / sizeof(double);
 
   EXPECT_EQ(&r, OK, DAR_resize_zeroed(arr, num_vals));
   if(HAS_FAILED(&r)) return r;
 
-  for(uint32_t i = 0; i < num_vals; i++) {
+  for(size_t i = 0; i < num_vals; i++) {
     DAR_set(arr, i, (const void *)&vals[i]);
   }
 
@@ -578,13 +578,13 @@ static Result tst_set_checked(void * env) {
   Result       r   = PASS;
   DAR_DArray * arr = env;
 
-  const double   vals[]   = {1.0, 2.0, 3.0, 4.0, 5.0};
-  const uint32_t num_vals = sizeof(vals) / sizeof(double);
+  const double vals[]   = {1.0, 2.0, 3.0, 4.0, 5.0};
+  const size_t num_vals = sizeof(vals) / sizeof(double);
 
   EXPECT_EQ(&r, OK, DAR_resize_zeroed(arr, num_vals));
   if(HAS_FAILED(&r)) return r;
 
-  for(uint32_t i = 0; i < num_vals; i++) {
+  for(size_t i = 0; i < num_vals; i++) {
     EXPECT_EQ(&r, OK, DAR_set_checked(arr, i, (const void *)&vals[i]));
 
     EXPECT_EQ(&r, STAT_ERR_ARGS, DAR_set_checked(NULL, i, (const void *)&vals[i]));
@@ -597,7 +597,7 @@ static Result tst_set_checked(void * env) {
 
   EXPECT_EQ(&r, 0, memcmp(vals, arr->data, num_vals * sizeof(double)));
 
-  for(uint32_t i = num_vals; i < num_vals * 2; i++) {
+  for(size_t i = num_vals; i < num_vals * 2; i++) {
     EXPECT_EQ(&r, STAT_ERR_RANGE, DAR_set_checked(arr, i, (const void *)&vals[0]));
 
     if(HAS_FAILED(&r)) return r;
@@ -610,11 +610,11 @@ static Result tst_push_back_array(void * env) {
   Result       r   = PASS;
   DAR_DArray * arr = env;
 
-  const double   vals_a[]   = {1.0, 2.0, 3.0, 4.0, 5.0};
-  const double   vals_b[]   = {-1.0, -2.0, -3.0};
-  const uint32_t num_vals_a = sizeof(vals_a) / sizeof(double);
-  const uint32_t num_vals_b = sizeof(vals_b) / sizeof(double);
-  const uint32_t num_zeroes = 5;
+  const double vals_a[]   = {1.0, 2.0, 3.0, 4.0, 5.0};
+  const double vals_b[]   = {-1.0, -2.0, -3.0};
+  const size_t num_vals_a = sizeof(vals_a) / sizeof(double);
+  const size_t num_vals_b = sizeof(vals_b) / sizeof(double);
+  const size_t num_zeroes = 5;
 
   EXPECT_EQ(&r, OK, DAR_push_back_array(arr, vals_a, num_vals_a));
   EXPECT_EQ(&r, num_vals_a, arr->size);
@@ -638,11 +638,11 @@ static Result tst_push_back_span(void * env) {
   Result       r   = PASS;
   DAR_DArray * arr = env;
 
-  const double   vals_a[]   = {1.0, 2.0, 3.0, 4.0, 5.0};
-  const double   vals_b[]   = {-1.0, -2.0, -3.0};
-  const uint32_t num_vals_a = sizeof(vals_a) / sizeof(double);
-  const uint32_t num_vals_b = sizeof(vals_b) / sizeof(double);
-  const uint32_t num_zeroes = 5;
+  const double vals_a[]   = {1.0, 2.0, 3.0, 4.0, 5.0};
+  const double vals_b[]   = {-1.0, -2.0, -3.0};
+  const size_t num_vals_a = sizeof(vals_a) / sizeof(double);
+  const size_t num_vals_b = sizeof(vals_b) / sizeof(double);
+  const size_t num_zeroes = 5;
 
   SPN_Span span_a = {.begin = vals_a, .element_size = sizeof(vals_a[0]), .len = num_vals_a};
   SPN_Span span_b = {.begin = vals_b, .element_size = sizeof(vals_b[0]), .len = num_vals_b};
@@ -670,10 +670,10 @@ static Result tst_push_back_darray(void * env) {
   DAR_DArray * arr       = env;
   DAR_DArray   other_arr = {0};
 
-  const double   vals_a[]   = {1.0, 2.0, 3.0, 4.0, 5.0};
-  const double   vals_b[]   = {-1.0, -2.0, -3.0};
-  const uint32_t num_vals_a = sizeof(vals_a) / sizeof(double);
-  const uint32_t num_vals_b = sizeof(vals_b) / sizeof(double);
+  const double vals_a[]   = {1.0, 2.0, 3.0, 4.0, 5.0};
+  const double vals_b[]   = {-1.0, -2.0, -3.0};
+  const size_t num_vals_a = sizeof(vals_a) / sizeof(double);
+  const size_t num_vals_b = sizeof(vals_b) / sizeof(double);
 
   EXPECT_EQ(&r, OK, DAR_create(&other_arr, sizeof(double)));
   if(HAS_FAILED(&r)) return r;
@@ -703,8 +703,8 @@ static Result tst_create_from(void * env) {
   DAR_DArray * arr       = env;
   DAR_DArray   other_arr = {0};
 
-  const double   vals[]   = {1.0, 2.0, 3.0, 4.0, 5.0};
-  const uint32_t num_vals = sizeof(vals) / sizeof(double);
+  const double vals[]   = {1.0, 2.0, 3.0, 4.0, 5.0};
+  const size_t num_vals = sizeof(vals) / sizeof(double);
 
   EXPECT_EQ(&r, OK, DAR_push_back_array(arr, vals, num_vals));
   EXPECT_EQ(&r, num_vals, arr->size);
@@ -729,10 +729,10 @@ static Result tst_equals(void * env) {
   DAR_DArray * arr       = env;
   DAR_DArray   other_arr = {0};
 
-  const double   vals_a[]   = {1.0, 2.0, 3.0, 4.0, 5.0};
-  const double   vals_b[]   = {-1.0, -2.0, -3.0, -4.0, -5.0};
-  const uint32_t num_vals_a = sizeof(vals_a) / sizeof(double);
-  const uint32_t num_vals_b = sizeof(vals_b) / sizeof(double);
+  const double vals_a[]   = {1.0, 2.0, 3.0, 4.0, 5.0};
+  const double vals_b[]   = {-1.0, -2.0, -3.0, -4.0, -5.0};
+  const size_t num_vals_a = sizeof(vals_a) / sizeof(double);
+  const size_t num_vals_b = sizeof(vals_b) / sizeof(double);
 
   EXPECT_EQ(&r, OK, DAR_create(&other_arr, sizeof(double)));
   if(HAS_FAILED(&r)) return r;

@@ -46,7 +46,7 @@ static Result tst_many_random_sets_gets_removes(void) {
 
   srand(time(NULL) + clock());
 
-  for(uint16_t key_size = 1; key_size <= 8; key_size *= 2) {
+  for(size_t key_size = 1; key_size <= 8; key_size *= 2) {
     for(size_t value_size = 1; value_size <= 8; value_size *= 2) {
       EXPECT_EQ(&r, OK, HT_create(&table));
       EXPECT_EQ(&r, OK, DAR_create(&keys, key_size));
@@ -60,7 +60,7 @@ static Result tst_many_random_sets_gets_removes(void) {
 
       for(size_t iteration = 0; iteration < 1000; iteration++) {
         if((iteration % 256) == 0) {
-          printf("key_size=%u, value_size=%zu, iteration=%zu, count=%zu, tombstone_count=%zu\n",
+          printf("key_size=%zu, value_size=%zu, iteration=%zu, count=%zu, tombstone_count=%zu\n",
                  key_size,
                  value_size,
                  iteration,
@@ -71,8 +71,8 @@ static Result tst_many_random_sets_gets_removes(void) {
         const bool do_remove = ((table.count > 0) && (rand() < (RAND_MAX / 4)));
 
         if(do_remove) {
-          const uint32_t item_idx = (rand() % keys.size);
-          key.begin               = DAR_get(&keys, item_idx);
+          const size_t item_idx = (rand() % keys.size);
+          key.begin             = DAR_get(&keys, item_idx);
 
           EXPECT_EQ(&r, OK, HT_remove(&table, key));
           if(HAS_FAILED(&r)) return r;
@@ -84,7 +84,7 @@ static Result tst_many_random_sets_gets_removes(void) {
         } else {
           make_rand_val(tmp_key_data, key_size);
 
-          uint32_t   item_idx = 0;
+          size_t     item_idx = 0;
           const bool is_pre_existing_key =
               (SPN_find(DAR_to_span(&keys), tmp_key_data, &item_idx) == OK);
 
@@ -104,7 +104,7 @@ static Result tst_many_random_sets_gets_removes(void) {
         }
 
         // check all items in table
-        for(uint32_t item_idx = 0; item_idx < keys.size; item_idx++) {
+        for(size_t item_idx = 0; item_idx < keys.size; item_idx++) {
           key.begin = DAR_get(&keys, item_idx);
 
           EXPECT_TRUE(&r, HT_contains(&table, key));
