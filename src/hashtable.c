@@ -12,13 +12,11 @@
 #define MIN_CAPACITY    8
 #define MAX_LOAD_FACTOR 0.75
 
-// TODO error handling on destroys
-
 static bool     is_empty(const HT_Entry * entry) { return !DAR_is_initialized(&(entry->key)); }
 static bool     has_value(const HT_Entry * entry) { return DAR_is_initialized(&(entry->value)); }
 static bool     is_tombstone(const HT_Entry * entry) { return entry->is_tombstone; }
 static STAT_Val create_entry(HT_Entry * entry, uint32_t hash, SPN_Span key, SPN_Span value);
-static void     destroy_entry(HT_Entry * entry);
+static STAT_Val destroy_entry(HT_Entry * entry);
 static size_t   get_index_from_hash(const HT_HashTable * this, uint32_t hash);
 static uint32_t get_hash_for_key(SPN_Span key);
 static STAT_Val grow_capacity_as_needed(HT_HashTable * this, size_t new_count);
@@ -59,7 +57,7 @@ STAT_Val HT_destroy(HT_HashTable * this) {
   if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
 
   for(HT_Entry * p = DAR_first(&this->store); p != DAR_end(&this->store); p++) {
-    destroy_entry(p);
+    LOG_STAT_IF_ERR(destroy_entry(p), "failed to destroy entry. Continuing...");
   }
 
   if(!STAT_is_OK(DAR_destroy(&(this->store)))) {
@@ -96,7 +94,11 @@ STAT_Val HT_set(HT_HashTable * this, SPN_Span key, SPN_Span value) {
     this->count = new_count;
   } else {
     // this is the existing entry for this key, copy the new value over the old one
-    if(has_value(entry)) DAR_destroy(&(entry->value));
+    if(has_value(entry)) {
+      if(!STAT_is_OK(DAR_destroy(&(entry->value)))) {
+        return LOG_STAT(STAT_ERR_INTERNAL, "failed to destroy existing entry for key");
+      }
+    }
     if(!SPN_is_empty(value)) {
       if(!STAT_is_OK(DAR_create_from_span(&(entry->value), value))) {
         return LOG_STAT(STAT_ERR_INTERNAL, "failed to write value to entry");
@@ -136,7 +138,9 @@ STAT_Val HT_remove(HT_HashTable * this, SPN_Span key) {
 
   if((find_st == STAT_OK_NOT_FOUND) || is_empty(entry)) return STAT_OK_NOT_FOUND;
 
-  destroy_entry(entry);
+  if(!STAT_is_OK(destroy_entry(entry))) {
+    return LOG_STAT(STAT_ERR_INTERNAL, "failed to destroy entry for removal");
+  }
 
   const HT_Entry * next_entry = successor(this, entry);
   if(!is_empty(next_entry) || is_tombstone(next_entry)) {
@@ -285,13 +289,20 @@ static STAT_Val create_entry(HT_Entry * entry, uint32_t hash, SPN_Span key, SPN_
   return OK;
 }
 
-static void destroy_entry(HT_Entry * entry) {
-  if(entry != NULL) {
-    if(!is_empty(entry)) DAR_destroy(&(entry->key));
-    if(has_value(entry)) DAR_destroy(&(entry->value));
+static STAT_Val destroy_entry(HT_Entry * entry) {
+  if(entry == NULL) return OK;
 
-    *entry = (HT_Entry){0};
-  }
+  const STAT_Val key_st   = DAR_destroy(&(entry->key));
+  const STAT_Val value_st = (has_value(entry) ? DAR_destroy(&(entry->value)) : OK);
+
+  LOG_STAT_IF_ERR(key_st, "failed to destroy entry key data array. Continuing...");
+  LOG_STAT_IF_ERR(value_st, "failed to destroy entry value data array. Continuing...");
+
+  *entry = (HT_Entry){0};
+
+  return ((!STAT_is_OK(key_st) || !STAT_is_OK(value_st))
+              ? LOG_STAT(STAT_ERR_INTERNAL, "error destroying entry")
+              : OK);
 }
 
 static const HT_Entry * successor(const HT_HashTable * this, const HT_Entry * entry) {
