@@ -19,7 +19,7 @@ static Result tst_create_destroy_in_place(void) {
 
   LST_List list = {0};
   EXPECT_EQ(&r, OK, LST_create(&list, sizeof(int)));
-  EXPECT_TRUE(&r, LST_IMPL_is_valid(&list));
+  EXPECT_TRUE(&r, LST_INT_is_valid(&list));
 
   EXPECT_EQ(&r, sizeof(int), list.element_size);
 
@@ -129,7 +129,7 @@ static Result tst_insert(void * env_p) {
 
     EXPECT_EQ(&r, OK, LST_insert(list, list->sentinel, &vals[i], &new_node));
     EXPECT_NE(&r, NULL, list->sentinel);
-    EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
+    EXPECT_TRUE(&r, LST_INT_is_valid(list));
     if(HAS_FAILED(&r)) return r;
 
     EXPECT_NE(&r, NULL, list->sentinel->prev);
@@ -175,7 +175,7 @@ static Result tst_get_len(void * env_p) {
     LST_Node * new_node = NULL;
 
     EXPECT_EQ(&r, OK, LST_insert(list, list->sentinel, &vals[i], &new_node));
-    EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
+    EXPECT_TRUE(&r, LST_INT_is_valid(list));
 
     EXPECT_EQ(&r, i + 1, LST_get_len(list));
 
@@ -198,7 +198,7 @@ static Result tst_first_last_end(void * env_p) {
     LST_Node * new_node = NULL;
 
     EXPECT_EQ(&r, OK, LST_insert(list, list->sentinel, &vals[i], &new_node));
-    EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
+    EXPECT_TRUE(&r, LST_INT_is_valid(list));
     if(HAS_FAILED(&r)) return r;
 
     if(i == 0) first_node = new_node;
@@ -228,7 +228,7 @@ static Result tst_next_prev(void * env_p) {
     LST_Node * new_node = NULL;
 
     EXPECT_EQ(&r, OK, LST_insert(list, list->sentinel, &vals[i], &new_node));
-    EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
+    EXPECT_TRUE(&r, LST_INT_is_valid(list));
     if(HAS_FAILED(&r)) return r;
 
     for(int j = 0; j <= (int)i; j++) {
@@ -269,7 +269,7 @@ static Result tst_contains_and_find(void * env_p) {
     LST_Node * new_node = NULL;
 
     EXPECT_EQ(&r, OK, LST_insert(list, list->sentinel, &vals[i], &new_node));
-    EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
+    EXPECT_TRUE(&r, LST_INT_is_valid(list));
     if(HAS_FAILED(&r)) return r;
 
     for(size_t j = 0; j < num_vals; j++) {
@@ -305,7 +305,7 @@ static Result tst_insert_from_array(void * env_p) {
   LST_Node * first_node = NULL;
 
   EXPECT_EQ(&r, OK, LST_insert_from_array(list, LST_end(list), vals, num_vals, &first_node));
-  EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
+  EXPECT_TRUE(&r, LST_INT_is_valid(list));
   EXPECT_EQ(&r, num_vals, LST_get_len(list));
   EXPECT_EQ(&r, first_node, LST_first(list));
   if(HAS_FAILED(&r)) return r;
@@ -314,7 +314,7 @@ static Result tst_insert_from_array(void * env_p) {
   EXPECT_EQ(&r, vals[num_vals - 1], *((double *)LST_data(LST_last(list))));
 
   EXPECT_EQ(&r, OK, LST_insert_from_array(list, first_node, vals, num_vals, &first_node));
-  EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
+  EXPECT_TRUE(&r, LST_INT_is_valid(list));
   EXPECT_EQ(&r, num_vals * 2, LST_get_len(list));
   EXPECT_EQ(&r, first_node, LST_first(list));
   if(HAS_FAILED(&r)) return r;
@@ -348,17 +348,17 @@ static Result tst_remove(void * env_p) {
   const size_t num_vals = sizeof(vals) / sizeof(double);
 
   EXPECT_EQ(&r, OK, LST_insert_from_array(list, LST_end(list), vals, num_vals, NULL));
-  EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
+  EXPECT_TRUE(&r, LST_INT_is_valid(list));
   EXPECT_EQ(&r, num_vals, LST_get_len(list));
 
   EXPECT_EQ(&r, OK, LST_remove(LST_first(list)));
-  EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
+  EXPECT_TRUE(&r, LST_INT_is_valid(list));
   EXPECT_EQ(&r, num_vals - 1, LST_get_len(list));
 
   EXPECT_EQ(&r, vals[1], *((double *)LST_data(LST_first(list))));
 
   EXPECT_EQ(&r, OK, LST_remove(LST_first(list)->next));
-  EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
+  EXPECT_TRUE(&r, LST_INT_is_valid(list));
   EXPECT_EQ(&r, num_vals - 2, LST_get_len(list));
 
   EXPECT_EQ(&r, vals[1], *((double *)LST_data(LST_first(list))));
@@ -375,13 +375,13 @@ static Result tst_remove_sequence(void * env_p) {
   const size_t num_vals = sizeof(vals) / sizeof(double);
 
   EXPECT_EQ(&r, OK, LST_insert_from_array(list, LST_end(list), vals, num_vals, NULL));
-  EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
+  EXPECT_TRUE(&r, LST_INT_is_valid(list));
   EXPECT_EQ(&r, num_vals, LST_get_len(list));
 
   // remove sequence {0.0, 1.0, 2.0}
   // after: {3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0};
   EXPECT_EQ(&r, OK, LST_remove_sequence(LST_first(list), LST_next(LST_first(list), 3)));
-  EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
+  EXPECT_TRUE(&r, LST_INT_is_valid(list));
   EXPECT_EQ(&r, num_vals - 3, LST_get_len(list));
   EXPECT_EQ(&r, 3.0, *((double *)LST_data(LST_first(list))));
   EXPECT_EQ(&r, 9.0, *((double *)LST_data(LST_last(list))));
@@ -391,7 +391,7 @@ static Result tst_remove_sequence(void * env_p) {
   EXPECT_EQ(&r,
             OK,
             LST_remove_sequence(LST_next(LST_first(list), 2), LST_next(LST_first(list), 6)));
-  EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
+  EXPECT_TRUE(&r, LST_INT_is_valid(list));
   EXPECT_EQ(&r, num_vals - 7, LST_get_len(list));
   EXPECT_EQ(&r, 3.0, *((double *)LST_data(LST_first(list))));
   EXPECT_EQ(&r, 4.0, *((double *)LST_data(LST_next(LST_first(list), 1))));
@@ -413,7 +413,7 @@ static Result tst_extract_and_inject(void * env_p) {
     LST_Node * node = LST_last(list);
 
     EXPECT_EQ(&r, OK, LST_extract(node));
-    EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
+    EXPECT_TRUE(&r, LST_INT_is_valid(list));
     EXPECT_EQ(&r, (num_vals - 1), LST_get_len(list));
     EXPECT_NE(&r, NULL, node);
     EXPECT_NE(&r, node, LST_last(list));
@@ -421,7 +421,7 @@ static Result tst_extract_and_inject(void * env_p) {
     if(HAS_FAILED(&r)) return r;
 
     EXPECT_EQ(&r, OK, LST_inject(node, LST_first(list)));
-    EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
+    EXPECT_TRUE(&r, LST_INT_is_valid(list));
     EXPECT_EQ(&r, num_vals, LST_get_len(list));
     EXPECT_EQ(&r, node, LST_first(list));
     if(HAS_FAILED(&r)) return r;
@@ -431,7 +431,7 @@ static Result tst_extract_and_inject(void * env_p) {
     LST_Node * node = LST_first(list);
 
     EXPECT_EQ(&r, OK, LST_extract(node));
-    EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
+    EXPECT_TRUE(&r, LST_INT_is_valid(list));
     EXPECT_EQ(&r, (num_vals - 1), LST_get_len(list));
     EXPECT_NE(&r, NULL, node);
     EXPECT_NE(&r, node, LST_first(list));
@@ -439,7 +439,7 @@ static Result tst_extract_and_inject(void * env_p) {
     if(HAS_FAILED(&r)) return r;
 
     EXPECT_EQ(&r, OK, LST_inject(node, LST_end(list)));
-    EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
+    EXPECT_TRUE(&r, LST_INT_is_valid(list));
     EXPECT_EQ(&r, num_vals, LST_get_len(list));
     EXPECT_EQ(&r, node, LST_last(list));
     if(HAS_FAILED(&r)) return r;
@@ -449,14 +449,14 @@ static Result tst_extract_and_inject(void * env_p) {
     LST_Node * node = LST_next(LST_first(list), 2);
 
     EXPECT_EQ(&r, OK, LST_extract(node));
-    EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
+    EXPECT_TRUE(&r, LST_INT_is_valid(list));
     EXPECT_EQ(&r, (num_vals - 1), LST_get_len(list));
     EXPECT_NE(&r, NULL, node);
     EXPECT_FALSE(&r, LST_contains(list, LST_data(node)));
     if(HAS_FAILED(&r)) return r;
 
     EXPECT_EQ(&r, OK, LST_inject(node, LST_next(LST_first(list), 4)));
-    EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
+    EXPECT_TRUE(&r, LST_INT_is_valid(list));
     EXPECT_EQ(&r, num_vals, LST_get_len(list));
     EXPECT_EQ(&r, node, LST_next(LST_first(list), 4));
     if(HAS_FAILED(&r)) return r;
@@ -480,7 +480,7 @@ static Result tst_extract_and_inject_sequence_front_to_back(void * env_p) {
 
   EXPECT_EQ(&r, OK, LST_extract_sequence(first, LST_next(last, 1)));
 
-  EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
+  EXPECT_TRUE(&r, LST_INT_is_valid(list));
   EXPECT_FALSE(&r, LST_contains(list, LST_data(first)));
   EXPECT_FALSE(&r, LST_contains(list, LST_data(last)));
   EXPECT_EQ(&r, (num_vals - 3), LST_get_len(list));
@@ -496,7 +496,7 @@ static Result tst_extract_and_inject_sequence_front_to_back(void * env_p) {
 
   EXPECT_EQ(&r, OK, LST_inject_sequence(first, last, LST_end(list)));
 
-  EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
+  EXPECT_TRUE(&r, LST_INT_is_valid(list));
   EXPECT_TRUE(&r, LST_contains(list, LST_data(first)));
   EXPECT_TRUE(&r, LST_contains(list, LST_data(last)));
   EXPECT_EQ(&r, num_vals, LST_get_len(list));
@@ -533,7 +533,7 @@ static Result tst_extract_and_inject_sequence_middle(void * env_p) {
 
   EXPECT_EQ(&r, OK, LST_extract_sequence(first, LST_next(last, 1)));
 
-  EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
+  EXPECT_TRUE(&r, LST_INT_is_valid(list));
   EXPECT_FALSE(&r, LST_contains(list, LST_data(first)));
   EXPECT_FALSE(&r, LST_contains(list, LST_data(last)));
   EXPECT_EQ(&r, (num_vals - 3), LST_get_len(list));
@@ -549,7 +549,7 @@ static Result tst_extract_and_inject_sequence_middle(void * env_p) {
 
   EXPECT_EQ(&r, OK, LST_inject_sequence(first, last, LST_next(LST_first(list), 3)));
 
-  EXPECT_TRUE(&r, LST_IMPL_is_valid(list));
+  EXPECT_TRUE(&r, LST_INT_is_valid(list));
   EXPECT_TRUE(&r, LST_contains(list, LST_data(first)));
   EXPECT_TRUE(&r, LST_contains(list, LST_data(last)));
   EXPECT_EQ(&r, num_vals, LST_get_len(list));
@@ -744,7 +744,7 @@ static Result tst_many_random_actions(void) {
     default: EXPECT_FALSE(&r, true); return r;
     }
 
-    EXPECT_TRUE(&r, LST_IMPL_is_valid(&list));
+    EXPECT_TRUE(&r, LST_INT_is_valid(&list));
     EXPECT_EQ(&r, list_len, LST_get_len(&list));
     if(HAS_FAILED(&r)) return r;
 
@@ -824,7 +824,7 @@ static Result setup(void ** env_pp) {
   if(HAS_FAILED(&r)) return r;
 
   EXPECT_EQ(&r, OK, LST_create(*list_pp, sizeof(double)));
-  EXPECT_TRUE(&r, LST_IMPL_is_valid(*list_pp));
+  EXPECT_TRUE(&r, LST_INT_is_valid(*list_pp));
 
   return r;
 }

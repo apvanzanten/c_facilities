@@ -21,4 +21,4 @@ RC_Ref RC_allocate(size_t element_size) {
   return (RC_Ref){.block = block};
 }
 
-void RC_IMPL_free(RC_RefCountedBlock * block) { free(block); }
+void RC_INT_free(RC_RefCountedBlock * block) { free(block); }

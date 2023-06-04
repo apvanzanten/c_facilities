@@ -15,15 +15,15 @@ void LOG_set_log_func(void (*func)(const char *, size_t)) { g_log_func = func; }
 
 static void write_to_log(STAT_Val          stat,
                          const char *      stat_str,
-                         LOG_IMPL_Location location,
+                         LOG_INT_Location location,
                          const char *      fmt,
                          va_list           args);
 
-static int write_location_to_msg(LOG_IMPL_Location location, char * msg, size_t max_len);
+static int write_location_to_msg(LOG_INT_Location location, char * msg, size_t max_len);
 
-STAT_Val LOG_IMPL_stat(STAT_Val          stat,
+STAT_Val LOG_INT_stat(STAT_Val          stat,
                        const char *      stat_str,
-                       LOG_IMPL_Location location,
+                       LOG_INT_Location location,
                        const char *      fmt,
                        ...) {
   va_list args;
@@ -36,10 +36,10 @@ STAT_Val LOG_IMPL_stat(STAT_Val          stat,
   return stat;
 }
 
-STAT_Val LOG_IMPL_stat_if(bool              condition,
+STAT_Val LOG_INT_stat_if(bool              condition,
                           STAT_Val          stat,
                           const char *      stat_str,
-                          LOG_IMPL_Location location,
+                          LOG_INT_Location location,
                           const char *      fmt,
                           ...) {
   if(condition) {
@@ -54,9 +54,9 @@ STAT_Val LOG_IMPL_stat_if(bool              condition,
   return stat;
 }
 
-STAT_Val LOG_IMPL_stat_if_err(STAT_Val          stat,
+STAT_Val LOG_INT_stat_if_err(STAT_Val          stat,
                               const char *      stat_str,
-                              LOG_IMPL_Location location,
+                              LOG_INT_Location location,
                               const char *      fmt,
                               ...) {
   if(STAT_is_ERR(stat)) {
@@ -70,9 +70,9 @@ STAT_Val LOG_IMPL_stat_if_err(STAT_Val          stat,
   return stat;
 }
 
-STAT_Val LOG_IMPL_stat_if_nok(STAT_Val          stat,
+STAT_Val LOG_INT_stat_if_nok(STAT_Val          stat,
                               const char *      stat_str,
-                              LOG_IMPL_Location location,
+                              LOG_INT_Location location,
                               const char *      fmt,
                               ...) {
 
@@ -87,7 +87,7 @@ STAT_Val LOG_IMPL_stat_if_nok(STAT_Val          stat,
   return stat;
 }
 
-static int write_location_to_msg(LOG_IMPL_Location location, char * msg, size_t max_len) {
+static int write_location_to_msg(LOG_INT_Location location, char * msg, size_t max_len) {
   const char * file_basename = strrchr(location.file, '/'); // find last '/'
 
   if(file_basename != NULL) file_basename++; // skip actual '/'
@@ -102,7 +102,7 @@ static int write_location_to_msg(LOG_IMPL_Location location, char * msg, size_t 
 
 static void write_to_log(STAT_Val          stat,
                          const char *      stat_str,
-                         LOG_IMPL_Location location,
+                         LOG_INT_Location location,
                          const char *      fmt,
                          va_list           args) {
 

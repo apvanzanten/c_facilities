@@ -38,19 +38,19 @@
 
 // NOTE we distribute our types of codes over distinct ranges, so we can check whether a value is of
 // a certain type through comparison
-#define STAT_IMPL_OK_RANGE_FIRST  0x10000
-#define STAT_IMPL_OK_RANGE_LAST   (STAT_IMPL_OK_RANGE_FIRST + 0xffff)
-#define STAT_IMPL_WRN_RANGE_FIRST 0x20000
-#define STAT_IMPL_WRN_RANGE_LAST  (STAT_IMPL_WRN_RANGE_FIRST + 0xffff)
-#define STAT_IMPL_ERR_RANGE_FIRST 0x30000
-#define STAT_IMPL_ERR_RANGE_LAST  (STAT_IMPL_ERR_RANGE_FIRST + 0xffff)
+#define STAT_INT_OK_RANGE_FIRST  0x10000
+#define STAT_INT_OK_RANGE_LAST   (STAT_INT_OK_RANGE_FIRST + 0xffff)
+#define STAT_INT_WRN_RANGE_FIRST 0x20000
+#define STAT_INT_WRN_RANGE_LAST  (STAT_INT_WRN_RANGE_FIRST + 0xffff)
+#define STAT_INT_ERR_RANGE_FIRST 0x30000
+#define STAT_INT_ERR_RANGE_LAST  (STAT_INT_ERR_RANGE_FIRST + 0xffff)
 
 #include <stdbool.h>
 
 typedef enum {
 
   // OKs
-  STAT_OK = STAT_IMPL_OK_RANGE_FIRST,
+  STAT_OK = STAT_INT_OK_RANGE_FIRST,
   STAT_OK_BUSY,
   STAT_OK_FINISHED,
   STAT_OK_TRUE,
@@ -58,11 +58,11 @@ typedef enum {
   STAT_OK_NOT_FOUND,
 
   // warnings
-  STAT_WRN_OVERWRITTEN = STAT_IMPL_WRN_RANGE_FIRST,
+  STAT_WRN_OVERWRITTEN = STAT_INT_WRN_RANGE_FIRST,
   STAT_WRN_NOTHING_TO_DO,
 
   // errors
-  STAT_ERR_ARGS = STAT_IMPL_ERR_RANGE_FIRST,
+  STAT_ERR_ARGS = STAT_INT_ERR_RANGE_FIRST,
   STAT_ERR_USAGE,
   STAT_ERR_UNIMPLEMENTED,
   STAT_ERR_PRECONDITION,
@@ -123,13 +123,13 @@ static inline const char * STAT_to_str(STAT_Val code) {
 // NOTE these are NOT macros, as it would be surprisingly complicated to do this with a macro that
 // doesn't evaluate the input multiple times.
 static inline bool STAT_is_OK(STAT_Val val) {
-  return ((int)val >= STAT_IMPL_OK_RANGE_FIRST) && ((int)val <= STAT_IMPL_OK_RANGE_LAST);
+  return ((int)val >= STAT_INT_OK_RANGE_FIRST) && ((int)val <= STAT_INT_OK_RANGE_LAST);
 }
 static inline bool STAT_is_WRN(STAT_Val val) {
-  return ((int)val >= STAT_IMPL_WRN_RANGE_FIRST) && ((int)val <= STAT_IMPL_WRN_RANGE_LAST);
+  return ((int)val >= STAT_INT_WRN_RANGE_FIRST) && ((int)val <= STAT_INT_WRN_RANGE_LAST);
 }
 static inline bool STAT_is_ERR(STAT_Val val) {
-  return ((int)val >= STAT_IMPL_ERR_RANGE_FIRST) && ((int)val <= STAT_IMPL_ERR_RANGE_LAST);
+  return ((int)val >= STAT_INT_ERR_RANGE_FIRST) && ((int)val <= STAT_INT_ERR_RANGE_LAST);
 }
 
 static inline bool STAT_is_valid(STAT_Val val) {

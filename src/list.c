@@ -210,7 +210,7 @@ size_t LST_get_len(const LST_List * this) {
   return len;
 }
 
-STAT_Val LST_IMPL_find_nonconst(LST_List * this, const void * value, LST_Node ** o_found_node) {
+STAT_Val LST_INT_find_nonconst(LST_List * this, const void * value, LST_Node ** o_found_node) {
   if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
   if(value == NULL) return LOG_STAT(STAT_ERR_ARGS, "value is NULL");
 
@@ -224,7 +224,7 @@ STAT_Val LST_IMPL_find_nonconst(LST_List * this, const void * value, LST_Node **
   return STAT_OK_NOT_FOUND;
 }
 
-STAT_Val LST_IMPL_find_const(const LST_List * this,
+STAT_Val LST_INT_find_const(const LST_List * this,
                              const void *      value,
                              const LST_Node ** o_found_node) {
   if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
@@ -348,7 +348,7 @@ static bool is_circular_and_has_bidirectional_integrity(const LST_List * this) {
   return true;
 }
 
-bool LST_IMPL_is_valid(const LST_List * this) {
+bool LST_INT_is_valid(const LST_List * this) {
   if(this == NULL) return false;
   if(this->element_size == 0) return false;
   if(this->sentinel == NULL) return false;

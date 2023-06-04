@@ -64,40 +64,39 @@ static inline bool LST_is_empty(const LST_List * this);
 // STAT_Val LST_find([const] LST_List * this, const void * value, [const] LST_Node ** o_found_node);
 #define LST_find(list, value, o_found_node)                                                        \
   _Generic((list),                                                                                 \
-      const LST_List *: LST_IMPL_find_const,                                                       \
-      LST_List *: LST_IMPL_find_nonconst)(list, value, o_found_node)
-STAT_Val LST_IMPL_find_nonconst(LST_List * this, const void * value, LST_Node ** o_found_node);
-STAT_Val LST_IMPL_find_const(const LST_List * this,
-                             const void *      value,
-                             const LST_Node ** o_found_node);
+      const LST_List *: LST_INT_find_const,                                                        \
+      LST_List *: LST_INT_find_nonconst)(list, value, o_found_node)
+STAT_Val LST_INT_find_nonconst(LST_List * this, const void * value, LST_Node ** o_found_node);
+STAT_Val LST_INT_find_const(const LST_List * this,
+                            const void *      value,
+                            const LST_Node ** o_found_node);
 
 // ===============
 // == accessors ==
 
 //  [const] LST_Node * LST_first([const] LST_List * this);
 #define LST_first(list)                                                                            \
-  _Generic((list), const LST_List *: LST_IMPL_first_const, LST_List *: LST_IMPL_first_nonconst)(   \
-      list)
-static inline LST_Node *       LST_IMPL_first_nonconst(LST_List * this);
-static inline const LST_Node * LST_IMPL_first_const(const LST_List * this);
+  _Generic((list), const LST_List *: LST_INT_first_const, LST_List *: LST_INT_first_nonconst)(list)
+static inline LST_Node *       LST_INT_first_nonconst(LST_List * this);
+static inline const LST_Node * LST_INT_first_const(const LST_List * this);
 
 //  [const] LST_Node * LST_last([const] LST_List * this);
 #define LST_last(list)                                                                             \
-  _Generic((list), const LST_List *: LST_IMPL_last_const, LST_List *: LST_IMPL_last_nonconst)(list)
-static inline LST_Node *       LST_IMPL_last_nonconst(LST_List * this);
-static inline const LST_Node * LST_IMPL_last_const(const LST_List * this);
+  _Generic((list), const LST_List *: LST_INT_last_const, LST_List *: LST_INT_last_nonconst)(list)
+static inline LST_Node *       LST_INT_last_nonconst(LST_List * this);
+static inline const LST_Node * LST_INT_last_const(const LST_List * this);
 
 //  [const] LST_Node * LST_end([const] LST_List * this);
 #define LST_end(list)                                                                              \
-  _Generic((list), const LST_List *: LST_IMPL_end_const, LST_List *: LST_IMPL_end_nonconst)(list)
-static inline LST_Node *       LST_IMPL_end_nonconst(LST_List * this);
-static inline const LST_Node * LST_IMPL_end_const(const LST_List * this);
+  _Generic((list), const LST_List *: LST_INT_end_const, LST_List *: LST_INT_end_nonconst)(list)
+static inline LST_Node *       LST_INT_end_nonconst(LST_List * this);
+static inline const LST_Node * LST_INT_end_const(const LST_List * this);
 
 //  [const] void * LST_data([const] LST_Node * node);
 #define LST_data(node)                                                                             \
-  _Generic((node), const LST_Node *: LST_IMPL_data_const, LST_Node *: LST_IMPL_data_nonconst)(node)
-static inline void *       LST_IMPL_data_nonconst(LST_Node * node);
-static inline const void * LST_IMPL_data_const(const LST_Node * node);
+  _Generic((node), const LST_Node *: LST_INT_data_const, LST_Node *: LST_INT_data_nonconst)(node)
+static inline void *       LST_INT_data_nonconst(LST_Node * node);
+static inline const void * LST_INT_data_const(const LST_Node * node);
 // NOTE We have this LST_data accessors because our data member is not void (because arrays can't
 // be members, and flexible array members must be arrays so can't be void), but casting directly
 // from uint8_t to whatever is the relevant data type will likely result in warnings/errors from
@@ -105,54 +104,50 @@ static inline const void * LST_IMPL_data_const(const LST_Node * node);
 
 //  [const] LST_Node * LST_next([const] LST_Node * node, int n);
 #define LST_next(node, n)                                                                          \
-  _Generic((node),                                                                                 \
-      const LST_Node *: LST_IMPL_next_const,                                                       \
-      LST_Node *: LST_IMPL_next_nonconst)(node, n)
-static inline LST_Node *       LST_IMPL_next_nonconst(LST_Node * node_pp, int n);
-static inline const LST_Node * LST_IMPL_next_const(const LST_Node * node_pp, int n);
+  _Generic((node), const LST_Node *: LST_INT_next_const, LST_Node *: LST_INT_next_nonconst)(node, n)
+static inline LST_Node *       LST_INT_next_nonconst(LST_Node * node_pp, int n);
+static inline const LST_Node * LST_INT_next_const(const LST_Node * node_pp, int n);
 
 //  [const] LST_Node * LST_prev([const] LST_Node * node, int n);
 #define LST_prev(node, n)                                                                          \
-  _Generic((node),                                                                                 \
-      const LST_Node *: LST_IMPL_prev_const,                                                       \
-      LST_Node *: LST_IMPL_prev_nonconst)(node, n)
-static inline LST_Node *       LST_IMPL_prev_nonconst(LST_Node * node_pp, int n);
-static inline const LST_Node * LST_IMPL_prev_const(const LST_Node * node_pp, int n);
+  _Generic((node), const LST_Node *: LST_INT_prev_const, LST_Node *: LST_INT_prev_nonconst)(node, n)
+static inline LST_Node *       LST_INT_prev_nonconst(LST_Node * node_pp, int n);
+static inline const LST_Node * LST_INT_prev_const(const LST_Node * node_pp, int n);
 
 // =====================================
 // == inline function implementations ==
 
-static inline LST_Node * LST_IMPL_first_nonconst(LST_List * this) { return this->sentinel->next; }
-static inline LST_Node * LST_IMPL_last_nonconst(LST_List * this) { return this->sentinel->prev; }
-static inline LST_Node * LST_IMPL_end_nonconst(LST_List * this) { return this->sentinel; }
-static inline const LST_Node * LST_IMPL_first_const(const LST_List * this) {
+static inline LST_Node * LST_INT_first_nonconst(LST_List * this) { return this->sentinel->next; }
+static inline LST_Node * LST_INT_last_nonconst(LST_List * this) { return this->sentinel->prev; }
+static inline LST_Node * LST_INT_end_nonconst(LST_List * this) { return this->sentinel; }
+static inline const LST_Node * LST_INT_first_const(const LST_List * this) {
   return this->sentinel->next;
 }
-static inline const LST_Node * LST_IMPL_last_const(const LST_List * this) {
+static inline const LST_Node * LST_INT_last_const(const LST_List * this) {
   return this->sentinel->prev;
 }
-static inline const LST_Node * LST_IMPL_end_const(const LST_List * this) { return this->sentinel; }
-static inline void *       LST_IMPL_data_nonconst(LST_Node * node) { return (void *)node->data; }
-static inline const void * LST_IMPL_data_const(const LST_Node * node) {
+static inline const LST_Node * LST_INT_end_const(const LST_List * this) { return this->sentinel; }
+static inline void *           LST_INT_data_nonconst(LST_Node * node) { return (void *)node->data; }
+static inline const void *     LST_INT_data_const(const LST_Node * node) {
   return (const void *)node->data;
 }
 
-static inline LST_Node * LST_IMPL_next_nonconst(LST_Node * node, int n) {
+static inline LST_Node * LST_INT_next_nonconst(LST_Node * node, int n) {
   for(int i = 0; i < n; i++) node = node->next;
   for(int i = 0; i > n; i--) node = node->prev;
   return node;
 }
-static inline const LST_Node * LST_IMPL_next_const(const LST_Node * node, int n) {
+static inline const LST_Node * LST_INT_next_const(const LST_Node * node, int n) {
   for(int i = 0; i < n; i++) node = node->next;
   for(int i = 0; i > n; i--) node = node->prev;
   return node;
 }
 
-static inline LST_Node * LST_IMPL_prev_nonconst(LST_Node * node, int n) {
-  return LST_IMPL_next_nonconst(node, -n);
+static inline LST_Node * LST_INT_prev_nonconst(LST_Node * node, int n) {
+  return LST_INT_next_nonconst(node, -n);
 }
-static inline const LST_Node * LST_IMPL_prev_const(const LST_Node * node, int n) {
-  return LST_IMPL_next_const(node, -n);
+static inline const LST_Node * LST_INT_prev_const(const LST_Node * node, int n) {
+  return LST_INT_next_const(node, -n);
 }
 
 static inline bool LST_is_empty(const LST_List * this) {
@@ -162,6 +157,6 @@ static inline bool LST_is_empty(const LST_List * this) {
 // ===============
 // == test-only ==
 
-bool LST_IMPL_is_valid(const LST_List * this);
+bool LST_INT_is_valid(const LST_List * this);
 
 #endif
