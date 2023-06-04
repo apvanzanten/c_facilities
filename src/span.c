@@ -14,6 +14,11 @@ SPN_Span SPN_from_cstr(const char * cstr) {
   return (SPN_Span){.begin = (const void *)cstr, .len = strlen(cstr), .element_size = 1};
 }
 
+SPN_MutSpan SPN_mut_span_from_cstr(char * cstr) {
+  if(cstr == NULL) return (SPN_MutSpan){0};
+  return (SPN_MutSpan){.begin = (void *)cstr, .len = strlen(cstr), .element_size = 1};
+}
+
 SPN_Span SPN_subspan(SPN_Span src, size_t begin_idx, size_t len) {
   if(begin_idx > src.len) begin_idx = src.len;
   if(begin_idx + len > src.len) len = (src.len - begin_idx);

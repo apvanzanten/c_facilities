@@ -13,9 +13,14 @@ typedef struct {
   size_t       element_size; // size of an element in bytes
 } SPN_Span;
 
-// TODO figure out const stuff (currently it is bad)
+typedef struct {
+  void * begin;
+  size_t len;          // len in number of elements
+  size_t element_size; // size of an element in bytes
+} SPN_MutSpan;
 
-SPN_Span SPN_from_cstr(const char * cstr);
+SPN_Span    SPN_from_cstr(const char * cstr);
+SPN_MutSpan SPN_mut_span_from_cstr(char * cstr);
 
 SPN_Span SPN_subspan(SPN_Span src, size_t begin_idx, size_t len);
 
@@ -37,15 +42,31 @@ STAT_Val SPN_find_subspan_reverse_at(SPN_Span span,
                                      size_t   at_idx,
                                      size_t * o_idx);
 
-inline static size_t SPN_get_byte_idx(SPN_Span sp, size_t idx) { return (sp.element_size * idx); }
-
-inline static const void * SPN_get(SPN_Span sp, size_t idx) {
-  return (const void *)(&(((const uint8_t *)sp.begin)[SPN_get_byte_idx(sp, idx)]));
+static inline SPN_Span SPN_mut_to_const(SPN_MutSpan span) {
+  return (SPN_Span){.begin = span.begin, .len = span.len, .element_size = span.element_size};
 }
 
-inline static const void * SPN_first(SPN_Span sp) { return SPN_get(sp, 0); }
-inline static const void * SPN_last(SPN_Span sp) { return SPN_get(sp, (sp.len - 1)); }
-inline static const void * SPN_end(SPN_Span sp) { return SPN_get(sp, sp.len); }
+inline static size_t SPN_get_byte_idx(SPN_Span sp, size_t idx) { return (sp.element_size * idx); }
+
+#define SPN_get(sp, i) _Generic((sp), SPN_Span: SPN_IMPL_get, SPN_MutSpan: SPN_IMPL_get_mut)(sp, i)
+inline static const void * SPN_IMPL_get(SPN_Span sp, size_t idx) {
+  return &(((const uint8_t *)sp.begin)[sp.element_size * idx]);
+}
+inline static void * SPN_IMPL_get_mut(SPN_MutSpan sp, size_t idx) {
+  return &(((uint8_t *)sp.begin)[sp.element_size * idx]);
+}
+
+#define SPN_first(sp) _Generic((sp), SPN_Span: SPN_IMPL_first, SPN_MutSpan: SPN_IMPL_first_mut)(sp)
+inline static const void * SPN_IMPL_first(SPN_Span sp) { return SPN_get(sp, 0); }
+inline static void *       SPN_IMPL_first_mut(SPN_MutSpan sp) { return SPN_get(sp, 0); }
+
+#define SPN_last(sp) _Generic((sp), SPN_Span: SPN_IMPL_last, SPN_MutSpan: SPN_IMPL_last_mut)(sp)
+inline static const void * SPN_IMPL_last(SPN_Span sp) { return SPN_get(sp, (sp.len - 1)); }
+inline static void *       SPN_IMPL_last_mut(SPN_MutSpan sp) { return SPN_get(sp, (sp.len - 1)); }
+
+#define SPN_end(sp) _Generic((sp), SPN_Span: SPN_IMPL_end, SPN_MutSpan: SPN_IMPL_end_mut)(sp)
+inline static const void * SPN_IMPL_end(SPN_Span sp) { return SPN_get(sp, sp.len); }
+inline static void *       SPN_IMPL_end_mut(SPN_MutSpan sp) { return SPN_get(sp, sp.len); }
 
 inline static size_t SPN_get_size_in_bytes(SPN_Span sp) { return (sp.len * sp.element_size); }
 

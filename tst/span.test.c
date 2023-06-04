@@ -835,6 +835,33 @@ static Result tst_get_first_last_end_ints(void) {
   return r;
 }
 
+static Result tst_mut(void) {
+  Result r = PASS;
+
+  int seq[] = {2, 3, 5, 7, 11, 13, 17, 19, 23};
+
+  SPN_MutSpan mut_span = {.begin        = seq,
+                          .element_size = sizeof(seq[0]),
+                          .len          = sizeof(seq) / sizeof(seq[0])};
+  SPN_Span    span     = SPN_mut_to_const(mut_span);
+  EXPECT_EQ(&r, span.begin, mut_span.begin);
+  EXPECT_EQ(&r, span.len, mut_span.len);
+  EXPECT_EQ(&r, span.element_size, mut_span.element_size);
+
+  for(size_t i = 0; i < mut_span.len; i++) {
+    EXPECT_EQ(&r, &seq[i], SPN_get(mut_span, i));
+    EXPECT_EQ(&r, &seq[i], SPN_get(span, i));
+    *((int *)SPN_get(mut_span, i)) = (int)i;
+  }
+
+  for(size_t i = 0; i < mut_span.len; i++) {
+    EXPECT_EQ(&r, (int)i, *((int *)SPN_get(mut_span, i)));
+    EXPECT_EQ(&r, (int)i, *((int *)SPN_get(span, i)));
+  }
+
+  return r;
+}
+
 int main(void) {
   Test tests[] = {
       tst_create_from_cstr,
@@ -856,6 +883,7 @@ int main(void) {
       tst_large_elements,
       tst_get_first_last_end_cstr,
       tst_get_first_last_end_ints,
+      tst_mut,
   };
 
   return (run_tests(tests, sizeof(tests) / sizeof(Test)) == PASS) ? 0 : 1;
