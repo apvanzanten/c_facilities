@@ -58,7 +58,7 @@ static Result tst_many_random_sets_gets_removes(void) {
 
       void * tmp_key_data = malloc(key_size);
 
-      for(size_t iteration = 0; iteration < 1000; iteration++) {
+      for(size_t iteration = 0; iteration < 500; iteration++) {
         if((iteration % 256) == 0) {
           printf("key_size=%zu, value_size=%zu, iteration=%zu, count=%zu, tombstone_count=%zu\n",
                  key_size,

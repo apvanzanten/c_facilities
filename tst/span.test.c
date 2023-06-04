@@ -862,6 +862,35 @@ static Result tst_mut(void) {
   return r;
 }
 
+static Result tst_swap() {
+  Result      r      = PASS;
+  double      vals[] = {0.0, 1.0, 2.0, 3.0, 4.0};
+  SPN_MutSpan span   = {.begin        = vals,
+                        .element_size = sizeof(double),
+                        .len          = sizeof(vals) / sizeof(double)};
+
+  for(size_t i = 0; i < span.len; i++) {
+    EXPECT_EQ(&r, vals[i], *(double *)SPN_get(span, i));
+  }
+
+  if(HAS_FAILED(&r)) return r;
+
+  SPN_swap(span, 0, 4);
+
+  EXPECT_EQ(&r, 0.0, *(double *)SPN_get(span, 4));
+  EXPECT_EQ(&r, 4.0, *(double *)SPN_get(span, 0));
+
+  EXPECT_EQ(&r, OK, SPN_swap_checked(span, 1, 3));
+
+  EXPECT_EQ(&r, 1.0, *(double *)SPN_get(span, 3));
+  EXPECT_EQ(&r, 3.0, *(double *)SPN_get(span, 1));
+
+  EXPECT_EQ(&r, STAT_ERR_RANGE, SPN_swap_checked(span, 99, 3));
+  EXPECT_EQ(&r, STAT_ERR_RANGE, SPN_swap_checked(span, 1, 99));
+
+  return r;
+}
+
 int main(void) {
   Test tests[] = {
       tst_create_from_cstr,
@@ -884,6 +913,7 @@ int main(void) {
       tst_get_first_last_end_cstr,
       tst_get_first_last_end_ints,
       tst_mut,
+      tst_swap,
   };
 
   return (run_tests(tests, sizeof(tests) / sizeof(Test)) == PASS) ? 0 : 1;

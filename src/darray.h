@@ -33,7 +33,6 @@ STAT_Val DAR_destroy(DAR_DArray * this);
 
 // ==================
 // == modification ==
-// TODO add something akin to erase-remove idiom
 
 STAT_Val DAR_push_back(DAR_DArray * this, const void * element);
 STAT_Val DAR_pop_back(DAR_DArray * this);
@@ -72,8 +71,9 @@ static inline bool   DAR_is_empty(const DAR_DArray * this);
 // ==================
 // == span interop ==
 
-SPN_Span DAR_to_span(const DAR_DArray * this);
-STAT_Val DAR_create_from_span(DAR_DArray * this, SPN_Span span);
+SPN_Span    DAR_to_span(const DAR_DArray * this);
+SPN_MutSpan DAR_to_mut_span(DAR_DArray * this);
+STAT_Val    DAR_create_from_span(DAR_DArray * this, SPN_Span span);
 
 // ===============
 // == accessors ==

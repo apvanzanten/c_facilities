@@ -42,6 +42,9 @@ STAT_Val SPN_find_subspan_reverse_at(SPN_Span span,
                                      size_t   at_idx,
                                      size_t * o_idx);
 
+void     SPN_swap(SPN_MutSpan span, size_t idx_a, size_t idx_b);
+STAT_Val SPN_swap_checked(SPN_MutSpan span, size_t idx_a, size_t idx_b);
+
 static inline SPN_Span SPN_mut_to_const(SPN_MutSpan span) {
   return (SPN_Span){.begin = span.begin, .len = span.len, .element_size = span.element_size};
 }

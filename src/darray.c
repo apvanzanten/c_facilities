@@ -362,6 +362,11 @@ SPN_Span DAR_to_span(const DAR_DArray * this) {
   return (SPN_Span){.begin = this->data, .len = this->size, .element_size = this->element_size};
 }
 
+SPN_MutSpan DAR_to_mut_span(DAR_DArray * this) {
+  if(this == NULL) return (SPN_MutSpan){0};
+  return (SPN_MutSpan){.begin = this->data, .len = this->size, .element_size = this->element_size};
+}
+
 STAT_Val DAR_create_from_span(DAR_DArray * this, SPN_Span span) {
   if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
   if(span.element_size == 0) return LOG_STAT(STAT_ERR_ARGS, "span has invalid element size");

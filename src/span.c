@@ -157,3 +157,32 @@ STAT_Val SPN_find_subspan_reverse_at(SPN_Span span,
 
   return STAT_OK_NOT_FOUND;
 }
+
+void SPN_swap(SPN_MutSpan span, size_t idx_a, size_t idx_b) {
+  if(idx_a != idx_b) {
+    // we swap byte-by-byte, so that we don't need any dynamically sized allocation
+    uint8_t * a_as_bytes = (uint8_t *)SPN_get(span, idx_a);
+    uint8_t * b_as_bytes = (uint8_t *)SPN_get(span, idx_b);
+    for(size_t i = 0; i < span.element_size; i++) {
+      const uint8_t tmp = a_as_bytes[i];
+      a_as_bytes[i]     = b_as_bytes[i];
+      b_as_bytes[i]     = tmp;
+    }
+  }
+}
+
+STAT_Val SPN_swap_checked(SPN_MutSpan span, size_t idx_a, size_t idx_b) {
+  if(span.begin == NULL || span.element_size == 0)
+    return LOG_STAT(STAT_ERR_ARGS, "span has no data is NULL");
+
+  if(idx_a >= span.len) {
+    return LOG_STAT(STAT_ERR_RANGE, "idx_a %zu out of range (size=%zu)", idx_a, span.len);
+  }
+  if(idx_b >= span.len) {
+    return LOG_STAT(STAT_ERR_RANGE, "idx_b %zu out of range (size=%zu)", idx_b, span.len);
+  }
+
+  SPN_swap(span, idx_a, idx_b);
+
+  return OK;
+}
