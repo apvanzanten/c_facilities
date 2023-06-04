@@ -786,7 +786,7 @@ static Result tst_first_last(void * env) {
   return r;
 }
 
-static Result tst_many_random_push_pop(void * env) {
+static Result tst_many_random_push_pop_delete(void * env) {
   Result       r   = PASS;
   DAR_DArray * arr = env;
 
@@ -819,10 +819,26 @@ static Result tst_many_random_push_pop(void * env) {
 
       EXPECT_EQ(&r, current_size, arr->size);
     } else {
-      // pop
-      EXPECT_EQ(&r, OK, DAR_pop_back(arr));
-      current_size--;
+      const bool is_pop = ((rand() % 2) == 0);
+      if(is_pop) {
+        // pop
+        EXPECT_EQ(&r, OK, DAR_pop_back(arr));
 
+      } else {
+        // delete
+        const bool   is_order_preserving = ((rand() % 2) == 0);
+        const size_t idx                 = (rand() / (RAND_MAX / arr->size));
+
+        if(is_order_preserving) {
+          const size_t num_to_move = (current_size - 1) - idx;
+          EXPECT_EQ(&r, OK, DAR_order_preserving_delete(arr, idx));
+          memmove(&vals[idx], &vals[idx + 1], num_to_move * sizeof(double));
+        } else {
+          EXPECT_EQ(&r, OK, DAR_delete(arr, idx));
+          memcpy(&vals[idx], &vals[current_size - 1], sizeof(double));
+        }
+      }
+      current_size--;
       EXPECT_EQ(&r, current_size, arr->size);
       EXPECT_EQ(&r, OK, DAR_shrink_to_fit(arr));
     }
@@ -885,11 +901,11 @@ int main(void) {
       tst_first_last,
 
       // run this a couple times (gets new seed every time)
-      tst_many_random_push_pop,
-      tst_many_random_push_pop,
-      tst_many_random_push_pop,
-      tst_many_random_push_pop,
-      tst_many_random_push_pop,
+      tst_many_random_push_pop_delete,
+      tst_many_random_push_pop_delete,
+      tst_many_random_push_pop_delete,
+      tst_many_random_push_pop_delete,
+      tst_many_random_push_pop_delete,
 
       tst_to_span,
   };

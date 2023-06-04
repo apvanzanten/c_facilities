@@ -55,6 +55,9 @@ STAT_Val DAR_push_back_array(DAR_DArray * this, const void * arr, size_t n);
 STAT_Val DAR_push_back_span(DAR_DArray * this, SPN_Span span);
 STAT_Val DAR_push_back_darray(DAR_DArray * this, const DAR_DArray * other);
 
+STAT_Val DAR_delete(DAR_DArray * this, size_t idx);
+STAT_Val DAR_order_preserving_delete(DAR_DArray * this, size_t idx);
+
 // =============
 // == queries ==
 

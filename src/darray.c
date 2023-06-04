@@ -295,6 +295,34 @@ STAT_Val DAR_push_back_darray(DAR_DArray * this, const DAR_DArray * other) {
   return DAR_push_back_span(this, DAR_to_span(other));
 }
 
+STAT_Val DAR_delete(DAR_DArray * this, size_t idx) {
+  if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
+  if(idx >= this->size) {
+    return LOG_STAT(STAT_ERR_RANGE, "idx %u out of range (size=%u)", idx, this->size);
+  }
+
+  if(idx < (this->size - 1)) memcpy(DAR_get(this, idx), DAR_last(this), this->element_size);
+
+  return LOG_STAT_IF_ERR(DAR_resize(this, (this->size - 1)), "failed to reduce arr size by 1");
+}
+
+STAT_Val DAR_order_preserving_delete(DAR_DArray * this, size_t idx) {
+  if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
+  if(idx >= this->size) {
+    return LOG_STAT(STAT_ERR_RANGE, "idx %u out of range (size=%u)", idx, this->size);
+  }
+
+  const size_t num_elements_to_move = (this->size - 1) - idx;
+
+  if(num_elements_to_move > 0) {
+    memmove(DAR_get(this, idx),
+            DAR_get(this, idx + 1),
+            (this->element_size * num_elements_to_move));
+  }
+
+  return LOG_STAT_IF_ERR(DAR_resize(this, (this->size - 1)), "failed to reduce arr size by 1");
+}
+
 bool DAR_equals(const DAR_DArray * lhs, const DAR_DArray * rhs) {
   if(lhs == NULL || rhs == NULL) return false;
   if(lhs->element_size != rhs->element_size) return false;
