@@ -797,6 +797,44 @@ static Result tst_large_elements(void) {
   return r;
 }
 
+static Result tst_get_first_last_end_cstr(void) {
+  Result r = PASS;
+
+  const char str[] = "Wooh! What a scene, huh?";
+
+  SPN_Span span = SPN_from_cstr(str);
+
+  size_t i = 0;
+  for(const char * p = SPN_first(span); p != SPN_end(span); p++) {
+    EXPECT_EQ(&r, &str[i], p);
+    EXPECT_EQ(&r, &str[i], SPN_get(span, i));
+    i++;
+  }
+  EXPECT_EQ(&r, &str[strlen(str) - 1], (const char *)SPN_last(span));
+
+  return r;
+}
+
+static Result tst_get_first_last_end_ints(void) {
+  Result r = PASS;
+
+  const int seq[] = {2, 3, 5, 7, 11, 13, 17, 19, 23};
+
+  SPN_Span span = {.begin        = seq,
+                   .element_size = sizeof(seq[0]),
+                   .len          = sizeof(seq) / sizeof(seq[0])};
+
+  size_t i = 0;
+  for(const int * p = SPN_first(span); p != SPN_end(span); p++) {
+    EXPECT_EQ(&r, &seq[i], p);
+    EXPECT_EQ(&r, &seq[i], SPN_get(span, i));
+    i++;
+  }
+  EXPECT_EQ(&r, &seq[span.len - 1], (const int *)SPN_last(span));
+
+  return r;
+}
+
 int main(void) {
   Test tests[] = {
       tst_create_from_cstr,
@@ -816,6 +854,8 @@ int main(void) {
       tst_find_subspan_at_basic,
       tst_find_subspan_monster,
       tst_large_elements,
+      tst_get_first_last_end_cstr,
+      tst_get_first_last_end_ints,
   };
 
   return (run_tests(tests, sizeof(tests) / sizeof(Test)) == PASS) ? 0 : 1;

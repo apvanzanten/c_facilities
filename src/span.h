@@ -37,20 +37,20 @@ STAT_Val SPN_find_subspan_reverse_at(SPN_Span span,
                                      size_t   at_idx,
                                      size_t * o_idx);
 
-inline static size_t SPN_get_byte_idx(SPN_Span src, size_t idx) {
-  return ((size_t)src.element_size) * ((size_t)idx);
+inline static size_t SPN_get_byte_idx(SPN_Span sp, size_t idx) { return (sp.element_size * idx); }
+
+inline static const void * SPN_get(SPN_Span sp, size_t idx) {
+  return (const void *)(&(((const uint8_t *)sp.begin)[SPN_get_byte_idx(sp, idx)]));
 }
 
-inline static const void * SPN_get(SPN_Span src, size_t idx) {
-  return (const void *)(&(((const uint8_t *)src.begin)[SPN_get_byte_idx(src, idx)]));
-}
+inline static const void * SPN_first(SPN_Span sp) { return SPN_get(sp, 0); }
+inline static const void * SPN_last(SPN_Span sp) { return SPN_get(sp, (sp.len - 1)); }
+inline static const void * SPN_end(SPN_Span sp) { return SPN_get(sp, sp.len); }
 
-inline static size_t SPN_get_size_in_bytes(SPN_Span span) {
-  return ((size_t)span.len * (size_t)span.element_size);
-}
+inline static size_t SPN_get_size_in_bytes(SPN_Span sp) { return (sp.len * sp.element_size); }
 
-inline static bool SPN_is_empty(SPN_Span span) {
-  return ((span.begin == NULL) || (SPN_get_size_in_bytes(span) == 0));
+inline static bool SPN_is_empty(SPN_Span sp) {
+  return ((sp.begin == NULL) || (SPN_get_size_in_bytes(sp) == 0));
 }
 
 #endif
