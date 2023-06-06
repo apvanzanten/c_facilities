@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.24) # this is the version I use, it may well be compatible with lower ones
 project(c_facilities)
 
+set(INC_DIR ${PROJECT_SOURCE_DIR}/inc/cfac)
 set(SRC_DIR ${PROJECT_SOURCE_DIR}/src)
 set(TST_DIR ${PROJECT_SOURCE_DIR}/tst)
 set(DOC_DIR ${PROJECT_SOURCE_DIR}/doc)
@@ -51,6 +52,8 @@ endif()
 
 
 # --- libraries ---
+
+include_directories(${INC_DIR})
 
 add_library(test_utils ${SRC_DIR}/test_utils.c)
 
