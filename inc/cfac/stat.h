@@ -82,6 +82,7 @@ typedef enum {
 
   // errors
   STAT_ERR_ARGS = STAT_INT_ERR_RANGE_FIRST,
+  STAT_ERR_ASSERTION,
   STAT_ERR_USAGE,
   STAT_ERR_UNIMPLEMENTED,
   STAT_ERR_PRECONDITION,
@@ -117,6 +118,7 @@ static inline const char * STAT_to_str(STAT_Val code) {
 
   // errors
   case STAT_ERR_ARGS: return "STAT_ERR_ARGS";
+  case STAT_ERR_ASSERTION: return "STAT_ERR_ASSERTION";
   case STAT_ERR_USAGE: return "STAT_ERR_USAGE";
   case STAT_ERR_UNIMPLEMENTED: return "STAT_ERR_UNIMPLEMENTED";
   case STAT_ERR_PRECONDITION: return "STAT_ERR_PRECONDITION";
