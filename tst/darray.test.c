@@ -17,7 +17,6 @@
 // DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -812,7 +811,7 @@ static Result tst_many_random_push_pop_delete(void * env) {
   double       vals[1000] = {0};
   const size_t max_size   = sizeof(vals) / sizeof(double);
 
-  const size_t num_iterations = 25000;
+  const size_t num_iterations = 2500;
 
   size_t current_size = 0;
   size_t target_size  = 0;

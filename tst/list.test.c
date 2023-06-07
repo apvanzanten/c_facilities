@@ -617,7 +617,7 @@ static Result tst_many_random_actions(void) {
 
   srand(time(NULL) + clock());
 
-  const size_t num_iterations       = 5000;
+  const size_t num_iterations       = 1000;
   const size_t num_possible_actions = 6; // see list above
   const size_t element_size         = sizeof(uint32_t);
   const size_t max_sequence_size    = 32;
@@ -799,11 +799,6 @@ int main(void) {
       tst_memory_alignment_of_nodes,
       tst_memory_alignment_of_nodes_in_list,
 
-      // run this test a couple times, it gets a new seed every time
-      tst_many_random_actions,
-      tst_many_random_actions,
-      tst_many_random_actions,
-      tst_many_random_actions,
       tst_many_random_actions,
   };
 

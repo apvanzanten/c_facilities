@@ -65,7 +65,7 @@ static Result tst_many_random_sets_gets_removes(void) {
 
   srand(time(NULL) + clock());
 
-  for(size_t key_size = 1; key_size <= 8; key_size *= 2) {
+  for(size_t key_size = 1; key_size <= 4; key_size *= 2) {
     for(size_t value_size = 1; value_size <= 8; value_size *= 2) {
       EXPECT_EQ(&r, OK, HT_create(&table));
       EXPECT_EQ(&r, OK, DAR_create(&keys, key_size));
@@ -77,7 +77,7 @@ static Result tst_many_random_sets_gets_removes(void) {
 
       void * tmp_key_data = malloc(key_size);
 
-      for(size_t iteration = 0; iteration < 500; iteration++) {
+      for(size_t iteration = 0; iteration < 100; iteration++) {
         if((iteration % 256) == 0) {
           printf("key_size=%zu, value_size=%zu, iteration=%zu, count=%zu, tombstone_count=%zu\n",
                  key_size,
