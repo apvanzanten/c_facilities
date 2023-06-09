@@ -56,8 +56,6 @@ STAT_Val LOG_INT_stat_if_nok(STAT_Val         stat,
                              const char *     fmt,
                              ...);
 
-void LOG_INT_info(LOG_INT_Location location, const char * fmt, ...);
-
 #define LOG_STAT(stat, ...)                                                                        \
   LOG_INT_stat((stat), #stat, (LOG_INT_Location){__FILE__, __LINE__, __func__}, __VA_ARGS__)
 
@@ -73,8 +71,6 @@ void LOG_INT_info(LOG_INT_Location location, const char * fmt, ...);
 
 #define LOG_STAT_IF_NOK(stat, ...)                                                                 \
   LOG_INT_stat_if_nok((stat), #stat, (LOG_INT_Location){__FILE__, __LINE__, __func__}, __VA_ARGS__)
-
-#define LOG_INFO(...) LOG_INT_info((LOG_INT_Location){__FILE__, __LINE__, __func__}, __VA_ARGS__)
 
 void LOG_set_log_func(void (*func)(const char *, size_t));
 
