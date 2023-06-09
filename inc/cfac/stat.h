@@ -70,6 +70,7 @@ typedef enum {
 
   // OKs
   STAT_OK = STAT_INT_OK_RANGE_FIRST,
+  STAT_OK_INFO,
   STAT_OK_BUSY,
   STAT_OK_FINISHED,
   STAT_OK_TRUE,
@@ -106,6 +107,7 @@ static inline const char * STAT_to_str(STAT_Val code) {
   switch(code) {
   // OKs
   case STAT_OK: return "STAT_OK";
+  case STAT_OK_INFO: return "STAT_OK_INFO";
   case STAT_OK_BUSY: return "STAT_OK_BUSY";
   case STAT_OK_FINISHED: return "STAT_OK_FINISHED";
   case STAT_OK_TRUE: return "STAT_OK_TRUE";
