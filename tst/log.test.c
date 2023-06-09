@@ -171,12 +171,29 @@ static Result tst_LOG_STAT_IF_NOK(void) {
   return r;
 }
 
+static Result tst_LOG_MSG(void) {
+  Result r = PASS;
+
+  setup_log_buffer_and_func();
+
+  LOG_INFO("%s is pretty cool guy, he %f 0x%x and doesn't afraid of anything", "log.h", .1, 10);
+  EXPECT_NE(&r, 0, g_log_buff.size);
+  EXPECT_NE(&r, NULL, strstr(g_log_buff.data, "log.h"));
+  EXPECT_NE(&r, NULL, strstr(g_log_buff.data, "pretty cool guy"));
+  EXPECT_NE(&r, NULL, strstr(g_log_buff.data, "0.1"));
+  EXPECT_NE(&r, NULL, strstr(g_log_buff.data, "0xa"));
+  EXPECT_NE(&r, NULL, strstr(g_log_buff.data, "anything"));
+
+  return r;
+}
+
 int main(void) {
   Test tests[] = {
       tst_LOG_STAT,
       tst_LOG_STAT_IF,
       tst_LOG_STAT_IF_ERR,
       tst_LOG_STAT_IF_NOK,
+      tst_LOG_MSG,
   };
 
   return (run_tests(tests, sizeof(tests) / sizeof(Test)) == PASS) ? 0 : 1;
