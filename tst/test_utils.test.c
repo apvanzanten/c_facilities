@@ -17,7 +17,6 @@
 // DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -27,12 +26,12 @@
 static Result tst_expects_boolean(void) {
   Result r = PASS;
 
-  bool truthy = true;
-  bool falsey = false;
+  const bool truthy = true;
+  const bool falsey = false;
 
   // pointer indirection to shut up compiler/cppcheck about conditions always being true/false
-  bool * truthy_p = &truthy;
-  bool * falsey_p = &falsey;
+  const bool * truthy_p = &truthy;
+  const bool * falsey_p = &falsey;
 
   EXPECT_TRUE(&r, *truthy_p);
   if(r == FAIL) return FAIL;
@@ -74,6 +73,104 @@ static Result tst_expects_equality(void) {
   r = PASS;
 
   return PASS;
+}
+
+static Result tst_expects_comparison(void) {
+  Result r = PASS;
+
+  const int five = 5;
+
+  // pointer indirection to shut up compiler/cppcheck about conditions always being true/false
+  const int * five_p = &five;
+
+  EXPECT_LT(&r, *five_p, 6);
+  if(r == FAIL) return FAIL;
+
+  EXPECT_LT(&r, *five_p, 5);
+  if(r != FAIL) return FAIL;
+  r = PASS;
+
+  EXPECT_LT(&r, *five_p, 4);
+  if(r != FAIL) return FAIL;
+  r = PASS;
+
+  EXPECT_LE(&r, *five_p, 5);
+  EXPECT_LE(&r, *five_p, 6);
+  if(r == FAIL) return FAIL;
+
+  EXPECT_LE(&r, *five_p, 4);
+  if(r != FAIL) return FAIL;
+  r = PASS;
+
+  EXPECT_LE(&r, *five_p, 0);
+  if(r != FAIL) return FAIL;
+  r = PASS;
+
+  EXPECT_GT(&r, *five_p, 4);
+  if(r == FAIL) return FAIL;
+
+  EXPECT_GT(&r, *five_p, 5);
+  if(r != FAIL) return FAIL;
+  r = PASS;
+
+  EXPECT_GT(&r, *five_p, 6);
+  if(r != FAIL) return FAIL;
+  r = PASS;
+
+  EXPECT_GE(&r, *five_p, 5);
+  EXPECT_GE(&r, *five_p, 4);
+  if(r == FAIL) return FAIL;
+
+  EXPECT_GE(&r, *five_p, 6);
+  if(r != FAIL) return FAIL;
+  r = PASS;
+
+  EXPECT_GE(&r, *five_p, 100);
+  if(r != FAIL) return FAIL;
+  r = PASS;
+
+  return PASS;
+}
+
+static Result tst_expects_float_equality(void) {
+  Result r = PASS;
+
+  const double five = 5.0;
+
+  // pointer indirection to shut up compiler/cppcheck about conditions always being true/false
+  const double * five_p = &five;
+
+  EXPECT_FLOAT_EQ(&r, *five_p, 5.0, 0.01);
+  EXPECT_FLOAT_EQ(&r, *five_p, 4.98, 0.02);
+  EXPECT_FLOAT_EQ(&r, *five_p, 6.0, 1.0);
+  if(r == FAIL) return FAIL;
+
+  EXPECT_FLOAT_EQ(&r, *five_p, 5.05, 0.04);
+  if(r != FAIL) return FAIL;
+  r = PASS;
+  EXPECT_FLOAT_EQ(&r, *five_p, 4.98, 0.01);
+  if(r != FAIL) return FAIL;
+  r = PASS;
+  EXPECT_FLOAT_EQ(&r, *five_p, 2.00, 2.99);
+  if(r != FAIL) return FAIL;
+  r = PASS;
+
+  EXPECT_FLOAT_NE(&r, *five_p, 5.1, 0.01);
+  EXPECT_FLOAT_NE(&r, *five_p, 4.97, 0.02);
+  EXPECT_FLOAT_NE(&r, *five_p, 6.1, 1.0);
+  if(r == FAIL) return FAIL;
+
+  EXPECT_FLOAT_NE(&r, *five_p, 5.01, 0.01);
+  if(r != FAIL) return FAIL;
+  r = PASS;
+  EXPECT_FLOAT_NE(&r, *five_p, 4.98, 0.02);
+  if(r != FAIL) return FAIL;
+  r = PASS;
+  EXPECT_FLOAT_NE(&r, *five_p, 4.0, 1.0);
+  if(r != FAIL) return FAIL;
+  r = PASS;
+
+  return r;
 }
 
 static Result tst_expects_str(void) {
@@ -164,14 +261,46 @@ static Result tst_has_failed(void) {
   return PASS;
 }
 
+static Result tst_expect_ok(void) {
+  Result r = PASS;
+
+  const STAT_Val ok          = STAT_OK;
+  const STAT_Val ok_finished = STAT_OK_FINISHED;
+  const STAT_Val err_alloc   = STAT_ERR_ALLOC;
+  const STAT_Val err_fatal   = STAT_ERR_FATAL;
+
+  // pointer indirection to shut up compiler/cppcheck about conditions always being true/false
+  const STAT_Val * p_ok          = &ok;
+  const STAT_Val * p_ok_finished = &ok_finished;
+  const STAT_Val * p_err_alloc   = &err_alloc;
+  const STAT_Val * p_err_fatal   = &err_fatal;
+
+  EXPECT_OK(&r, *p_ok);
+  if(r != PASS) return FAIL;
+  EXPECT_OK(&r, *p_ok_finished);
+  if(r != PASS) return FAIL;
+
+  EXPECT_OK(&r, *p_err_alloc);
+  if(r != FAIL) return FAIL;
+  r = PASS;
+  EXPECT_OK(&r, *p_err_fatal);
+  if(r != FAIL) return FAIL;
+  r = PASS;
+
+  return r;
+}
+
 int main(void) {
   Test tests[] = {
       tst_expects_boolean,
       tst_expects_equality,
+      tst_expects_comparison,
+      tst_expects_float_equality,
       tst_expects_str,
       tst_expects_arr_int,
       tst_expects_arr_double,
       tst_has_failed,
+      tst_expect_ok,
   };
 
   return (run_tests(tests, sizeof(tests) / sizeof(Test)) == PASS) ? 0 : 1;

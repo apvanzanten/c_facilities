@@ -24,6 +24,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "stat.h"
+
 typedef enum { FAIL, PASS } Result;
 
 typedef Result (*Test)();
@@ -42,60 +44,92 @@ void print_failure(const char * file, const char * func, int line, const char * 
 
 #define PRINT_FAIL(...) print_failure(__FILE__, __func__, __LINE__, __VA_ARGS__)
 
-// EXPECT_OK?
-
-#define EXPECT_EQ(rPtr, a, b)                                                                      \
+#define EXPECT_EQ(r_ptr, a, b)                                                                     \
   do {                                                                                             \
     if((a) != (b)) {                                                                               \
-      *(rPtr) = FAIL;                                                                              \
+      *(r_ptr) = FAIL;                                                                             \
       PRINT_FAIL("(%s != %s)", #a, #b);                                                            \
     }                                                                                              \
   } while(false)
 
-#define EXPECT_NE(rPtr, a, b)                                                                      \
+#define EXPECT_NE(r_ptr, a, b)                                                                     \
   do {                                                                                             \
     if((a) == (b)) {                                                                               \
-      *(rPtr) = FAIL;                                                                              \
+      *(r_ptr) = FAIL;                                                                             \
       PRINT_FAIL("(%s == %s)", #a, #b);                                                            \
     }                                                                                              \
   } while(false)
 
-#define EXPECT_TRUE(rPtr, expr)  EXPECT_EQ(rPtr, expr, true)
-#define EXPECT_FALSE(rPtr, expr) EXPECT_EQ(rPtr, expr, false)
+#define EXPECT_TRUE(r_ptr, expr)  EXPECT_EQ(r_ptr, expr, true)
+#define EXPECT_FALSE(r_ptr, expr) EXPECT_EQ(r_ptr, expr, false)
 
-#define EXPECT_STREQ(rPtr, a, b)                                                                   \
+#define EXPECT_LT(r_ptr, a, b)                                                                     \
+  do {                                                                                             \
+    if((a) >= (b)) {                                                                               \
+      *(r_ptr) = FAIL;                                                                             \
+      PRINT_FAIL("!(%s < %s)", #a, #b);                                                            \
+    }                                                                                              \
+  } while(false)
+
+#define EXPECT_LE(r_ptr, a, b)                                                                     \
+  do {                                                                                             \
+    if((a) > (b)) {                                                                                \
+      *(r_ptr) = FAIL;                                                                             \
+      PRINT_FAIL("!(%s <= %s)", #a, #b);                                                           \
+    }                                                                                              \
+  } while(false)
+
+#define EXPECT_GT(r_ptr, a, b)                                                                     \
+  do {                                                                                             \
+    if((a) <= (b)) {                                                                               \
+      *(r_ptr) = FAIL;                                                                             \
+      PRINT_FAIL("!(%s > %s)", #a, #b);                                                            \
+    }                                                                                              \
+  } while(false)
+
+#define EXPECT_GE(r_ptr, a, b)                                                                     \
+  do {                                                                                             \
+    if((a) < (b)) {                                                                                \
+      *(r_ptr) = FAIL;                                                                             \
+      PRINT_FAIL("!(%s >= %s)", #a, #b);                                                           \
+    }                                                                                              \
+  } while(false)
+
+#define EXPECT_STREQ(r_ptr, a, b)                                                                  \
   do {                                                                                             \
     const char * a_copy = (a);                                                                     \
     const char * b_copy = (b);                                                                     \
+                                                                                                   \
     if(strcmp(a_copy, b_copy) != 0) {                                                              \
-      *(rPtr) = FAIL;                                                                              \
+      *(r_ptr) = FAIL;                                                                             \
       PRINT_FAIL("(%s != %s) <=> (\"%s\" != \"%s\")", #a, #b, a_copy, b_copy);                     \
     }                                                                                              \
   } while(false)
 
-#define EXPECT_STRNE(rPtr, a, b)                                                                   \
+#define EXPECT_STRNE(r_ptr, a, b)                                                                  \
   do {                                                                                             \
     const char * a_copy = (a);                                                                     \
     if(strcmp(a_copy, (b)) == 0) {                                                                 \
-      *(rPtr) = FAIL;                                                                              \
+      *(r_ptr) = FAIL;                                                                             \
       PRINT_FAIL("(%s == %s) == \"%s\"", #a, #b, a_copy);                                          \
     }                                                                                              \
   } while(false)
 
-#define EXPECT_ARREQ(rPtr, type, a, b, n)                                                          \
+#define EXPECT_ARREQ(r_ptr, type, a, b, n)                                                         \
   do {                                                                                             \
     const type * a_copy = (a);                                                                     \
     const type * b_copy = (b);                                                                     \
+                                                                                                   \
     for(size_t i = 0; i < (size_t)(n); i++) {                                                      \
       if(a_copy[i] != b_copy[i]) {                                                                 \
-        *(rPtr) = FAIL;                                                                            \
+        *(r_ptr) = FAIL;                                                                           \
         PRINT_FAIL("(%s[%zu] != %s[%zu])", #a, i, #b, i);                                          \
         break;                                                                                     \
       }                                                                                            \
     }                                                                                              \
   } while(false)
 
-#define EXPECT_ARRNE(rPtr, type, a, b, n)                                                          \
+#define EXPECT_ARRNE(r_ptr, type, a, b, n)                                                         \
   do {                                                                                             \
     const type * a_copy = (a);                                                                     \
     const type * b_copy = (b);                                                                     \
@@ -105,11 +139,46 @@ void print_failure(const char * file, const char * func, int line, const char * 
       if(a_copy[i] != b_copy[i]) is_equal_so_far = false;                                          \
     }                                                                                              \
     if(is_equal_so_far) {                                                                          \
-      *(rPtr) = FAIL;                                                                              \
+      *(r_ptr) = FAIL;                                                                             \
       PRINT_FAIL("%s == %s", #a, #b);                                                              \
     }                                                                                              \
   } while(false)
 
 #define HAS_FAILED(r_ptr) (*(r_ptr) == FAIL)
+
+#define EXPECT_FLOAT_EQ(r_ptr, a, b, e)                                                            \
+  do {                                                                                             \
+    const double a_copy = (a);                                                                     \
+    const double b_copy = (b);                                                                     \
+    const double e_copy = (e);                                                                     \
+                                                                                                   \
+    if(((a_copy > b_copy) && ((a_copy - b_copy) > e_copy)) ||                                      \
+       ((a_copy < b_copy) && (b_copy - a_copy) > e_copy)) {                                        \
+      *(r_ptr) = FAIL;                                                                             \
+      PRINT_FAIL("%s != %s; abs(%g - %g) > %g", #a, #b, a_copy, b_copy, e_copy);                   \
+    }                                                                                              \
+  } while(false)
+
+#define EXPECT_FLOAT_NE(r_ptr, a, b, e)                                                            \
+  do {                                                                                             \
+    const double a_copy = (a);                                                                     \
+    const double b_copy = (b);                                                                     \
+    const double e_copy = (e);                                                                     \
+                                                                                                   \
+    if(((a_copy >= b_copy) && ((a_copy - b_copy) <= e_copy)) ||                                    \
+       ((a_copy < b_copy) && (b_copy - a_copy) <= e_copy)) {                                       \
+      *(r_ptr) = FAIL;                                                                             \
+      PRINT_FAIL("%s != %s; abs(%g - %g) <= %g", #a, #b, a_copy, b_copy, e_copy);                  \
+    }                                                                                              \
+  } while(false)
+
+#define EXPECT_OK(r_ptr, stat)                                                                     \
+  do {                                                                                             \
+    const STAT_Val stat_copy = (stat);                                                             \
+    if(!STAT_is_OK(stat_copy)) {                                                                   \
+      *(r_ptr) = FAIL;                                                                             \
+      PRINT_FAIL("%s == %s; != OK", #stat, STAT_to_str(stat_copy));                                \
+    }                                                                                              \
+  } while(false)
 
 #endif
