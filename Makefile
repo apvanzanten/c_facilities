@@ -22,5 +22,9 @@ $(BLD_DEBUG_DIR)/Makefile: CMakeLists.txt
 run_tests: all
 	@cd $(BLD_DEBUG_DIR); ctest --output-on-failure
 
+run_benches: all
+	@cd $(BLD_RELEASE_DIR); ctest --verbose
+
+
 clean:
 	@rm -rf $(BLD_RELEASE_DIR) $(BLD_DEBUG_DIR)

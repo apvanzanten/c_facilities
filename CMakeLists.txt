@@ -79,8 +79,9 @@ target_link_libraries(bench_utils PUBLIC log darray m)
 
 # --- tests ---
 
+enable_testing()
+
 if (DEBUG)
-    enable_testing()
 
     function(AddTest TEST_NAME TEST_SOURCE #[[test dependencies...]])
         add_executable(${TEST_NAME} ${TST_DIR}/${TEST_SOURCE})
@@ -100,4 +101,16 @@ if (DEBUG)
     AddTest(refcount_test refcount.test.c refcount)
     AddTest(hashtable_test hashtable.test.c hashtable)
     AddTest(bench_utils_test bench_utils.test.c bench_utils)
+
 endif()
+
+function(AddBench BENCH_NAME BENCH_SOURCE #[[bench dependencies...]])
+    add_executable(${BENCH_NAME} ${TST_DIR}/${BENCH_SOURCE})
+
+    target_include_directories(${BENCH_NAME} PUBLIC ${PROJECT_SOURCE_DIR} ${SRC_DIR})
+    target_link_libraries(${BENCH_NAME} bench_utils log ${ARGN})
+
+    add_test(${BENCH_NAME} ${BENCH_NAME})
+endfunction()
+
+AddBench(darray_bench darray.bench.c darray)

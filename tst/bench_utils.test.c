@@ -54,12 +54,15 @@ static STAT_Val setup_get_time_env(void ** env) {
   return OK;
 }
 
-static STAT_Val teardown_get_time_env(void ** env) {
-  if(env == NULL) return LOG_STAT(STAT_ERR_ARGS, "bad env");
+static BNC_Witness teardown_get_time_env(void ** env) {
+  if(env == NULL) {
+    LOG_STAT(STAT_ERR_INTERNAL, "bad teardown function call");
+    return 0;
+  }
 
   free(*env);
 
-  return OK;
+  return 1;
 }
 
 static BNC_Witness wait_1_millisecond_using_env_as_get_time(void * env) {
@@ -119,9 +122,71 @@ static Result tst_bench_wait(void) {
   return r;
 }
 
+static Result tst_multiple_benchmarks(void) {
+  Result r = PASS;
+
+  BNC_Benchmark benches[3] = {
+      {
+          .name        = "wait 1 millisecond #1",
+          .setup_fn    = setup_get_time_env,
+          .teardown_fn = teardown_get_time_env,
+          .bench_fn    = wait_1_millisecond_using_env_as_get_time,
+          .baseline_fn = baseline,
+          .get_time_fn = get_time,
+
+          .num_iterations_per_pass = 5,
+          .min_num_passes          = 1,
+          .max_num_passes          = 1000,
+          .max_run_time            = 10.0,
+          .desired_std_dev_percent = 5.0,
+      },
+      {
+          .name        = "wait 1 millisecond #2",
+          .setup_fn    = setup_get_time_env,
+          .teardown_fn = teardown_get_time_env,
+          .bench_fn    = wait_1_millisecond_using_env_as_get_time,
+          .baseline_fn = baseline,
+          .get_time_fn = get_time,
+
+          .num_iterations_per_pass = 5,
+          .min_num_passes          = 2,
+          .max_num_passes          = 1000,
+          .max_run_time            = 10.0,
+          .desired_std_dev_percent = 5.0,
+      },
+      {
+          .name        = "wait 1 millisecond #3",
+          .setup_fn    = setup_get_time_env,
+          .teardown_fn = teardown_get_time_env,
+          .bench_fn    = wait_1_millisecond_using_env_as_get_time,
+          .baseline_fn = baseline,
+          .get_time_fn = get_time,
+
+          .num_iterations_per_pass = 5,
+          .min_num_passes          = 3,
+          .max_num_passes          = 1000,
+          .max_run_time            = 10.0,
+          .desired_std_dev_percent = 5.0,
+      },
+  };
+
+  EXPECT_OK(&r, BNC_run_benchmarks(benches, sizeof(benches) / sizeof(BNC_Benchmark)));
+
+  EXPECT_FALSE(&r, DAR_is_empty(&benches[0].pass_results));
+  EXPECT_FALSE(&r, DAR_is_empty(&benches[1].pass_results));
+  EXPECT_FALSE(&r, DAR_is_empty(&benches[2].pass_results));
+
+  EXPECT_OK(&r, BNC_print_benchmarks_results(benches, sizeof(benches) / sizeof(BNC_Benchmark)));
+
+  EXPECT_OK(&r, BNC_destroy_benchmarks(benches, sizeof(benches) / sizeof(BNC_Benchmark)));
+
+  return r;
+}
+
 int main(void) {
   Test tests[] = {
       tst_bench_wait,
+      tst_multiple_benchmarks,
   };
 
   return (run_tests(tests, sizeof(tests) / sizeof(Test)) == PASS) ? 0 : 1;

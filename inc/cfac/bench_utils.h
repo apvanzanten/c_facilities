@@ -31,7 +31,7 @@
 typedef int BNC_Witness;
 
 typedef STAT_Val (*BNC_SetupFn)(void **);
-typedef STAT_Val (*BNC_TeardownFn)(void **);
+typedef BNC_Witness (*BNC_TeardownFn)(void **);
 
 typedef BNC_Witness (*BNC_BaselineFn)(void * env);
 typedef BNC_Witness (*BNC_BenchFn)(void * env);
@@ -71,6 +71,10 @@ typedef struct BNC_Benchmark {
 STAT_Val BNC_run_benchmark(BNC_Benchmark * benchmark);
 STAT_Val BNC_print_benchmark_results(const BNC_Benchmark * benchmark);
 STAT_Val BNC_destroy_benchmark(BNC_Benchmark * benchmark);
+
+STAT_Val BNC_run_benchmarks(BNC_Benchmark * benchmarks_arr, size_t n);
+STAT_Val BNC_print_benchmarks_results(const BNC_Benchmark * benchmarks_arr, size_t n);
+STAT_Val BNC_destroy_benchmarks(BNC_Benchmark * benchmarks_arr, size_t n);
 
 double BNC_get_total_pass_time(const BNC_Benchmark * benchmark);
 double BNC_get_mean_pass_time(const BNC_Benchmark * benchmark);

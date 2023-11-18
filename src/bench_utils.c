@@ -61,7 +61,7 @@ static STAT_Val run_next_pass(BNC_Benchmark * benchmark) {
 
   if(benchmark->setup_fn != NULL) {
     if(!STAT_is_OK(benchmark->setup_fn(&benchmark->environment))) {
-      return LOG_STAT(STAT_ERR_INTERNAL, "failed to setup bench pass environment");
+      return LOG_STAT(STAT_ERR_INTERNAL, "failed to setup bench baseline environment");
     }
   }
 
@@ -75,6 +75,16 @@ static STAT_Val run_next_pass(BNC_Benchmark * benchmark) {
     result.baseline_time = (baseline_end - baseline_start);
   }
 
+  if(benchmark->teardown_fn != NULL) {
+    result.witness += benchmark->teardown_fn(&benchmark->environment);
+  }
+
+  if(benchmark->setup_fn != NULL) {
+    if(!STAT_is_OK(benchmark->setup_fn(&benchmark->environment))) {
+      return LOG_STAT(STAT_ERR_INTERNAL, "failed to setup bench pass environment");
+    }
+  }
+
   const double pass_start = benchmark->get_time_fn();
   for(size_t i = 0; i < benchmark->num_iterations_per_pass; i++) {
     result.witness += benchmark->bench_fn(benchmark->environment);
@@ -84,9 +94,7 @@ static STAT_Val run_next_pass(BNC_Benchmark * benchmark) {
   result.pass_time = (pass_end - pass_start);
 
   if(benchmark->teardown_fn != NULL) {
-    if(!STAT_is_OK(benchmark->teardown_fn(&benchmark->environment))) {
-      return LOG_STAT(STAT_ERR_INTERNAL, "failed to teardown bench pass environment");
-    }
+    result.witness += benchmark->teardown_fn(&benchmark->environment);
   }
 
   if(!STAT_is_OK(DAR_push_back(&benchmark->pass_results, &result))) {
@@ -119,6 +127,42 @@ STAT_Val BNC_run_benchmark(BNC_Benchmark * benchmark) {
       return LOG_STAT(STAT_ERR_INTERNAL, "failed to run benchmark pass");
     }
   } while(!is_benchmark_run_finished(benchmark));
+
+  return OK;
+}
+
+STAT_Val BNC_run_benchmarks(BNC_Benchmark * benchmarks_arr, size_t n) {
+  if(benchmarks_arr == NULL) return LOG_STAT(STAT_ERR_ARGS, "benchmarks_arr is NULL");
+
+  for(size_t i = 0; i < n; i++) {
+    if(!STAT_is_OK(BNC_run_benchmark(&benchmarks_arr[i]))) {
+      return LOG_STAT(STAT_ERR_INTERNAL, "failed to run benchmark %zu", i);
+    }
+  }
+
+  return OK;
+}
+
+STAT_Val BNC_print_benchmarks_results(const BNC_Benchmark * benchmarks_arr, size_t n) {
+  if(benchmarks_arr == NULL) return LOG_STAT(STAT_ERR_ARGS, "benchmarks_arr is NULL");
+
+  for(size_t i = 0; i < n; i++) {
+    if(!STAT_is_OK(BNC_print_benchmark_results(&benchmarks_arr[i]))) {
+      return LOG_STAT(STAT_ERR_INTERNAL, "failed to print benchmark result %zu", i);
+    }
+  }
+
+  return OK;
+}
+
+STAT_Val BNC_destroy_benchmarks(BNC_Benchmark * benchmarks_arr, size_t n) {
+  if(benchmarks_arr == NULL) return LOG_STAT(STAT_ERR_ARGS, "benchmarks_arr is NULL");
+
+  for(size_t i = 0; i < n; i++) {
+    if(!STAT_is_OK(BNC_destroy_benchmark(&benchmarks_arr[i]))) {
+      return LOG_STAT(STAT_ERR_INTERNAL, "failed to destroy benchmark %zu", i);
+    }
+  }
 
   return OK;
 }
