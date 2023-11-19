@@ -112,5 +112,3 @@ function(AddBench BENCH_NAME BENCH_SOURCE #[[bench dependencies...]])
 
     add_test(${BENCH_NAME} ${BENCH_NAME})
 endfunction()
-
-AddBench(darray_bench darray.bench.c darray)
