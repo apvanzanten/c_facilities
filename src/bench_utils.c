@@ -26,38 +26,70 @@
 
 #define OK STAT_OK
 
-STAT_Val BNC_destroy_benchmark(BNC_Benchmark * benchmark) {
-  if(benchmark == NULL) return OK;
+void BNC_destroy_benchmark(BNC_Benchmark * benchmark) {
+  if(benchmark != NULL) *benchmark = (BNC_Benchmark){0};
+}
 
-  if(DAR_is_initialized(&benchmark->pass_results)) {
-    if(!STAT_is_OK(DAR_destroy(&benchmark->pass_results))) {
-      return LOG_STAT(STAT_ERR_INTERNAL, "failed to destroy pass_results");
-    }
-  }
-
-  *benchmark = (BNC_Benchmark){0};
-
-  return OK;
+static void init_im_result(BNC_IntermediateResult * result) {
+  *result     = (BNC_IntermediateResult){0};
+  result->max = -INFINITY;
+  result->min = INFINITY;
 }
 
 static STAT_Val init_benchmark(BNC_Benchmark * benchmark) {
   if(benchmark->bench_fn == NULL || benchmark->get_time_fn == NULL ||
      benchmark->num_iterations_per_pass == 0 ||
      benchmark->min_num_passes > benchmark->max_num_passes ||
-     DAR_is_initialized(&benchmark->pass_results) || benchmark->desired_std_dev_percent < 0.0) {
+     benchmark->desired_std_dev_percent < 0.0) {
     return LOG_STAT(STAT_ERR_ARGS, "benchmark in invalid state");
   }
 
-  if(!STAT_is_OK(DAR_create(&benchmark->pass_results, sizeof(BNC_PassResult))) ||
-     !STAT_is_OK(DAR_reserve(&benchmark->pass_results, benchmark->max_num_passes))) {
-    return LOG_STAT(STAT_ERR_INTERNAL, "failed to allocate and prepare pass results array");
-  }
+  init_im_result(&benchmark->bench_im_result);
+  init_im_result(&benchmark->baseline_im_result);
 
   return OK;
 }
 
+static void update_intermediate_result(BNC_IntermediateResult * result, double pass_time) {
+  // to keep variance and mean we use basically Welford's algorithm, see
+  // https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+  result->num_passes++;
+
+  const double delta     = pass_time - result->mean;
+  const double new_mean  = result->mean + (delta / result->num_passes);
+  const double new_delta = pass_time - new_mean;
+
+  result->variance_aggregate += (delta * new_delta);
+  result->mean = new_mean;
+
+  result->total_time += pass_time;
+  result->max = (pass_time > result->max) ? pass_time : result->max;
+  result->min = (pass_time < result->min) ? pass_time : result->min;
+}
+
+static double get_std_dev_percent(double mean, double variance_aggregate, size_t num_passes) {
+  const double variance = variance_aggregate / num_passes;
+
+  return (sqrt(variance) / mean) * 100.0;
+}
+
+static BNC_Result finalize_result(BNC_IntermediateResult intermediate_result) {
+  return (BNC_Result){
+      .num_passes      = intermediate_result.num_passes,
+      .total_time      = intermediate_result.total_time,
+      .mean            = intermediate_result.mean,
+      .min             = intermediate_result.min,
+      .max             = intermediate_result.max,
+      .std_dev_percent = get_std_dev_percent(intermediate_result.mean,
+                                             intermediate_result.variance_aggregate,
+                                             intermediate_result.num_passes),
+      .witness         = intermediate_result.witness,
+  };
+}
+
 static STAT_Val run_next_pass(BNC_Benchmark * benchmark) {
-  BNC_PassResult result = {0};
+  BNC_IntermediateResult * baseline = &benchmark->baseline_im_result;
+  BNC_IntermediateResult * bench    = &benchmark->bench_im_result;
 
   if(benchmark->setup_fn != NULL) {
     if(!STAT_is_OK(benchmark->setup_fn(&benchmark->environment))) {
@@ -68,15 +100,15 @@ static STAT_Val run_next_pass(BNC_Benchmark * benchmark) {
   if(benchmark->baseline_fn != NULL) {
     const double baseline_start = benchmark->get_time_fn();
     for(size_t i = 0; i < benchmark->num_iterations_per_pass; i++) {
-      result.witness += benchmark->baseline_fn(benchmark->environment);
+      baseline->witness += benchmark->baseline_fn(benchmark->environment);
     }
     const double baseline_end = benchmark->get_time_fn();
 
-    result.baseline_time = (baseline_end - baseline_start);
+    update_intermediate_result(baseline, (baseline_end - baseline_start));
   }
 
   if(benchmark->teardown_fn != NULL) {
-    result.witness += benchmark->teardown_fn(&benchmark->environment);
+    baseline->witness += benchmark->teardown_fn(&benchmark->environment);
   }
 
   if(benchmark->setup_fn != NULL) {
@@ -87,25 +119,21 @@ static STAT_Val run_next_pass(BNC_Benchmark * benchmark) {
 
   const double pass_start = benchmark->get_time_fn();
   for(size_t i = 0; i < benchmark->num_iterations_per_pass; i++) {
-    result.witness += benchmark->bench_fn(benchmark->environment);
+    bench->witness += benchmark->bench_fn(benchmark->environment);
   }
   const double pass_end = benchmark->get_time_fn();
 
-  result.pass_time = (pass_end - pass_start);
+  update_intermediate_result(bench, (pass_end - pass_start));
 
   if(benchmark->teardown_fn != NULL) {
-    result.witness += benchmark->teardown_fn(&benchmark->environment);
-  }
-
-  if(!STAT_is_OK(DAR_push_back(&benchmark->pass_results, &result))) {
-    return LOG_STAT(STAT_ERR_INTERNAL, "failed to store benchmark result");
+    bench->witness += benchmark->teardown_fn(&benchmark->environment);
   }
 
   return OK;
 }
 
 static bool is_benchmark_run_finished(const BNC_Benchmark * benchmark) {
-  const size_t curr_num_passes = benchmark->pass_results.size;
+  const size_t curr_num_passes = benchmark->bench_im_result.num_passes;
 
   return (curr_num_passes >= benchmark->max_num_passes) ||
          ((benchmark->get_time_fn() - benchmark->start_time) > benchmark->max_run_time) ||
@@ -127,6 +155,11 @@ STAT_Val BNC_run_benchmark(BNC_Benchmark * benchmark) {
       return LOG_STAT(STAT_ERR_INTERNAL, "failed to run benchmark pass");
     }
   } while(!is_benchmark_run_finished(benchmark));
+
+  benchmark->bench_result = finalize_result(benchmark->bench_im_result);
+  if(benchmark->baseline_im_result.num_passes > 0) {
+    benchmark->baseline_result = finalize_result(benchmark->baseline_im_result);
+  }
 
   return OK;
 }
@@ -159,9 +192,7 @@ STAT_Val BNC_destroy_benchmarks(BNC_Benchmark * benchmarks_arr, size_t n) {
   if(benchmarks_arr == NULL) return LOG_STAT(STAT_ERR_ARGS, "benchmarks_arr is NULL");
 
   for(size_t i = 0; i < n; i++) {
-    if(!STAT_is_OK(BNC_destroy_benchmark(&benchmarks_arr[i]))) {
-      return LOG_STAT(STAT_ERR_INTERNAL, "failed to destroy benchmark %zu", i);
-    }
+    BNC_destroy_benchmark(&benchmarks_arr[i]);
   }
 
   return OK;
@@ -180,8 +211,7 @@ STAT_Val BNC_run_print_and_destroy_benchmarks(BNC_Benchmark * benchmarks_arr, si
 }
 
 static bool is_valid_benchmark_result(const BNC_Benchmark * benchmark) {
-  return (benchmark != NULL && DAR_is_initialized(&benchmark->pass_results) &&
-          !DAR_is_empty(&benchmark->pass_results));
+  return (benchmark != NULL && benchmark->bench_result.num_passes > 2);
 }
 
 STAT_Val BNC_print_benchmark_results(const BNC_Benchmark * benchmark) {
@@ -191,20 +221,20 @@ STAT_Val BNC_print_benchmark_results(const BNC_Benchmark * benchmark) {
 
   printf("%40s: %zu (min=%zu, max=%zu)\n",
          "num passes",
-         benchmark->pass_results.size,
+         benchmark->bench_result.num_passes,
          benchmark->min_num_passes,
          benchmark->max_num_passes);
   printf("%40s: %zu\n", "num iterations per pass", benchmark->num_iterations_per_pass);
 
   printf("%40s: %g / %g\n",
-         "total time (pass / baseline)",
+         "total time S (pass / baseline)",
          BNC_get_total_pass_time(benchmark),
          BNC_get_total_baseline_time(benchmark));
 
   printf("%40s: %g\n", "iteration mean time", BNC_get_mean_iteration_time(benchmark));
 
   printf("%40s: %g / %g / %g\n",
-         "baseline time (min / max / mean)",
+         "baseline time S (min / max / mean)",
          BNC_get_min_baseline_time(benchmark),
          BNC_get_max_baseline_time(benchmark),
          BNC_get_mean_baseline_time(benchmark));
@@ -230,20 +260,13 @@ STAT_Val BNC_print_benchmark_results(const BNC_Benchmark * benchmark) {
 double BNC_get_total_pass_time(const BNC_Benchmark * benchmark) {
   if(!is_valid_benchmark_result(benchmark)) return 0.0;
 
-  const DAR_DArray * results = &benchmark->pass_results;
-
-  double total_time = 0.0;
-  for(const BNC_PassResult * result = DAR_first(results); result != DAR_end(results); result++) {
-    total_time += (result->pass_time - result->baseline_time);
-  }
-
-  return total_time;
+  return benchmark->bench_result.total_time;
 }
 
 double BNC_get_mean_pass_time(const BNC_Benchmark * benchmark) {
   if(!is_valid_benchmark_result(benchmark)) return 0.0;
 
-  return BNC_get_total_pass_time(benchmark) / benchmark->pass_results.size;
+  return benchmark->bench_result.mean;
 }
 
 double BNC_get_mean_iteration_time(const BNC_Benchmark * benchmark) {
@@ -255,109 +278,47 @@ double BNC_get_mean_iteration_time(const BNC_Benchmark * benchmark) {
 double BNC_get_min_pass_time(const BNC_Benchmark * benchmark) {
   if(!is_valid_benchmark_result(benchmark)) return 0.0;
 
-  const DAR_DArray * results = &benchmark->pass_results;
-
-  double min_time = INFINITY;
-  for(const BNC_PassResult * result = DAR_first(results); result != DAR_end(results); result++) {
-    const double time = result->pass_time - result->baseline_time;
-
-    min_time = (time < min_time) ? time : min_time;
-  }
-  return min_time;
+  return benchmark->bench_result.min;
 }
 
 double BNC_get_max_pass_time(const BNC_Benchmark * benchmark) {
   if(!is_valid_benchmark_result(benchmark)) return 0.0;
 
-  const DAR_DArray * results = &benchmark->pass_results;
-
-  double max_time = -INFINITY;
-  for(const BNC_PassResult * result = DAR_first(results); result != DAR_end(results); result++) {
-    const double time = result->pass_time - result->baseline_time;
-
-    max_time = (time > max_time) ? time : max_time;
-  }
-
-  return max_time;
+  return benchmark->bench_result.max;
 }
 
 double BNC_get_pass_time_std_dev_percent(const BNC_Benchmark * benchmark) {
   if(!is_valid_benchmark_result(benchmark)) return 0.0;
 
-  const DAR_DArray * results = &benchmark->pass_results;
-
-  const double mean = BNC_get_mean_pass_time(benchmark);
-
-  double variance_sum = 0.0;
-  for(const BNC_PassResult * result = DAR_first(results); result != DAR_end(results); result++) {
-    const double time = result->pass_time - result->baseline_time;
-
-    variance_sum += pow((mean - time), 2);
-  }
-
-  const double variance = variance_sum / results->size;
-  const double std_dev  = sqrt(variance);
-
-  return (std_dev / mean) * 100.0;
+  return benchmark->bench_result.std_dev_percent;
 }
 
 double BNC_get_total_baseline_time(const BNC_Benchmark * benchmark) {
   if(!is_valid_benchmark_result(benchmark)) return 0.0;
 
-  const DAR_DArray * results = &benchmark->pass_results;
-
-  double total_time = 0.0;
-  for(const BNC_PassResult * result = DAR_first(results); result != DAR_end(results); result++) {
-    total_time += result->baseline_time;
-  }
-
-  return total_time;
+  return benchmark->baseline_result.total_time;
 }
 
 double BNC_get_mean_baseline_time(const BNC_Benchmark * benchmark) {
   if(!is_valid_benchmark_result(benchmark)) return 0.0;
 
-  return BNC_get_total_baseline_time(benchmark) / benchmark->pass_results.size;
+  return benchmark->baseline_result.mean;
 }
 
 double BNC_get_min_baseline_time(const BNC_Benchmark * benchmark) {
   if(!is_valid_benchmark_result(benchmark)) return 0.0;
 
-  const DAR_DArray * results = &benchmark->pass_results;
-
-  double min_time = INFINITY;
-  for(const BNC_PassResult * result = DAR_first(results); result != DAR_end(results); result++) {
-    min_time = (result->baseline_time < min_time) ? result->baseline_time : min_time;
-  }
-  return min_time;
+  return benchmark->baseline_result.min;
 }
 
 double BNC_get_max_baseline_time(const BNC_Benchmark * benchmark) {
   if(!is_valid_benchmark_result(benchmark)) return 0.0;
 
-  const DAR_DArray * results = &benchmark->pass_results;
-
-  double max_time = -INFINITY;
-  for(const BNC_PassResult * result = DAR_first(results); result != DAR_end(results); result++) {
-    max_time = (result->baseline_time > max_time) ? result->baseline_time : max_time;
-  }
-  return max_time;
+  return benchmark->baseline_result.max;
 }
 
 double BNC_get_baseline_time_std_dev_percent(const BNC_Benchmark * benchmark) {
   if(!is_valid_benchmark_result(benchmark)) return 0.0;
 
-  const DAR_DArray * results = &benchmark->pass_results;
-
-  const double mean = BNC_get_mean_baseline_time(benchmark);
-
-  double variance_sum = 0.0;
-  for(const BNC_PassResult * result = DAR_first(results); result != DAR_end(results); result++) {
-    variance_sum += pow((mean - result->baseline_time), 2);
-  }
-
-  const double variance = variance_sum / results->size;
-  const double std_dev  = sqrt(variance);
-
-  return (std_dev / mean) * 100.0;
+  return benchmark->baseline_result.std_dev_percent;
 }

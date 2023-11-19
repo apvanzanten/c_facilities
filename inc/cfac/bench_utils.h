@@ -38,11 +38,25 @@ typedef BNC_Witness (*BNC_BenchFn)(void * env);
 
 typedef double (*BNC_GetTimeFn)();
 
-typedef struct BNC_PassResult {
-  double      baseline_time;
-  double      pass_time;
+typedef struct BNC_IntermediateResult {
+  size_t      num_passes;
+  double      total_time;
+  double      mean;
+  double      min;
+  double      max;
+  double      variance_aggregate;
   BNC_Witness witness;
-} BNC_PassResult;
+} BNC_IntermediateResult;
+
+typedef struct BNC_Result {
+  size_t      num_passes;
+  double      total_time;
+  double      mean;
+  double      min;
+  double      max;
+  double      std_dev_percent; // std dev in percentage of mean
+  BNC_Witness witness;
+} BNC_Result;
 
 typedef struct BNC_Benchmark {
   const char * name;
@@ -63,14 +77,16 @@ typedef struct BNC_Benchmark {
 
   void * environment;
 
-  double start_time;
-
-  DAR_DArray pass_results; // holds BNC_PassResult
+  double                 start_time;
+  BNC_IntermediateResult bench_im_result;
+  BNC_IntermediateResult baseline_im_result;
+  BNC_Result             bench_result;
+  BNC_Result             baseline_result;
 } BNC_Benchmark;
 
 STAT_Val BNC_run_benchmark(BNC_Benchmark * benchmark);
 STAT_Val BNC_print_benchmark_results(const BNC_Benchmark * benchmark);
-STAT_Val BNC_destroy_benchmark(BNC_Benchmark * benchmark);
+void     BNC_destroy_benchmark(BNC_Benchmark * benchmark);
 
 STAT_Val BNC_run_benchmarks(BNC_Benchmark * benchmarks_arr, size_t n);
 STAT_Val BNC_print_benchmarks_results(const BNC_Benchmark * benchmarks_arr, size_t n);

@@ -46,7 +46,7 @@ static STAT_Val setup_get_time_env(void ** env) {
   if(env == NULL) return LOG_STAT(STAT_ERR_ARGS, "bad env");
 
   *env = malloc(sizeof(GetTimeEnv));
-  if(env == NULL) return LOG_STAT(STAT_ERR_ALLOC, "failed to allocate for GetTimeEnv");
+  if(*env == NULL) return LOG_STAT(STAT_ERR_ALLOC, "failed to allocate for GetTimeEnv");
 
   GetTimeEnv * get_time_env = *env;
   get_time_env->fn          = get_time;
@@ -117,7 +117,7 @@ static Result tst_bench_wait(void) {
 
   EXPECT_OK(&r, BNC_print_benchmark_results(&benchmark));
 
-  EXPECT_OK(&r, BNC_destroy_benchmark(&benchmark));
+  BNC_destroy_benchmark(&benchmark);
 
   return r;
 }
@@ -134,8 +134,8 @@ static Result tst_multiple_benchmarks(void) {
           .baseline_fn = baseline,
           .get_time_fn = get_time,
 
-          .num_iterations_per_pass = 5,
-          .min_num_passes          = 1,
+          .num_iterations_per_pass = 50,
+          .min_num_passes          = 5,
           .max_num_passes          = 1000,
           .max_run_time            = 10.0,
           .desired_std_dev_percent = 5.0,
@@ -148,8 +148,8 @@ static Result tst_multiple_benchmarks(void) {
           .baseline_fn = baseline,
           .get_time_fn = get_time,
 
-          .num_iterations_per_pass = 5,
-          .min_num_passes          = 2,
+          .num_iterations_per_pass = 50,
+          .min_num_passes          = 10,
           .max_num_passes          = 1000,
           .max_run_time            = 10.0,
           .desired_std_dev_percent = 5.0,
@@ -162,8 +162,8 @@ static Result tst_multiple_benchmarks(void) {
           .baseline_fn = baseline,
           .get_time_fn = get_time,
 
-          .num_iterations_per_pass = 5,
-          .min_num_passes          = 3,
+          .num_iterations_per_pass = 50,
+          .min_num_passes          = 15,
           .max_num_passes          = 1000,
           .max_run_time            = 10.0,
           .desired_std_dev_percent = 5.0,
@@ -172,11 +172,17 @@ static Result tst_multiple_benchmarks(void) {
 
   EXPECT_OK(&r, BNC_run_benchmarks(benches, sizeof(benches) / sizeof(BNC_Benchmark)));
 
-  EXPECT_FALSE(&r, DAR_is_empty(&benches[0].pass_results));
-  EXPECT_FALSE(&r, DAR_is_empty(&benches[1].pass_results));
-  EXPECT_FALSE(&r, DAR_is_empty(&benches[2].pass_results));
+  EXPECT_GE(&r, benches[0].bench_result.num_passes, benches[0].min_num_passes);
+  EXPECT_GE(&r, benches[1].bench_result.num_passes, benches[1].min_num_passes);
+  EXPECT_GE(&r, benches[2].bench_result.num_passes, benches[2].min_num_passes);
 
   EXPECT_OK(&r, BNC_print_benchmarks_results(benches, sizeof(benches) / sizeof(BNC_Benchmark)));
+
+  const double expect_iteration_time = (1.0 / 1000.0);
+
+  EXPECT_FLOAT_EQ(&r, expect_iteration_time, BNC_get_mean_iteration_time(&benches[0]), 0.00001);
+  EXPECT_FLOAT_EQ(&r, expect_iteration_time, BNC_get_mean_iteration_time(&benches[1]), 0.00001);
+  EXPECT_FLOAT_EQ(&r, expect_iteration_time, BNC_get_mean_iteration_time(&benches[2]), 0.00001);
 
   EXPECT_OK(&r, BNC_destroy_benchmarks(benches, sizeof(benches) / sizeof(BNC_Benchmark)));
 
