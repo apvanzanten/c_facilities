@@ -76,6 +76,8 @@ STAT_Val BNC_run_benchmarks(BNC_Benchmark * benchmarks_arr, size_t n);
 STAT_Val BNC_print_benchmarks_results(const BNC_Benchmark * benchmarks_arr, size_t n);
 STAT_Val BNC_destroy_benchmarks(BNC_Benchmark * benchmarks_arr, size_t n);
 
+STAT_Val BNC_run_print_and_destroy_benchmarks(BNC_Benchmark * benchmarks_arr, size_t n);
+
 double BNC_get_total_pass_time(const BNC_Benchmark * benchmark);
 double BNC_get_mean_pass_time(const BNC_Benchmark * benchmark);
 double BNC_get_mean_iteration_time(const BNC_Benchmark * benchmark);

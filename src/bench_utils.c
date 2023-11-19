@@ -167,6 +167,18 @@ STAT_Val BNC_destroy_benchmarks(BNC_Benchmark * benchmarks_arr, size_t n) {
   return OK;
 }
 
+STAT_Val BNC_run_print_and_destroy_benchmarks(BNC_Benchmark * benchmarks_arr, size_t n) {
+  if(benchmarks_arr == NULL) return LOG_STAT(STAT_ERR_ARGS, "benchmarks_arr is NULL");
+
+  if(!STAT_is_OK(BNC_run_benchmarks(benchmarks_arr, n)) ||
+     !STAT_is_OK(BNC_print_benchmarks_results(benchmarks_arr, n)) ||
+     !STAT_is_OK(BNC_destroy_benchmarks(benchmarks_arr, n))) {
+    return LOG_STAT(STAT_ERR_INTERNAL, "failed to run, print, and destroy benchmarks");
+  }
+
+  return OK;
+}
+
 static bool is_valid_benchmark_result(const BNC_Benchmark * benchmark) {
   return (benchmark != NULL && DAR_is_initialized(&benchmark->pass_results) &&
           !DAR_is_empty(&benchmark->pass_results));
