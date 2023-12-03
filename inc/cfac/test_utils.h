@@ -28,7 +28,7 @@
 
 typedef enum { FAIL, PASS } Result;
 
-typedef Result (*Test)();
+typedef Result (*Test)(void);
 
 typedef Result (*SetupFn)(void **);
 typedef Result (*TestWithFixture)(void *);
