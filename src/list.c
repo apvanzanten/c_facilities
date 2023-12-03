@@ -244,8 +244,8 @@ STAT_Val LST_INT_find_nonconst(LST_List * this, const void * value, LST_Node ** 
 }
 
 STAT_Val LST_INT_find_const(const LST_List * this,
-                             const void *      value,
-                             const LST_Node ** o_found_node) {
+                            const void *      value,
+                            const LST_Node ** o_found_node) {
   if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
   if(value == NULL) return LOG_STAT(STAT_ERR_ARGS, "value is NULL");
 

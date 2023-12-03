@@ -36,7 +36,7 @@ typedef BNC_Witness (*BNC_TeardownFn)(void **);
 typedef BNC_Witness (*BNC_BaselineFn)(void * env);
 typedef BNC_Witness (*BNC_BenchFn)(void * env);
 
-typedef double (*BNC_GetTimeFn)();
+typedef double (*BNC_GetTimeFn)(void);
 
 typedef struct BNC_IntermediateResult {
   size_t      num_passes;
