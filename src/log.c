@@ -32,19 +32,19 @@ static void (*g_log_func)(const char *, size_t) = NULL;
 
 void LOG_set_log_func(void (*func)(const char *, size_t)) { g_log_func = func; }
 
-static void write_to_log(STAT_Val          stat,
-                         const char *      stat_str,
+static void write_to_log(STAT_Val         stat,
+                         const char *     stat_str,
                          LOG_INT_Location location,
-                         const char *      fmt,
-                         va_list           args);
+                         const char *     fmt,
+                         va_list          args);
 
 static int write_location_to_msg(LOG_INT_Location location, char * msg, size_t max_len);
 
-STAT_Val LOG_INT_stat(STAT_Val          stat,
-                       const char *      stat_str,
-                       LOG_INT_Location location,
-                       const char *      fmt,
-                       ...) {
+STAT_Val LOG_INT_stat(STAT_Val         stat,
+                      const char *     stat_str,
+                      LOG_INT_Location location,
+                      const char *     fmt,
+                      ...) {
   va_list args;
   va_start(args, fmt);
 
@@ -55,12 +55,12 @@ STAT_Val LOG_INT_stat(STAT_Val          stat,
   return stat;
 }
 
-STAT_Val LOG_INT_stat_if(bool              condition,
-                          STAT_Val          stat,
-                          const char *      stat_str,
-                          LOG_INT_Location location,
-                          const char *      fmt,
-                          ...) {
+STAT_Val LOG_INT_stat_if(bool             condition,
+                         STAT_Val         stat,
+                         const char *     stat_str,
+                         LOG_INT_Location location,
+                         const char *     fmt,
+                         ...) {
   if(condition) {
     va_list args;
     va_start(args, fmt);
@@ -73,11 +73,11 @@ STAT_Val LOG_INT_stat_if(bool              condition,
   return stat;
 }
 
-STAT_Val LOG_INT_stat_if_err(STAT_Val          stat,
-                              const char *      stat_str,
-                              LOG_INT_Location location,
-                              const char *      fmt,
-                              ...) {
+STAT_Val LOG_INT_stat_if_err(STAT_Val         stat,
+                             const char *     stat_str,
+                             LOG_INT_Location location,
+                             const char *     fmt,
+                             ...) {
   if(STAT_is_ERR(stat)) {
     va_list args;
     va_start(args, fmt);
@@ -89,11 +89,11 @@ STAT_Val LOG_INT_stat_if_err(STAT_Val          stat,
   return stat;
 }
 
-STAT_Val LOG_INT_stat_if_nok(STAT_Val          stat,
-                              const char *      stat_str,
-                              LOG_INT_Location location,
-                              const char *      fmt,
-                              ...) {
+STAT_Val LOG_INT_stat_if_nok(STAT_Val         stat,
+                             const char *     stat_str,
+                             LOG_INT_Location location,
+                             const char *     fmt,
+                             ...) {
 
   if(!STAT_is_OK(stat)) {
     va_list args;
@@ -119,11 +119,11 @@ static int write_location_to_msg(LOG_INT_Location location, char * msg, size_t m
   return num_written;
 }
 
-static void write_to_log(STAT_Val          stat,
-                         const char *      stat_str,
+static void write_to_log(STAT_Val         stat,
+                         const char *     stat_str,
                          LOG_INT_Location location,
-                         const char *      fmt,
-                         va_list           args) {
+                         const char *     fmt,
+                         va_list          args) {
 
   char msg[MAX_MSG_SIZE] = "";
   int  msg_len           = 0;
