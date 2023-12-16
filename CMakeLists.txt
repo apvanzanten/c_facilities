@@ -76,6 +76,8 @@ target_link_libraries(hashtable PUBLIC log darray)
 add_library(bench_utils ${SRC_DIR}/bench_utils.c)
 target_link_libraries(bench_utils PUBLIC log darray m)
 
+add_library(bitdarray ${SRC_DIR}/bitdarray.c)
+target_link_libraries(bitdarray PUBLIC log darray)
 
 # --- tests ---
 
@@ -101,6 +103,7 @@ if (DEBUG)
     AddTest(refcount_test refcount.test.c refcount)
     AddTest(hashtable_test hashtable.test.c hashtable)
     AddTest(bench_utils_test bench_utils.test.c bench_utils)
+    AddTest(bitdarray_test bitdarray.test.c bitdarray)
 
 endif()
 
