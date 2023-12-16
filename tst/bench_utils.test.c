@@ -100,8 +100,8 @@ static Result tst_bench_wait(void) {
 
       .num_iterations_per_pass = 10,
       .min_num_passes          = 3,
-      .max_num_passes          = 1000,
-      .max_run_time            = 10.0,
+      .max_num_passes          = 100,
+      .max_run_time            = 2.0,
       .desired_std_dev_percent = 5.0,
   };
 
@@ -134,10 +134,10 @@ static Result tst_multiple_benchmarks(void) {
           .baseline_fn = baseline,
           .get_time_fn = get_time,
 
-          .num_iterations_per_pass = 50,
+          .num_iterations_per_pass = 10,
           .min_num_passes          = 5,
-          .max_num_passes          = 1000,
-          .max_run_time            = 10.0,
+          .max_num_passes          = 100,
+          .max_run_time            = 2.0,
           .desired_std_dev_percent = 5.0,
       },
       {
@@ -148,10 +148,10 @@ static Result tst_multiple_benchmarks(void) {
           .baseline_fn = baseline,
           .get_time_fn = get_time,
 
-          .num_iterations_per_pass = 50,
+          .num_iterations_per_pass = 10,
           .min_num_passes          = 10,
-          .max_num_passes          = 1000,
-          .max_run_time            = 10.0,
+          .max_num_passes          = 100,
+          .max_run_time            = 2.0,
           .desired_std_dev_percent = 5.0,
       },
       {
@@ -162,10 +162,10 @@ static Result tst_multiple_benchmarks(void) {
           .baseline_fn = baseline,
           .get_time_fn = get_time,
 
-          .num_iterations_per_pass = 50,
+          .num_iterations_per_pass = 10,
           .min_num_passes          = 15,
-          .max_num_passes          = 1000,
-          .max_run_time            = 10.0,
+          .max_num_passes          = 100,
+          .max_run_time            = 2.0,
           .desired_std_dev_percent = 5.0,
       },
   };
