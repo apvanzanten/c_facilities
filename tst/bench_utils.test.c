@@ -31,12 +31,12 @@
 
 #define OK STAT_OK
 
-typedef double (*GetTimeFn)();
+typedef double (*GetTimeFn)(void);
 typedef struct GetTimeEnv {
   GetTimeFn fn;
 } GetTimeEnv;
 
-static double get_time() {
+static double get_time(void) {
   struct timeval tv = {0};
   gettimeofday(&tv, NULL);
   return ((double)tv.tv_sec + ((double)tv.tv_usec / (1000.0 * 1000.0)));

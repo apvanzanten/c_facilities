@@ -36,7 +36,7 @@ static Result tst_create_from_cstr(void) {
 
   const SPN_Span span = SPN_from_cstr(str);
   EXPECT_EQ(&r, str, span.begin);
-  EXPECT_EQ(&r, len, span.len);
+  EXPECT_EQ(&r, len, (int)span.len);
   EXPECT_EQ(&r, 1, span.element_size);
 
   return r;
@@ -881,7 +881,7 @@ static Result tst_mut(void) {
   return r;
 }
 
-static Result tst_swap() {
+static Result tst_swap(void) {
   Result      r      = PASS;
   double      vals[] = {0.0, 1.0, 2.0, 3.0, 4.0};
   SPN_MutSpan span   = {.begin        = vals,

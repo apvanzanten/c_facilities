@@ -58,9 +58,9 @@ static Result tst_create_from_cstr(void) {
 
   DAR_DArray arr = {0};
 
-  const char str[] = "red light abnormality";
-  const int  len   = strlen(str);
-  const int  size  = len + 1; // +1 for null termination
+  const char   str[] = "red light abnormality";
+  const int    len   = strlen(str);
+  const size_t size  = len + 1; // +1 for null termination
 
   EXPECT_EQ(&r, OK, DAR_create_from_cstr(&arr, str));
   if(HAS_FAILED(&r)) return r;

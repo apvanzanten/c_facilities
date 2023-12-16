@@ -26,7 +26,7 @@
 
 #include "refcount.h"
 
-static Result tst_basic_usecase() {
+static Result tst_basic_usecase(void) {
   Result r = PASS;
 
   RC_Ref ref = RC_allocate(sizeof(int));
@@ -51,7 +51,7 @@ static Result tst_basic_usecase() {
   return r;
 }
 
-static Result tst_with_const() {
+static Result tst_with_const(void) {
   Result r = PASS;
 
   RC_Ref ref = RC_allocate(sizeof(int));
