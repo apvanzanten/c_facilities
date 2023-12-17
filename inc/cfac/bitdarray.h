@@ -29,6 +29,7 @@
 #include "stat.h"
 
 typedef struct BDAR_BitDArray {
+  // TODO probably use size_t instead of uint8_t
   uint8_t * data;
   size_t    size; // size in bits
   size_t    capacity_in_bytes;
@@ -40,6 +41,7 @@ STAT_Val BDAR_create_from_bool_darr(BDAR_BitDArray * this, const DAR_DArray * bo
 
 STAT_Val BDAR_reserve(BDAR_BitDArray * this, size_t num_bits);
 STAT_Val BDAR_resize(BDAR_BitDArray * this, size_t new_size);
+STAT_Val BDAR_resize_with_value(BDAR_BitDArray * this, size_t new_size, bool fill_val);
 
 STAT_Val BDAR_push_back(BDAR_BitDArray * this, bool val);
 STAT_Val BDAR_pop_back(BDAR_BitDArray * this);
@@ -54,8 +56,8 @@ static inline STAT_Val BDAR_clear_bit(BDAR_BitDArray * this, size_t idx);
 STAT_Val BDAR_fill_range(BDAR_BitDArray * this, size_t start_idx, size_t n, bool fill_val);
 STAT_Val BDAR_fill(BDAR_BitDArray * this, bool fill_val);
 
-// STAT_Val BDAR_shift_left(BDAR_BitDArray * this, size_t num_shift);
-// STAT_Val BDAR_shift_right(BDAR_BitDArray * this, size_t num_shift);
+STAT_Val BDAR_shift_left(BDAR_BitDArray * this, size_t num_shift);
+STAT_Val BDAR_shift_right(BDAR_BitDArray * this, size_t num_shift);
 
 STAT_Val BDAR_destroy(BDAR_BitDArray * this);
 

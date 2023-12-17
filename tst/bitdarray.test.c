@@ -32,6 +32,30 @@
 
 #define OK STAT_OK
 
+static void print_bytes_as_bits(const uint8_t * bytes, size_t n_bits) {
+  printf("0b ");
+  const size_t num_bytes             = (n_bits / 8) + (((n_bits % 8) == 0) ? 0 : 1);
+  const size_t num_bits_in_last_byte = n_bits % 8;
+
+  if(num_bits_in_last_byte != 0) {
+    uint8_t last_byte = bytes[num_bytes - 1];
+    for(int i = num_bits_in_last_byte - 1; i >= 0; i--) {
+      putc((last_byte & (1 << i)) ? '1' : '0', stdout);
+      if(i == 4) putc(' ', stdout);
+    }
+    putc(' ', stdout);
+  }
+
+  for(int byte_idx = num_bytes - 2; byte_idx >= 0; byte_idx--) {
+    uint8_t b = bytes[byte_idx];
+    for(int bit_idx = 7; bit_idx >= 0; bit_idx--) {
+      putc((b & (1 << bit_idx)) ? '1' : '0', stdout);
+      if(bit_idx == 4) putc(' ', stdout);
+    }
+    putc(' ', stdout);
+  }
+}
+
 static uint8_t make_byte(bool b_msb,
                          bool b6,
                          bool b5,
@@ -247,6 +271,218 @@ static Result tst_fill_range(void * env) {
   EXPECT_OK(&r, BDAR_fill_range(arr, 12, 16, true));
   EXPECT_ARREQ(&r, uint8_t, ((uint8_t[]){0x00, 0xf0, 0xff, 0x0f}), arr->data, 4);
 
+  EXPECT_OK(&r, BDAR_resize(arr, 0));
+  EXPECT_EQ(&r, 0, arr->size);
+
+  EXPECT_OK(&r, BDAR_resize(arr, 24));
+  EXPECT_EQ(&r, 24, arr->size);
+
+  EXPECT_OK(&r, BDAR_fill_range(arr, 0, 24, false));
+  EXPECT_ARREQ(&r, uint8_t, ((uint8_t[]){0x00, 0x00, 0x00}), arr->data, 3);
+
+  EXPECT_OK(&r, BDAR_fill_range(arr, 20, 4, true));
+  EXPECT_ARREQ(&r, uint8_t, ((uint8_t[]){0x00, 0x00, 0xf0}), arr->data, 3);
+
+  return r;
+}
+
+static Result tst_resize_with_value(void * env) {
+  Result           r   = PASS;
+  BDAR_BitDArray * arr = env;
+
+  EXPECT_OK(&r, BDAR_resize_with_value(arr, 12, true));
+  EXPECT_EQ(&r, 12, arr->size);
+  EXPECT_EQ(&r, 0xff, arr->data[0]);
+
+  EXPECT_OK(&r, BDAR_resize_with_value(arr, 12 + 8, false));
+  EXPECT_EQ(&r, 12 + 8, arr->size);
+  EXPECT_EQ(&r, 0xff, arr->data[0]);
+  EXPECT_EQ(&r, 0x0f, arr->data[1]);
+
+  EXPECT_OK(&r, BDAR_resize_with_value(arr, 12 + 8 + 4, true));
+  EXPECT_EQ(&r, 12 + 8 + 4, arr->size);
+  EXPECT_EQ(&r, 0xff, arr->data[0]);
+  EXPECT_EQ(&r, 0x0f, arr->data[1]);
+  EXPECT_EQ(&r, 0xf0, arr->data[2]);
+
+  return r;
+}
+
+static Result tst_shift_right(void) {
+  Result         r   = PASS;
+  BDAR_BitDArray arr = {0};
+
+  const bool bool_arr[] = {
+      // NOTE backwards from what you might expect, [0] is least significant bit!
+      // clang-format off
+    true, false, false, true, false, true, false, true,   // 1010 1001 -> 0xa9
+    false, false, true, true, false, false, true, false,  // 0100 1100 -> 0x4c
+    true, true, false, true, false, // 01011 -> 0xb
+      // clang-format on
+  };
+  const size_t size = (sizeof(bool_arr) / sizeof(bool_arr[0]));
+  EXPECT_OK(&r, BDAR_create_from_bool_arr(&arr, bool_arr, size));
+
+  EXPECT_ARREQ(&r, uint8_t, ((uint8_t[]){0xa9, 0x4c}), arr.data, 2);
+  EXPECT_EQ(&r, 0xb, arr.data[2] & ((1 << 5) - 1));
+
+  EXPECT_OK(&r, BDAR_shift_right(&arr, 1));
+  EXPECT_ARREQ(&r,
+               uint8_t,
+               ((uint8_t[]){
+                   0x54, // 0101 0100
+                   0xa6  // 1010 0110
+               }),
+               arr.data,
+               2);
+  EXPECT_EQ(&r,
+            0x5, // 00101
+            arr.data[2] & ((1 << 5) - 1));
+
+  EXPECT_OK(&r, BDAR_shift_right(&arr, 4));
+  EXPECT_ARREQ(&r,
+               uint8_t,
+               ((uint8_t[]){
+                   0x65, // 0110 0101
+                   0x5a  // 0101 1010
+               }),
+               arr.data,
+               2);
+  EXPECT_EQ(&r,
+            0x0, // 00000
+            arr.data[2] & ((1 << 5) - 1));
+
+  EXPECT_OK(&r, BDAR_shift_right(&arr, 6));
+  EXPECT_ARREQ(&r,
+               uint8_t,
+               ((uint8_t[]){
+                   0x69, // 0110 1001
+                   0x01  // 0000 0001
+               }),
+               arr.data,
+               2);
+  EXPECT_EQ(&r,
+            0x0, // 00000
+            arr.data[2] & ((1 << 5) - 1));
+
+  EXPECT_OK(&r, BDAR_fill_range(&arr, 12, 7, true));
+  EXPECT_ARREQ(&r,
+               uint8_t,
+               ((uint8_t[]){
+                   0x69, // 0110 1001
+                   0xf1  // 1111 0001
+               }),
+               arr.data,
+               2);
+  EXPECT_EQ(&r,
+            0x07, // 0 0111
+            arr.data[2] & ((1 << 5) - 1));
+
+  EXPECT_OK(&r, BDAR_shift_right(&arr, 14));
+  EXPECT_ARREQ(&r,
+               uint8_t,
+               ((uint8_t[]){
+                   0x1f, // 0001 1111
+                   0x00  // 0000 0000
+               }),
+               arr.data,
+               2);
+  EXPECT_EQ(&r,
+            0x0, // 0 0000
+            arr.data[2] & ((1 << 5) - 1));
+
+  EXPECT_OK(&r, BDAR_destroy(&arr));
+
+  return r;
+}
+
+static Result tst_shift_left(void) {
+  Result         r   = PASS;
+  BDAR_BitDArray arr = {0};
+
+  const bool bool_arr[] = {
+      // NOTE backwards from what you might expect, [0] is least significant bit!
+      // clang-format off
+    true, false, false, true, false, true, false, true,   // 1010 1001 -> 0xa9
+    false, false, true, true, false, false, true, false,  // 0100 1100 -> 0x4c
+    true, true, false, true, false, // 01011 -> 0xb
+      // clang-format on
+  };
+  const size_t size = (sizeof(bool_arr) / sizeof(bool_arr[0]));
+  EXPECT_OK(&r, BDAR_create_from_bool_arr(&arr, bool_arr, size));
+
+  EXPECT_ARREQ(&r, uint8_t, ((uint8_t[]){0xa9, 0x4c}), arr.data, 2);
+  EXPECT_EQ(&r, 0xb, arr.data[2] & ((1 << 5) - 1));
+
+  print_bytes_as_bits(arr.data, arr.size);
+  putc('\n', stdout);
+
+  EXPECT_OK(&r, BDAR_shift_left(&arr, 1));
+  EXPECT_ARREQ(&r,
+               uint8_t,
+               ((uint8_t[]){
+                   0x52, // 0101 0010
+                   0x99  // 1001 1001
+               }),
+               arr.data,
+               2);
+  EXPECT_EQ(&r,
+            0x16, // 1 0110
+            arr.data[2] & ((1 << 5) - 1));
+
+  print_bytes_as_bits(arr.data, arr.size);
+  putc('\n', stdout);
+
+  EXPECT_OK(&r, BDAR_shift_left(&arr, 4));
+  EXPECT_ARREQ(&r,
+               uint8_t,
+               ((uint8_t[]){
+                   0x20, // 0010 0000
+                   0x95  // 1001 0101
+               }),
+               arr.data,
+               2);
+  EXPECT_EQ(&r,
+            0x09, // 0 1001
+            arr.data[2] & ((1 << 5) - 1));
+
+  print_bytes_as_bits(arr.data, arr.size);
+  putc('\n', stdout);
+
+  EXPECT_OK(&r, BDAR_fill_range(&arr, 0, 5, true));
+  EXPECT_ARREQ(&r,
+               uint8_t,
+               ((uint8_t[]){
+                   0x3f, // 0011 1111
+                   0x95  // 1001 0101
+               }),
+               arr.data,
+               2);
+  EXPECT_EQ(&r,
+            0x09, // 0 1001
+            arr.data[2] & ((1 << 5) - 1));
+
+  print_bytes_as_bits(arr.data, arr.size);
+  putc('\n', stdout);
+
+  EXPECT_OK(&r, BDAR_shift_left(&arr, 13));
+  EXPECT_ARREQ(&r,
+               uint8_t,
+               ((uint8_t[]){
+                   0x00, // 0000 0000
+                   0xe0  // 1110 0000
+               }),
+               arr.data,
+               2);
+  EXPECT_EQ(&r,
+            0x07, // 0 0111
+            arr.data[2] & ((1 << 5) - 1));
+
+  print_bytes_as_bits(arr.data, arr.size);
+  putc('\n', stdout);
+
+  EXPECT_OK(&r, BDAR_destroy(&arr));
+
   return r;
 }
 
@@ -254,6 +490,8 @@ int main(void) {
   Test tests[] = {
       tst_create_destroy,
       tst_create_from_bool_arr,
+      tst_shift_right,
+      tst_shift_left,
   };
 
   TestWithFixture tests_with_fixture[] = {
@@ -262,6 +500,7 @@ int main(void) {
       tst_push_pop_back,
       tst_fill,
       tst_fill_range,
+      tst_resize_with_value,
   };
 
   const Result test_res = run_tests(tests, sizeof(tests) / sizeof(Test));

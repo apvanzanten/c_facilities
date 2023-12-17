@@ -88,6 +88,23 @@ STAT_Val BDAR_resize(BDAR_BitDArray * this, size_t new_size) {
   return OK;
 }
 
+STAT_Val BDAR_resize_with_value(BDAR_BitDArray * this, size_t new_size, bool fill_val) {
+  if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
+  if(new_size == this->size) return OK;
+
+  const size_t old_size = this->size;
+
+  if(BDAR_resize(this, new_size) != OK) return LOG_STAT(STAT_ERR_INTERNAL, "failed to resize");
+
+  if(new_size > old_size) {
+    if(BDAR_fill_range(this, old_size, (new_size - old_size), fill_val) != OK) {
+      return LOG_STAT(STAT_ERR_INTERNAL, "failed to fill newly created range after resize");
+    }
+  }
+
+  return OK;
+}
+
 STAT_Val BDAR_push_back(BDAR_BitDArray * this, bool val) {
   if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this == NULL");
 
@@ -157,7 +174,7 @@ STAT_Val BDAR_fill_range(BDAR_BitDArray * this, size_t start_idx, size_t n, bool
   const bool ends_at_end_of_byte     = (end_idx_in_byte == 0);
 
   const size_t first_byte_idx = start_idx / 8;
-  const size_t last_byte_idx  = (first_byte_idx + (n / 8)) - (ends_at_end_of_byte ? 1 : 0);
+  const size_t last_byte_idx  = ((start_idx + n) / 8) - (ends_at_end_of_byte ? 1 : 0);
   const size_t num_bytes      = (last_byte_idx - first_byte_idx) + 1;
 
   const size_t num_full_bytes =
@@ -197,17 +214,78 @@ STAT_Val BDAR_fill(BDAR_BitDArray * this, bool fill_val) {
   return LOG_STAT_IF_ERR(BDAR_fill_range(this, 0, this->size, fill_val), "failed to fill range");
 }
 
-// STAT_Val BDAR_shift_left(BDAR_BitDArray *this, size_t num_shift) {
-//   if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this == NULL");
-//   if(num_shift >= this->size) {
+STAT_Val BDAR_shift_left(BDAR_BitDArray * this, size_t num_shift) {
+  if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this == NULL");
+  if(num_shift == 0) return OK;
 
-//   }
+  const size_t current_size_bytes = calc_size_in_bytes(this->size);
 
-// }
-// STAT_Val BDAR_shift_right(BDAR_BitDArray *this, size_t num_shift) {
-//   if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this == NULL");
+  if(num_shift >= this->size) {
+    memset(this->data, 0, current_size_bytes);
+    return OK;
+  }
 
-// }
+  if(num_shift > 8) {
+    const size_t num_full_bytes = num_shift / 8;
+    memmove(&this->data[num_full_bytes], this->data, current_size_bytes - num_full_bytes);
+    memset(this->data, 0, num_full_bytes);
+
+    num_shift -= (num_full_bytes * 8);
+  }
+
+  if(num_shift > 0) {
+    for(size_t i = current_size_bytes - 1; i > 0; i--) {
+      this->data[i] <<= num_shift;
+
+      const uint8_t bits_to_copy_over = (this->data[i - 1] & ~((1 << (8 - num_shift)) - 1));
+      this->data[i] |= (bits_to_copy_over >> (8 - num_shift));
+    }
+    this->data[0] <<= num_shift;
+  }
+
+  return OK;
+}
+STAT_Val BDAR_shift_right(BDAR_BitDArray * this, size_t num_shift) {
+  if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this == NULL");
+  if(num_shift == 0) return OK;
+
+  const size_t current_size_bytes = calc_size_in_bytes(this->size);
+
+  if(num_shift >= this->size) {
+    memset(this->data, 0, current_size_bytes);
+    return OK;
+  }
+
+  if(num_shift > 8) {
+    const size_t num_full_bytes = num_shift / 8;
+    memmove(this->data, &this->data[num_full_bytes], current_size_bytes - num_full_bytes);
+    memset(&this->data[(current_size_bytes - num_full_bytes)], 0, num_full_bytes);
+
+    num_shift -= (num_full_bytes * 8);
+  }
+
+  if(num_shift > 0) {
+    for(size_t i = 0; i < current_size_bytes - 1; i++) {
+      this->data[i] >>= num_shift;
+
+      const uint8_t bits_to_copy_over = (this->data[i + 1] & ((1 << num_shift) - 1));
+      this->data[i] |= (bits_to_copy_over << (8 - num_shift));
+    }
+
+    const size_t size_in_last_byte = (this->size % 8);
+    if(size_in_last_byte <= num_shift) {
+      this->data[(current_size_bytes - 1)] = 0;
+    } else {
+      const uint8_t last_byte_mask = ((1 << size_in_last_byte) - 1);
+      const uint8_t shifted_mask   = (last_byte_mask >> num_shift) ^ last_byte_mask;
+
+      this->data[(current_size_bytes - 1)] >>= num_shift;
+      this->data[(current_size_bytes - 1)] &= ~shifted_mask;
+    }
+  }
+
+  return OK;
+}
 
 STAT_Val BDAR_destroy(BDAR_BitDArray * this) {
   if(this == NULL) return OK;
