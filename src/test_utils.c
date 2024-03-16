@@ -49,8 +49,9 @@ Result run_tests_with_fixture(const TestWithFixture tests[],
 
     Result setup_r = (*setup)(&env);
     if(setup_r == PASS) {
-      if(tests[i](env) == PASS) num_passed++;
-      (*teardown)(&env);
+      const Result test_r     = tests[i](env);
+      const Result teardown_r = teardown(&env);
+      if((test_r == PASS) && (teardown_r == PASS)) num_passed++;
     }
   }
 
