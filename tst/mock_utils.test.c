@@ -540,6 +540,66 @@ static Result tst_set_arg(void) {
   return r;
 }
 
+static void foo(void) { REGISTER_MADE_CALL(NULL, __func__); }
+static void bar(void) { REGISTER_MADE_CALL(NULL, __func__); }
+
+static Result tst_expectation_and_call_mismatch(void) {
+  Result r = PASS;
+  EXPECT_OK(&r, MOC_init_registry());
+
+  EXPECT_OK(&r, EXPECT_CALL(foo));
+  bar();
+  EXPECT_FALSE(&r, MOC_is_all_registered_expectations_matched());
+  EXPECT_OK(&r, MOC_clear_registry());
+
+  EXPECT_OK(&r, EXPECT_CALL(bar));
+  foo();
+  EXPECT_FALSE(&r, MOC_is_all_registered_expectations_matched());
+  EXPECT_OK(&r, MOC_clear_registry());
+
+  EXPECT_OK(&r, EXPECT_CALL(foo));
+  EXPECT_OK(&r, EXPECT_CALL(bar));
+  foo();
+  EXPECT_FALSE(&r, MOC_is_all_registered_expectations_matched());
+  bar();
+  EXPECT_TRUE(&r, MOC_is_all_registered_expectations_matched());
+  EXPECT_OK(&r, MOC_clear_registry());
+
+  EXPECT_OK(&r, MOC_destroy_registry());
+  return r;
+}
+
+static void baz(int i) { REGISTER_MADE_CALL(NULL, __func__, &i); }
+
+static Result tst_expectation_and_call_arg_mismatch(void) {
+  Result r = PASS;
+  EXPECT_OK(&r, MOC_init_registry());
+
+  int three = 3;
+  int five  = 5;
+
+  EXPECT_OK(&r, EXPECT_CALL(baz, MATCH_ARG(0, &five, comp_int)));
+  baz(3);
+  EXPECT_FALSE(&r, MOC_is_all_registered_expectations_matched());
+  EXPECT_OK(&r, MOC_clear_registry());
+
+  EXPECT_OK(&r, EXPECT_CALL(baz, MATCH_ARG(0, &five, comp_int)));
+  baz(5);
+  EXPECT_TRUE(&r, MOC_is_all_registered_expectations_matched());
+  EXPECT_OK(&r, MOC_clear_registry());
+
+  EXPECT_OK(&r, EXPECT_CALL(baz, MATCH_ARG(0, &three, comp_int)));
+  EXPECT_OK(&r, EXPECT_CALL(baz, MATCH_ARG(0, &five, comp_int)));
+  baz(5);
+  EXPECT_FALSE(&r, MOC_is_all_registered_expectations_matched());
+  baz(3);
+  EXPECT_TRUE(&r, MOC_is_all_registered_expectations_matched());
+  EXPECT_OK(&r, MOC_clear_registry());
+
+  EXPECT_OK(&r, MOC_destroy_registry());
+  return r;
+}
+
 int main(void) {
   Test tests[] = {
       tst_init_verify_no_calls,
@@ -553,6 +613,8 @@ int main(void) {
       tst_set_return_bool,
       tst_set_return_str,
       tst_set_arg,
+      tst_expectation_and_call_mismatch,
+      tst_expectation_and_call_arg_mismatch,
   };
 
   const Result test_res = run_tests(tests, sizeof(tests) / sizeof(Test));

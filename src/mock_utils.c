@@ -272,6 +272,8 @@ static STAT_Val try_match_call(const MOC_Expectation * exp,
   if(func_name == NULL) return LOG_STAT(STAT_ERR_ARGS, "func_name is NULL");
   if(arg_ptrs == NULL) return LOG_STAT(STAT_ERR_ARGS, "arg_ptrs is NULL");
 
+  if(strcmp(func_name, exp->func_name) != 0) return STAT_OK_FALSE;
+
   for(const MOC_IMPL_Matcher * m = DAR_first(&exp->matchers); m != DAR_end(&exp->matchers); m++) {
     if(m->arg_idx >= num_args) return STAT_OK_FALSE;
 
