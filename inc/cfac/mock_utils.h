@@ -78,14 +78,14 @@ typedef struct MOC_IMPL_ExpectationModifier {
     MOC_IMPL_EXP_MOD_TYPE_MATCHER,
     MOC_IMPL_EXP_MOD_MULTIPLICITY,
     MOC_IMPL_EXP_MOD_SET_RETURN,
-    MOC_IMPL_EXP_MOD_SET_ARG_POINTEE,
+    MOC_IMPL_EXP_MOD_SET_ARG,
   } type;
 
   union {
     MOC_IMPL_Matcher       matcher;
     MOC_IMPL_Multiplicity  multiplicity;
     MOC_IMPL_SetReturn     set_return;
-    MOC_IMPL_SetArgPointee set_arg_pointee;
+    MOC_IMPL_SetArgPointee set_arg;
   } as;
 } MOC_IMPL_ExpectationModifier;
 
@@ -113,9 +113,9 @@ STAT_Val MOC_IMPL_expect_call(const char *                       func_name,
   MOC_IMPL_expect_call(#expected_func,                                                             \
                        __func__,                                                                   \
                        __LINE__,                                                                   \
-                       (sizeof((MOC_IMPL_ExpectationModifier[]){__VA_ARGS__}) /                    \
-                        sizeof(MOC_IMPL_ExpectationModifier)),                                     \
-                       (MOC_IMPL_ExpectationModifier[]){__VA_ARGS__})
+                       0 __VA_OPT__(+(sizeof((MOC_IMPL_ExpectationModifier[]){__VA_ARGS__}) /      \
+                                      sizeof(MOC_IMPL_ExpectationModifier))),                      \
+                       (MOC_IMPL_ExpectationModifier[]){__VA_OPT__(__VA_ARGS__, ){0}})
 
 #define MATCH_ARG(in_arg_idx, in_expected_val, in_comp_fn)                                         \
   (MOC_IMPL_ExpectationModifier) {                                                                 \
@@ -136,8 +136,9 @@ STAT_Val MOC_IMPL_expect_call(const char *                       func_name,
   }
 
 #define SET_ARG(in_arg_idx, in_value_p, in_set_fn)                                                 \
-  (MOC_IMPL_SetArgPointee) {                                                                       \
-    .arg_idx = (in_arg_idx), .value_p = (in_value_p), .set_fn = (in_set_fn)                        \
+  (MOC_IMPL_ExpectationModifier) {                                                                 \
+    .type       = MOC_IMPL_EXP_MOD_SET_ARG,                                                        \
+    .as.set_arg = {.arg_idx = (in_arg_idx), .value_p = (in_value_p), .set_fn = (in_set_fn)},       \
   }
 
 STAT_Val MOC_IMPL_register_made_call(const MOC_Expectation ** matched_exp,
@@ -150,11 +151,9 @@ STAT_Val MOC_IMPL_register_made_call(const MOC_Expectation ** matched_exp,
                            ...)                                                                    \
   MOC_IMPL_register_made_call((exp_out_p),                                                         \
                               (func_name),                                                         \
-                              (sizeof((void *[]){__VA_ARGS__}) / sizeof(void *)),                  \
-                              (void *[]){__VA_ARGS__})
+                              0 __VA_OPT__(+(sizeof((void *[]){__VA_ARGS__}) / sizeof(void *))),   \
+                              (void *[]){__VA_OPT__(__VA_ARGS__, ) NULL})
 
 STAT_Val MOC_set_return_val_from_expectation(const MOC_Expectation * exp, void * return_val_p);
-
-// TODO return val
 
 #endif

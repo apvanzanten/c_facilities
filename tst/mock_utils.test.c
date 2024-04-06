@@ -20,7 +20,9 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
 
+#include "log.h"
 #include "test_utils.h"
 
 #include "mock_utils.h"
@@ -44,10 +46,14 @@ static void take_int_return_void(int i) { REGISTER_MADE_CALL(NULL, __func__, &i)
 
 static bool take_int_and_string_return_bool(int i, const char * str) {
   const MOC_Expectation * exp = NULL;
-  REGISTER_MADE_CALL(&exp, __func__, &i, &str);
+
+  if(!STAT_is_OK(REGISTER_MADE_CALL(&exp, __func__, &i, &str))) {
+    LOG_STAT(STAT_ERR_INTERNAL, "failed to register made call");
+    return false;
+  }
 
   bool ret = true;
-  MOC_set_return_val_from_expectation(exp, &ret);
+  if(exp != NULL) MOC_set_return_val_from_expectation(exp, &ret);
 
   return ret;
 }
@@ -447,8 +453,92 @@ static Result tst_set_return_bool(void) {
   return r;
 }
 
-// TODO more return tests
-// TODO arg setter tests
+static const char * return_str(void) {
+  const MOC_Expectation * exp = NULL;
+  if(!STAT_is_OK(REGISTER_MADE_CALL(&exp, __func__))) {
+    LOG_STAT(STAT_ERR_INTERNAL, "failed to register made call");
+    return "bad";
+  }
+
+  const char * str = NULL;
+  if(exp != NULL) MOC_set_return_val_from_expectation(exp, &str);
+
+  return str;
+}
+
+static void set_str(void * dst_p, const void * src) { *((const char **)dst_p) = (const char *)src; }
+
+static Result tst_set_return_str(void) {
+  Result r = PASS;
+  EXPECT_OK(&r, MOC_init_registry());
+
+  const char * hello = "hello";
+  const char * hi    = "hi";
+
+  EXPECT_OK(&r, EXPECT_CALL(return_str, SET_RETURN(hello, set_str)));
+  EXPECT_STREQ(&r, "hello", return_str());
+  EXPECT_OK(&r, MOC_clear_registry());
+
+  EXPECT_OK(&r, EXPECT_CALL(return_str, SET_RETURN(hi, set_str)));
+  EXPECT_STREQ(&r, "hi", return_str());
+  EXPECT_OK(&r, MOC_clear_registry());
+
+  EXPECT_OK(&r, EXPECT_CALL(return_str, SET_RETURN("", set_str)));
+  EXPECT_STREQ(&r, "", return_str());
+  EXPECT_OK(&r, MOC_clear_registry());
+
+  EXPECT_OK(&r, MOC_destroy_registry());
+  return r;
+}
+
+static void set_arg_int(void * arg_p, const void * src) {
+  int * i_arg_p = *(int **)arg_p;
+  int   i_src   = *((const int *)src);
+  *i_arg_p      = i_src;
+}
+static void set_arg_bool(void * arg_p, const void * src) {
+  bool * i_arg_p = *(bool **)arg_p;
+  bool   i_src   = *((const bool *)src);
+  *i_arg_p       = i_src;
+}
+
+static void ouput_int_and_bool_via_arg(int * i, bool * b) {
+  REGISTER_MADE_CALL(NULL, __func__, &i, &b);
+}
+
+static Result tst_set_arg(void) {
+  Result r = PASS;
+  EXPECT_OK(&r, MOC_init_registry());
+
+  int  i_out = 0;
+  bool b_out = false;
+
+  int  six       = 6;
+  int  nine      = 9;
+  bool not_true  = false;
+  bool not_false = true;
+
+  EXPECT_OK(&r,
+            EXPECT_CALL(ouput_int_and_bool_via_arg,
+                        SET_ARG(0, &six, set_arg_int),
+                        SET_ARG(1, &not_false, set_arg_bool)));
+  ouput_int_and_bool_via_arg(&i_out, &b_out);
+  EXPECT_EQ(&r, 6, i_out);
+  EXPECT_TRUE(&r, b_out);
+  EXPECT_OK(&r, MOC_clear_registry());
+
+  EXPECT_OK(&r,
+            EXPECT_CALL(ouput_int_and_bool_via_arg,
+                        SET_ARG(0, &nine, set_arg_int),
+                        SET_ARG(1, &not_true, set_arg_bool)));
+  ouput_int_and_bool_via_arg(&i_out, &b_out);
+  EXPECT_EQ(&r, 9, i_out);
+  EXPECT_FALSE(&r, b_out);
+  EXPECT_OK(&r, MOC_clear_registry());
+
+  EXPECT_OK(&r, MOC_destroy_registry());
+  return r;
+}
 
 int main(void) {
   Test tests[] = {
@@ -461,6 +551,8 @@ int main(void) {
       tst_multiplicity_AT_MOST,
       tst_multiplicity_ANY_NUMBER,
       tst_set_return_bool,
+      tst_set_return_str,
+      tst_set_arg,
   };
 
   const Result test_res = run_tests(tests, sizeof(tests) / sizeof(Test));

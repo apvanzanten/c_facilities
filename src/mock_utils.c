@@ -218,8 +218,8 @@ static STAT_Val populate_expectation(MOC_Expectation *                  exp,
       break;
     case MOC_IMPL_EXP_MOD_MULTIPLICITY: exp->multiplicity = mod->as.multiplicity; break;
     case MOC_IMPL_EXP_MOD_SET_RETURN: exp->return_setter = mod->as.set_return; break;
-    case MOC_IMPL_EXP_MOD_SET_ARG_POINTEE:
-      if(!STAT_is_OK(DAR_push_back(&exp->setters, &mod->as.set_arg_pointee))) {
+    case MOC_IMPL_EXP_MOD_SET_ARG:
+      if(!STAT_is_OK(DAR_push_back(&exp->setters, &mod->as.set_arg))) {
         return LOG_STAT(STAT_ERR_INTERNAL,
                         "failed to add arg pointee setter to expectation setters array");
       }
@@ -287,6 +287,31 @@ static STAT_Val try_match_call(const MOC_Expectation * exp,
   return STAT_OK_TRUE;
 }
 
+static STAT_Val set_call_args_from_expectation(const MOC_Expectation * exp,
+                                               size_t                  num_args,
+                                               void *                  arg_ptrs[]) {
+  if(exp == NULL) return LOG_STAT(STAT_ERR_ARGS, "exp is NULL");
+  if(arg_ptrs == NULL) return LOG_STAT(STAT_ERR_ARGS, "arg_ptrs is NULL");
+
+  for(const MOC_IMPL_SetArgPointee * setter = DAR_first(&exp->setters);
+      setter != DAR_end(&exp->setters);
+      setter++) {
+    if(setter->arg_idx >= num_args) {
+      return LOG_STAT(STAT_ERR_RANGE,
+                      "arg setter with arg_idx out of range: %zu >= %zu",
+                      setter->arg_idx,
+                      num_args);
+    }
+    if(setter->set_fn == NULL) {
+      return LOG_STAT(STAT_ERR_ARGS, "arg setter set_fn is NULL");
+    }
+
+    setter->set_fn(arg_ptrs[setter->arg_idx], setter->value_p);
+  }
+
+  return OK;
+}
+
 STAT_Val MOC_IMPL_register_made_call(const MOC_Expectation ** matched_exp,
                                      const char *             func_name,
                                      size_t                   num_args,
@@ -301,10 +326,11 @@ STAT_Val MOC_IMPL_register_made_call(const MOC_Expectation ** matched_exp,
     const STAT_Val match_st = try_match_call(exp, func_name, num_args, arg_ptrs);
 
     if(match_st == STAT_OK_TRUE) {
+      if(!STAT_is_OK(set_call_args_from_expectation(exp, num_args, arg_ptrs))) {
+        return LOG_STAT(STAT_ERR_INTERNAL, "failure during setting of arg pointees");
+      }
+
       exp->actual_num_calls++;
-
-      // TODO set args
-
       if(matched_exp != NULL) *matched_exp = exp;
       return OK;
     } else if(!STAT_is_OK(match_st)) {
@@ -320,7 +346,7 @@ STAT_Val MOC_IMPL_register_made_call(const MOC_Expectation ** matched_exp,
 STAT_Val MOC_set_return_val_from_expectation(const MOC_Expectation * exp, void * return_val_p) {
   if(exp == NULL) return LOG_STAT(STAT_ERR_ARGS, "exp is NULL");
   if(return_val_p == NULL) return LOG_STAT(STAT_ERR_ARGS, "return_val_p is NULL");
-  if(exp->return_setter.set_fn == NULL) return LOG_STAT(STAT_ERR_ARGS, "set_fn is NULL");
+  if(exp->return_setter.set_fn == NULL) return OK; // no SET_RETURN is also OK
   if(exp->return_setter.value_p == NULL) return LOG_STAT(STAT_ERR_ARGS, "value_p is NULL");
 
   exp->return_setter.set_fn(return_val_p, exp->return_setter.value_p);
