@@ -32,13 +32,10 @@
 // == types ==
 
 typedef struct {
-  void *  data;
-  size_t  element_size;       // size of each element in bytes
-  size_t  size;               // size of array in elements
-  uint8_t capacity_magnitude; // magnitude of capacity in elements
-
-  // NOTE size of data memory should always be: element_size * (2^capacity_magnitude)
-  // NOTE and always (2^capacity_magnitude) >= size
+  void * data;
+  size_t element_size; // size of each element in bytes
+  size_t size;         // size of array in elements
+  size_t capacity;     // capacity in elements
 } DAR_DArray;
 
 // ==============================

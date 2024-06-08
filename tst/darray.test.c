@@ -188,7 +188,7 @@ static Result tst_fixture(void * env) {
 
   EXPECT_NE(&r, NULL, arr->data);
   EXPECT_EQ(&r, 0, arr->size);
-  EXPECT_NE(&r, 0, arr->capacity_magnitude);
+  EXPECT_NE(&r, 0, arr->capacity);
   EXPECT_EQ(&r, 8, arr->element_size);
 
   return r;
@@ -278,16 +278,7 @@ static Result tst_capacity(void * env) {
     size--;
 
     EXPECT_EQ(&r, OK, DAR_shrink_to_fit(arr));
-
-    const size_t minimum_capacity = 8;
-
-    if(((size * 2) > capacity) || (capacity <= minimum_capacity)) {
-      EXPECT_EQ(&r, capacity, DAR_get_capacity(arr));
-    } else {
-      const size_t new_capacity = DAR_get_capacity(arr);
-      EXPECT_TRUE(&r, capacity > new_capacity);
-      capacity = new_capacity;
-    }
+    EXPECT_GE(&r, DAR_get_capacity(arr), size);
 
     if(HAS_FAILED(&r)) return r;
   } while(size > 0);

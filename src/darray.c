@@ -28,38 +28,27 @@
 
 #define OK STAT_OK
 
-#define MAX_SIZE               UINT32_MAX
-#define MIN_CAPACITY_MAGNITUDE 3
-#define MAX_CAPACITY_MAGNITUDE 63
-#define MAX_CAPACITY           (1LL << MAX_CAPACITY_MAGNITUDE)
-
-static size_t get_capacity(const DAR_DArray * this);
-static size_t get_capacity_from_magnitude(uint8_t magnitude);
-static size_t get_capacity_in_bytes_from_magnitude(size_t element_size, uint8_t magnitude);
+#define MAX_SIZE                 SIZE_MAX
+#define MAX_CAPACITY_IN_BYTES    SIZE_MAX
+#define MIN_CAPACITY_IN_BYTES    32 /* TODO */
+#define MIN_CAPACITY_IN_ELEMENTS 8
 
 static STAT_Val grow_capacity_as_needed(DAR_DArray * this, size_t num_elements_to_fit);
-static uint8_t get_required_capacity_magnitude(uint8_t current_cap_mag, size_t num_elements_to_fit);
+static STAT_Val set_capacity(DAR_DArray * this, size_t new_capacity);
+static size_t   get_min_capacity(size_t element_size);
+static size_t   get_max_capacity(size_t element_size);
 
 STAT_Val DAR_create(DAR_DArray * this, size_t element_size) {
   if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this arg is NULL");
+  if(element_size == 0) return LOG_STAT(STAT_ERR_ARGS, "element_size can't be 0");
 
-  this->size               = 0;
-  this->element_size       = element_size;
-  this->capacity_magnitude = MIN_CAPACITY_MAGNITUDE;
+  *this = (DAR_DArray){0};
 
-  const size_t capacity_in_bytes =
-      get_capacity_in_bytes_from_magnitude(element_size, MIN_CAPACITY_MAGNITUDE);
+  this->size         = 0;
+  this->element_size = element_size;
 
-  this->data = malloc(capacity_in_bytes);
-  if(this->data == NULL) {
-    return LOG_STAT(STAT_ERR_ALLOC,
-                    "failed to allocate data array with size %zu, errno: %d (\'%s\')",
-                    capacity_in_bytes,
-                    errno,
-                    strerror(errno));
-  }
-
-  return OK;
+  return LOG_STAT_IF_ERR(set_capacity(this, get_min_capacity(element_size)),
+                         "failed to set capacity for newly create array");
 }
 
 STAT_Val DAR_create_from(DAR_DArray * this, const DAR_DArray * src) {
@@ -105,7 +94,7 @@ STAT_Val DAR_destroy(DAR_DArray * this) {
 
 STAT_Val DAR_push_back(DAR_DArray * this, const void * element) {
   if(this == NULL || element == NULL) return LOG_STAT(STAT_ERR_ARGS, "this or element is NULL");
-  if(this->size == UINT32_MAX) return LOG_STAT(STAT_ERR_FULL, "DAR_Array at maximum size");
+  if(this->size == MAX_SIZE) return LOG_STAT(STAT_ERR_FULL, "DAR_Array at maximum size");
 
   const size_t new_size = this->size + 1;
 
@@ -131,27 +120,14 @@ STAT_Val DAR_pop_back(DAR_DArray * this) {
 
 STAT_Val DAR_shrink_to_fit(DAR_DArray * this) {
   if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
+  if(this->size == this->capacity) return OK;
 
-  const uint8_t new_capacity_magnitude =
-      get_required_capacity_magnitude(this->capacity_magnitude, this->size);
-  if(new_capacity_magnitude == this->capacity_magnitude) return OK;
+  const size_t min_capacity = get_min_capacity(this->element_size);
+  const size_t new_capacity = (this->size > min_capacity) ? this->size : min_capacity;
 
-  const size_t new_capacity_in_bytes =
-      get_capacity_in_bytes_from_magnitude(this->element_size, new_capacity_magnitude);
-
-  void * new_data = realloc(this->data, new_capacity_in_bytes);
-  if(new_data == NULL) {
-    return LOG_STAT(STAT_ERR_ALLOC,
-                    "failed to reallocate for shrink to size %zu, errno: %d (\'%s\')",
-                    new_capacity_in_bytes,
-                    errno,
-                    strerror(errno));
-  }
-
-  this->capacity_magnitude = new_capacity_magnitude;
-  this->data               = new_data;
-
-  return OK;
+  return LOG_STAT_IF_ERR(set_capacity(this, new_capacity),
+                         "failed to shrink capacity to %zu",
+                         new_capacity);
 }
 
 STAT_Val DAR_resize(DAR_DArray * this, size_t new_size) {
@@ -211,7 +187,7 @@ STAT_Val DAR_reserve(DAR_DArray * this, size_t num_elements) {
 
 size_t DAR_get_capacity(const DAR_DArray * this) {
   if(this == NULL) return 0;
-  return get_capacity(this);
+  return this->capacity;
 }
 size_t DAR_get_size_in_bytes(const DAR_DArray * this) {
   if(this == NULL) return 0;
@@ -350,60 +326,6 @@ bool DAR_equals(const DAR_DArray * lhs, const DAR_DArray * rhs) {
   return (memcmp(lhs->data, rhs->data, DAR_get_size_in_bytes(lhs)) == 0);
 }
 
-static size_t get_capacity_from_magnitude(uint8_t magnitude) { return 1LL << magnitude; }
-
-static size_t get_capacity(const DAR_DArray * this) {
-  return get_capacity_from_magnitude(this->capacity_magnitude);
-}
-
-static size_t get_capacity_in_bytes_from_magnitude(size_t element_size, uint8_t magnitude) {
-  return element_size * get_capacity_from_magnitude(magnitude);
-}
-
-static STAT_Val grow_capacity_as_needed(DAR_DArray * this, size_t num_elements_to_fit) {
-  if(this->capacity_magnitude == MAX_CAPACITY_MAGNITUDE) {
-    return LOG_STAT(STAT_ERR_FULL, "array capacity at max");
-  }
-
-  const uint8_t req_cap_magnitude =
-      get_required_capacity_magnitude(this->capacity_magnitude, num_elements_to_fit);
-
-  if(this->capacity_magnitude >= req_cap_magnitude) return OK;
-
-  const size_t new_capacity_in_bytes =
-      get_capacity_in_bytes_from_magnitude(this->element_size, req_cap_magnitude);
-
-  void * new_data = realloc(this->data, new_capacity_in_bytes);
-  if(new_data == NULL) {
-    return LOG_STAT(STAT_ERR_ALLOC,
-                    "failed to reallocate for growing capacity to size %zu, errno: %d (\'%s\')",
-                    new_capacity_in_bytes,
-                    errno,
-                    strerror(errno));
-  }
-
-  this->data               = new_data;
-  this->capacity_magnitude = req_cap_magnitude;
-
-  return OK;
-}
-
-static uint8_t get_required_capacity_magnitude(uint8_t current_cap_mag,
-                                               size_t  num_elements_to_fit) {
-  // NOTE this can possibly be done more efficiently with some intrinsics (or bit twiddling)
-  //      this is probably good enough, I may optimize it later when I have benchmarks set up
-  uint8_t cap_mag = current_cap_mag;
-  while((cap_mag > MIN_CAPACITY_MAGNITUDE) &&
-        (get_capacity_from_magnitude(cap_mag) > num_elements_to_fit)) {
-    cap_mag--;
-  }
-  while((cap_mag < MAX_CAPACITY_MAGNITUDE) &&
-        (get_capacity_from_magnitude(cap_mag) < num_elements_to_fit)) {
-    cap_mag++;
-  }
-  return cap_mag;
-}
-
 SPN_Span DAR_to_span(const DAR_DArray * this) {
   if(this == NULL) return (SPN_Span){0};
   return (SPN_Span){.begin = this->data, .len = this->size, .element_size = this->element_size};
@@ -427,6 +349,64 @@ STAT_Val DAR_create_from_span(DAR_DArray * this, SPN_Span span) {
     DAR_destroy(this);
     return LOG_STAT(STAT_ERR_INTERNAL, "failed to copy span data into array");
   }
+
+  return OK;
+}
+
+static STAT_Val grow_capacity_as_needed(DAR_DArray * this, size_t num_elements_to_fit) {
+  if(this->capacity >= num_elements_to_fit) return OK;
+
+  size_t new_capacity = this->capacity;
+
+  if(num_elements_to_fit > (MAX_SIZE / 2)) {
+    new_capacity = MAX_SIZE;
+  } else {
+    while(new_capacity <= num_elements_to_fit) new_capacity *= 2;
+  }
+
+  return LOG_STAT_IF_ERR(set_capacity(this, new_capacity),
+                         "failed to grow capacity to %zu",
+                         new_capacity);
+}
+
+static size_t get_min_capacity(size_t element_size) {
+  const size_t min_element_by_bytes = MIN_CAPACITY_IN_BYTES / element_size;
+  return (MIN_CAPACITY_IN_ELEMENTS > min_element_by_bytes) ? MIN_CAPACITY_IN_ELEMENTS
+                                                           : min_element_by_bytes;
+}
+
+static size_t get_max_capacity(size_t element_size) {
+  // an imperfect but safe approximation of the maximum capacity; will be exact if element_size is a
+  // power of two, otherwise will be conservative.
+  size_t element_size_magnitude = 0;
+  while(!((((size_t)1) << element_size_magnitude) >= element_size)) element_size_magnitude++;
+
+  return MAX_CAPACITY_IN_BYTES >> element_size_magnitude;
+}
+
+static STAT_Val set_capacity(DAR_DArray * this, size_t new_capacity) {
+  if(this->capacity == new_capacity) return OK;
+
+  if(new_capacity > get_max_capacity(this->element_size)) {
+    return LOG_STAT(STAT_ERR_ALLOC,
+                    "capacity in bytes required to store %zu elements exceeds max capacity of %zu",
+                    new_capacity,
+                    get_max_capacity(this->element_size));
+  }
+
+  const size_t new_capacity_in_bytes = new_capacity * this->element_size;
+
+  void * new_data = realloc(this->data, new_capacity_in_bytes);
+  if(new_data == NULL) {
+    return LOG_STAT(STAT_ERR_ALLOC,
+                    "failed to reallocate for growing capacity to size %zu, errno: %d (\'%s\')",
+                    new_capacity_in_bytes,
+                    errno,
+                    strerror(errno));
+  }
+
+  this->data     = new_data;
+  this->capacity = new_capacity;
 
   return OK;
 }
