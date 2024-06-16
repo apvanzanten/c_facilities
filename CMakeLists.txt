@@ -73,6 +73,9 @@ target_link_libraries(list PUBLIC log)
 add_library(hashtable ${SRC_DIR}/hashtable.c)
 target_link_libraries(hashtable PUBLIC log darray)
 
+add_library(ringbuffer ${SRC_DIR}/ringbuffer.c)
+target_link_libraries(ringbuffer PUBLIC log darray)
+
 add_library(bench_utils ${SRC_DIR}/bench_utils.c)
 target_link_libraries(bench_utils PUBLIC log darray m)
 
@@ -102,6 +105,7 @@ if (DEBUG)
     AddTest(list_test list.test.c list)
     AddTest(refcount_test refcount.test.c refcount)
     AddTest(hashtable_test hashtable.test.c hashtable)
+    AddTest(ringbuffer_test ringbuffer.test.c ringbuffer)
     AddTest(bench_utils_test bench_utils.test.c bench_utils)
     AddTest(mock_utils_test mock_utils.test.c mock_utils)
 endif()

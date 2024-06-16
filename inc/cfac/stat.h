@@ -76,6 +76,8 @@ typedef enum {
   STAT_OK_TRUE,
   STAT_OK_FALSE,
   STAT_OK_NOT_FOUND,
+  STAT_OK_FULL,
+  STAT_OK_EMPTY,
 
   // warnings
   STAT_WRN_OVERWRITTEN = STAT_INT_WRN_RANGE_FIRST,
@@ -113,6 +115,8 @@ static inline const char * STAT_to_str(STAT_Val code) {
   case STAT_OK_TRUE: return "STAT_OK_TRUE";
   case STAT_OK_FALSE: return "STAT_OK_FALSE";
   case STAT_OK_NOT_FOUND: return "STAT_OK_NOT_FOUND";
+  case STAT_OK_FULL: return "STAT_OK_FULL";
+  case STAT_OK_EMPTY: return "STAT_OK_EMPTY";
 
   // warnings
   case STAT_WRN_OVERWRITTEN: return "STAT_WRN_OVERWRITTEN";
