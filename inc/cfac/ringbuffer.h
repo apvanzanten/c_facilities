@@ -69,10 +69,15 @@ static inline const void * RBUF_INT_peek_const(const RBUF_RingBuffer * this) {
 }
 
 static inline size_t RBUF_get_num_items_on_buffer(const RBUF_RingBuffer * this) {
-  if(this->is_empty) return 0;
+  if(this == NULL || this->is_empty) return 0;
   if(this->begin_idx < this->end_idx) return (this->end_idx - this->begin_idx);
   if(this->begin_idx == this->end_idx) return this->buffer.size;
   return (this->buffer.size - (this->begin_idx - this->end_idx));
+}
+
+static inline size_t RBUF_get_space_in_num_items(const RBUF_RingBuffer * this) {
+  if(this == NULL) return 0;
+  return this->buffer.size - RBUF_get_num_items_on_buffer(this);
 }
 
 #endif

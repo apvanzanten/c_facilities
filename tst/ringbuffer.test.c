@@ -121,6 +121,7 @@ static Result tst_many_random(void) {
         EXPECT_EQ(&r, (in_idx - out_idx), RBUF_get_num_items_on_buffer(&buff));
         EXPECT_EQ(&r, (in_idx == out_idx), RBUF_is_empty(&buff));
         EXPECT_EQ(&r, ((in_idx - out_idx) < buffer_size), RBUF_has_space(&buff));
+        EXPECT_EQ(&r, buffer_size - (in_idx - out_idx), RBUF_get_space_in_num_items(&buff));
       }
 
       EXPECT_OK(&r, DAR_destroy(&elements));
