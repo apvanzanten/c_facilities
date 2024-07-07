@@ -24,9 +24,27 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_MSG_SIZE        2040
-#define MSG_TERMINATOR_SIZE 8
-#define MAX_MSG_BODY_SIZE   (MAX_MSG_SIZE - MSG_TERMINATOR_SIZE)
+#define MSG_TERMINATOR      ((const char[]){"\"\n"})
+#define MSG_TERMINATOR_SIZE sizeof(MSG_TERMINATOR)
+#define MAX_MSG_SIZE        (LOG_MAX_MSG_BODY_SIZE + MSG_TERMINATOR_SIZE)
+
+static int sensible_vsnprintf(char * buff, int max_len, const char * fmt, va_list args) {
+  // wrapper around vsnprintf that makes the interface less obtuse
+  int r = vsnprintf(buff, max_len, fmt, args);
+  // note max_len - 1, to exclude the null-terminator
+  return (r < (max_len - 1)) ? r : (max_len - 1);
+}
+static int sensible_snprintf(char * buff, int max_len, const char * fmt, ...) {
+  // wrapper around snprintf that makes the interface less obtuse
+  va_list args;
+  va_start(args, fmt);
+
+  int r = sensible_vsnprintf(buff, max_len, fmt, args);
+
+  va_end(args);
+
+  return r;
+}
 
 static void (*g_log_func)(const char *, size_t) = NULL;
 
@@ -114,7 +132,7 @@ static int write_location_to_msg(LOG_INT_Location location, char * msg, size_t m
   if(file_basename == NULL || *file_basename == '\0') file_basename = location.file;
 
   const int num_written =
-      snprintf(msg, max_len, "%s:%d:%s", file_basename, location.line, location.func);
+      sensible_snprintf(msg, max_len, "%s:%d:%s", file_basename, location.line, location.func);
 
   return num_written;
 }
@@ -128,35 +146,51 @@ static void write_to_log(STAT_Val         stat,
   char msg[MAX_MSG_SIZE] = "";
   int  msg_len           = 0;
 
-  const char * str_from_stat = STAT_to_str(stat);
+  const char * str_from_stat = ((stat == STAT_OK_INFO) ? "INFO" : STAT_to_str(stat));
+  const char   prefix_char   = (STAT_is_OK(stat) ? '-' : STAT_is_WRN(stat) ? '~' : '!');
 
-  msg_len += snprintf(msg, MAX_MSG_BODY_SIZE, "! %s", str_from_stat);
+  msg_len += sensible_snprintf(msg, LOG_MAX_MSG_BODY_SIZE, "%c%s", prefix_char, str_from_stat);
 
-  if((msg_len < MAX_MSG_BODY_SIZE) && (strcmp(stat_str, str_from_stat) != 0)) {
-    msg_len += snprintf(&msg[msg_len], (MAX_MSG_BODY_SIZE - msg_len), " (from `%s`)", stat_str);
+  if((stat != STAT_OK_INFO) && (msg_len < LOG_MAX_MSG_BODY_SIZE) &&
+     (strcmp(stat_str, str_from_stat) != 0)) {
+    msg_len += sensible_snprintf(&msg[msg_len],
+                                 (LOG_MAX_MSG_BODY_SIZE - msg_len),
+                                 " (from `%s`)",
+                                 stat_str);
   }
 
-  if(msg_len < MAX_MSG_BODY_SIZE) {
-    msg_len += snprintf(&msg[msg_len], (MAX_MSG_BODY_SIZE - msg_len), " at ");
+  if(msg_len < LOG_MAX_MSG_BODY_SIZE) {
+    msg_len += sensible_snprintf(&msg[msg_len], (LOG_MAX_MSG_BODY_SIZE - msg_len), " at ");
   }
 
-  if(msg_len < MAX_MSG_BODY_SIZE) {
-    msg_len += write_location_to_msg(location, &msg[msg_len], (MAX_MSG_BODY_SIZE - msg_len));
+  if(msg_len < LOG_MAX_MSG_BODY_SIZE) {
+    msg_len += write_location_to_msg(location, &msg[msg_len], (LOG_MAX_MSG_BODY_SIZE - msg_len));
   }
 
-  if(msg_len < MAX_MSG_BODY_SIZE) {
-    msg_len += snprintf(&msg[msg_len], (MAX_MSG_BODY_SIZE - msg_len), ": \"");
+  if(msg_len < LOG_MAX_MSG_BODY_SIZE) {
+    msg_len += sensible_snprintf(&msg[msg_len], (LOG_MAX_MSG_BODY_SIZE - msg_len), ": \"");
   }
 
-  if(msg_len < MAX_MSG_BODY_SIZE) {
-    msg_len += vsnprintf(&msg[msg_len], (MAX_MSG_BODY_SIZE - msg_len), fmt, args);
+  if(msg_len < LOG_MAX_MSG_BODY_SIZE) {
+    msg_len += sensible_vsnprintf(&msg[msg_len], (LOG_MAX_MSG_BODY_SIZE - msg_len), fmt, args);
   }
 
-  msg_len += snprintf(&msg[msg_len], (MAX_MSG_SIZE - msg_len), "\"\n");
+  msg_len += sprintf(&msg[msg_len], MSG_TERMINATOR);
 
   if(g_log_func != NULL) {
     g_log_func(msg, msg_len);
   } else { // if there is no log functions set, we just print to stderr as fallback
     fputs(msg, stderr);
+  }
+}
+
+void LOG_report_settings(void) {
+  LOG_STAT(STAT_OK_INFO,
+           "LOG_MAX_MSG_BODY_SIZE=%zu, MAX_MSG_SIZE=%zu",
+           LOG_MAX_MSG_BODY_SIZE,
+           MAX_MSG_SIZE);
+
+  if(g_log_func != NULL) {
+    LOG_STAT(STAT_OK_INFO, "custom log func set to addr: %p", g_log_func);
   }
 }

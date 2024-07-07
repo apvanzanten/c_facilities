@@ -20,7 +20,7 @@ $(BLD_DEBUG_DIR)/Makefile: CMakeLists.txt
 # NOTE we include 'all' as dependency for run_tests, though we only need a subset. We do this to 
 # continuously ensure we have a properly working build for 'all' targets
 run_tests: all
-	@cd $(BLD_DEBUG_DIR); ctest --output-on-failure
+	@cd $(BLD_DEBUG_DIR); ctest --output-on-failure -j
 
 run_benches: all
 	@cd $(BLD_RELEASE_DIR); ctest --verbose

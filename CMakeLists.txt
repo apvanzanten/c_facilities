@@ -21,7 +21,7 @@ set(SANITIZERS
     -fno-omit-frame-pointer;
     )
 
-set(DEBUG_FLAGS -Og; -g; -DDEBUG)
+set(DEBUG_FLAGS -Og; -g; -DDEBUG; -DLOG_MAX_MSG_BODY_SIZE=4096)
 set(RELEASE_FLAGS -O2)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)

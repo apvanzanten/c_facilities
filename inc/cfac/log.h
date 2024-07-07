@@ -25,6 +25,12 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#ifndef LOG_MAX_MSG_BODY_SIZE
+#define LOG_MAX_MSG_BODY_SIZE 1024
+#endif
+
+_Static_assert(LOG_MAX_MSG_BODY_SIZE >= 64, "LOG_MAX_MSG_BODY_SIZE unreasonably small");
+
 typedef struct {
   const char * file;
   int          line;
@@ -73,5 +79,7 @@ STAT_Val LOG_INT_stat_if_nok(STAT_Val         stat,
   LOG_INT_stat_if_nok((stat), #stat, (LOG_INT_Location){__FILE__, __LINE__, __func__}, __VA_ARGS__)
 
 void LOG_set_log_func(void (*func)(const char *, size_t));
+
+void LOG_report_settings(void);
 
 #endif

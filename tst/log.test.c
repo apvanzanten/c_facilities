@@ -20,13 +20,14 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "stat.h"
 #include "test_utils.h"
 
 #include "log.h"
 
-#define LOG_BUFFER_SIZE_MAX 1024
+#define LOG_BUFFER_SIZE_MAX (LOG_MAX_MSG_BODY_SIZE * 8)
 
 typedef struct {
   char   data[LOG_BUFFER_SIZE_MAX + 1];
@@ -171,12 +172,55 @@ static Result tst_LOG_STAT_IF_NOK(void) {
   return r;
 }
 
+static Result tst_log_report_settings(void) {
+  Result r = PASS;
+
+  setup_log_buffer_and_func();
+
+  LOG_report_settings();
+
+  return r;
+}
+
+static Result tst_max_out_log_msg_size(void) {
+  Result r = PASS;
+
+  setup_log_buffer_and_func();
+
+  const size_t buff_size = 100000;
+
+  char * buff = malloc(buff_size);
+  EXPECT_NE(&r, NULL, buff);
+  if(HAS_FAILED(&r)) return r;
+
+  char c = 'a';
+  for(size_t i = 0; i < buff_size - 1; i++) {
+    buff[i] = c;
+
+    if(c == 'z') {
+      c = 'a';
+    } else {
+      c++;
+    }
+  }
+
+  buff[buff_size - 1] = '\0';
+
+  LOG_STAT(STAT_OK_INFO, "big msg!: %s", buff);
+
+  free(buff);
+
+  return r;
+}
+
 int main(void) {
   Test tests[] = {
       tst_LOG_STAT,
       tst_LOG_STAT_IF,
       tst_LOG_STAT_IF_ERR,
       tst_LOG_STAT_IF_NOK,
+      tst_log_report_settings,
+      tst_max_out_log_msg_size,
   };
 
   return (run_tests(tests, sizeof(tests) / sizeof(Test)) == PASS) ? 0 : 1;
