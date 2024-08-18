@@ -20,6 +20,7 @@
 #ifndef CFAC_TEST_UTILS_H
 #define CFAC_TEST_UTILS_H
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
@@ -39,6 +40,14 @@ Result run_tests_with_fixture(const TestWithFixture tests[],
                               size_t                n,
                               SetupFn               setup,
                               TeardownFn            teardown);
+
+Result run_tests_with_args(const Test tests[], size_t n, int argc, const char ** argv);
+Result run_tests_with_fixture_and_args(const TestWithFixture tests[],
+                                       size_t                n,
+                                       SetupFn               setup,
+                                       TeardownFn            teardown,
+                                       int                   argc,
+                                       const char **         argv);
 
 void print_failure(const char * file, const char * func, int line, const char * fmt, ...);
 

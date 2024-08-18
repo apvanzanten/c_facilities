@@ -879,7 +879,7 @@ static Result tst_to_span(void * env) {
   return r;
 }
 
-int main(void) {
+int main(int argc, const char ** argv) {
   Test tests[] = {
       tst_create_destroy,
       tst_create_from_cstr,
@@ -919,12 +919,14 @@ int main(void) {
       tst_to_span,
   };
 
-  const Result test_res = run_tests(tests, sizeof(tests) / sizeof(Test));
+  const Result test_res = run_tests_with_args(tests, sizeof(tests) / sizeof(Test), argc, argv);
   const Result test_with_fixture_res =
-      run_tests_with_fixture(tests_with_fixture,
-                             sizeof(tests_with_fixture) / sizeof(TestWithFixture),
-                             setup,
-                             teardown);
+      run_tests_with_fixture_and_args(tests_with_fixture,
+                                      sizeof(tests_with_fixture) / sizeof(TestWithFixture),
+                                      setup,
+                                      teardown,
+                                      argc,
+                                      argv);
 
   return ((test_res == PASS) && (test_with_fixture_res == PASS)) ? 0 : 1;
 }
