@@ -95,3 +95,15 @@ STAT_Val RBUF_pop_front(RBUF_RingBuffer * this) {
 
   return OK;
 }
+
+STAT_Val RBUF_clear(RBUF_RingBuffer * this) {
+  if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
+  if(!RBUF_is_initialized(this)) return LOG_STAT(STAT_ERR_PRECONDITION, "not initialized");
+
+  if(this->is_empty) return OK;
+
+  this->end_idx  = this->begin_idx;
+  this->is_empty = true;
+
+  return OK;
+}

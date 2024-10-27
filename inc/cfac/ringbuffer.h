@@ -39,6 +39,7 @@ STAT_Val RBUF_destroy(RBUF_RingBuffer * this);
 STAT_Val RBUF_push_back(RBUF_RingBuffer * this, const void * val_p);
 STAT_Val RBUF_try_push_back(RBUF_RingBuffer * this, const void * val_p);
 STAT_Val RBUF_pop_front(RBUF_RingBuffer * this);
+STAT_Val RBUF_clear(RBUF_RingBuffer * this);
 
 static inline bool RBUF_is_initialized(const RBUF_RingBuffer * this) {
   return DAR_is_initialized(&this->buffer);

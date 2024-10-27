@@ -133,10 +133,40 @@ static Result tst_many_random(void) {
   return r;
 }
 
+static Result tst_clear(void) {
+  Result          r    = PASS;
+  RBUF_RingBuffer buff = {0};
+
+  uint8_t b = 3;
+
+  EXPECT_OK(&r, RBUF_create(&buff, sizeof(uint8_t), 4));
+  EXPECT_TRUE(&r, RBUF_is_initialized(&buff));
+
+  EXPECT_TRUE(&r, RBUF_is_empty(&buff));
+  EXPECT_TRUE(&r, RBUF_has_space(&buff));
+
+  EXPECT_OK(&r, RBUF_push_back(&buff, &b));
+  EXPECT_OK(&r, RBUF_push_back(&buff, &b));
+  EXPECT_OK(&r, RBUF_push_back(&buff, &b));
+  EXPECT_OK(&r, RBUF_push_back(&buff, &b));
+
+  EXPECT_FALSE(&r, RBUF_is_empty(&buff));
+  EXPECT_FALSE(&r, RBUF_has_space(&buff));
+
+  EXPECT_OK(&r, RBUF_clear(&buff));
+  EXPECT_TRUE(&r, RBUF_is_empty(&buff));
+  EXPECT_TRUE(&r, RBUF_has_space(&buff));
+
+  EXPECT_OK(&r, RBUF_destroy(&buff));
+
+  return r;
+}
+
 int main(void) {
   Test tests[] = {
       tst_create,
       tst_many_random,
+      tst_clear,
   };
 
   return (run_tests(tests, sizeof(tests) / sizeof(Test)) == PASS) ? 0 : 1;
