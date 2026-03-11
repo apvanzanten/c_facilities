@@ -47,6 +47,9 @@ bool SPN_equals(SPN_Span lhs, SPN_Span rhs);
 
 bool SPN_contains_subspan(SPN_Span span, SPN_Span subspan);
 
+// NOTE find functions use memcmp, if your type has a sparse memory layout (e.g. structs), this may
+// result in false negatives.
+
 STAT_Val SPN_find(SPN_Span span, const void * element, size_t * o_idx);
 STAT_Val SPN_find_at(SPN_Span span, const void * element, size_t at_idx, size_t * o_idx);
 
