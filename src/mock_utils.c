@@ -49,7 +49,7 @@ typedef struct MOC_Registry {
 
 static MOC_Registry g_registry;
 
-DAR_DArray * expectations() { return &g_registry.expectations; }
+DAR_DArray * expectations(void) { return &g_registry.expectations; }
 
 bool MOC_is_registry_initialized(void) { return DAR_is_initialized(expectations()); }
 
