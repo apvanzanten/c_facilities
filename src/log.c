@@ -175,7 +175,7 @@ static void write_to_log(STAT_Val         stat,
     msg_len += sensible_vsnprintf(&msg[msg_len], (LOG_MAX_MSG_BODY_SIZE - msg_len), fmt, args);
   }
 
-  msg_len += sprintf(&msg[msg_len], MSG_TERMINATOR);
+  msg_len += sprintf(&msg[msg_len], "%s", MSG_TERMINATOR);
 
   if(g_log_func != NULL) {
     g_log_func(msg, msg_len);
