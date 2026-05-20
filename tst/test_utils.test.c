@@ -290,6 +290,26 @@ static Result tst_expect_ok(void) {
   return r;
 }
 
+static Result tst_expect_pass(void) {
+  Result r = PASS;
+
+  const Result pass = PASS;
+  const Result fail = fail;
+
+  // pointer indirection to shut up compiler/cppcheck about conditions always being true/false
+  const Result * p_pass = &pass;
+  const Result * p_fail = &fail;
+
+  EXPECT_PASS(&r, *p_pass);
+  if(r != PASS) return FAIL;
+
+  EXPECT_PASS(&r, *p_fail);
+  if(r != FAIL) return FAIL;
+  r = PASS;
+
+  return r;
+}
+
 int main(void) {
   Test tests[] = {
       tst_expects_boolean,
@@ -301,6 +321,7 @@ int main(void) {
       tst_expects_arr_double,
       tst_has_failed,
       tst_expect_ok,
+      tst_expect_pass,
   };
 
   return (run_tests(tests, sizeof(tests) / sizeof(Test)) == PASS) ? 0 : 1;

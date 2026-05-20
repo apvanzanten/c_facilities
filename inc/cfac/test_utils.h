@@ -190,4 +190,13 @@ void print_failure(const char * file, const char * func, int line, const char * 
     }                                                                                              \
   } while(false)
 
+#define EXPECT_PASS(r_ptr, test_action)                                                            \
+  do {                                                                                             \
+    const Result r_copy = (test_action);                                                           \
+    if(r_copy != PASS) {                                                                           \
+      *(r_ptr) = FAIL;                                                                             \
+      PRINT_FAIL("%s failed", #test_action);                                                       \
+    }                                                                                              \
+  } while(false)
+
 #endif
