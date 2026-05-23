@@ -21,6 +21,7 @@
 #include <stddef.h>
 #include <stdio.h>
 
+#include "stat.h"
 #include "test_utils.h"
 
 static Result tst_expects_boolean(void) {
@@ -261,19 +262,21 @@ static Result tst_has_failed(void) {
   return PASS;
 }
 
-static Result tst_expect_ok(void) {
+static Result tst_expect_ok_nok(void) {
   Result r = PASS;
 
   const STAT_Val ok          = STAT_OK;
   const STAT_Val ok_finished = STAT_OK_FINISHED;
   const STAT_Val err_alloc   = STAT_ERR_ALLOC;
   const STAT_Val err_fatal   = STAT_ERR_FATAL;
+  const STAT_Val wrn_runtime = STAT_WRN_RUNTIME;
 
   // pointer indirection to shut up compiler/cppcheck about conditions always being true/false
   const STAT_Val * p_ok          = &ok;
   const STAT_Val * p_ok_finished = &ok_finished;
   const STAT_Val * p_err_alloc   = &err_alloc;
   const STAT_Val * p_err_fatal   = &err_fatal;
+  const STAT_Val * p_wrn_runtime = &wrn_runtime;
 
   EXPECT_OK(&r, *p_ok);
   if(r != PASS) return FAIL;
@@ -284,6 +287,23 @@ static Result tst_expect_ok(void) {
   if(r != FAIL) return FAIL;
   r = PASS;
   EXPECT_OK(&r, *p_err_fatal);
+  if(r != FAIL) return FAIL;
+  r = PASS;
+  EXPECT_OK(&r, *p_wrn_runtime);
+  if(r != FAIL) return FAIL;
+  r = PASS;
+
+  EXPECT_NOK(&r, *p_err_alloc);
+  if(r != PASS) return FAIL;
+  EXPECT_NOK(&r, *p_err_fatal);
+  if(r != PASS) return FAIL;
+  EXPECT_NOK(&r, *p_wrn_runtime);
+  if(r != PASS) return FAIL;
+
+  EXPECT_NOK(&r, *p_ok);
+  if(r != FAIL) return FAIL;
+  r = PASS;
+  EXPECT_NOK(&r, *p_ok_finished);
   if(r != FAIL) return FAIL;
   r = PASS;
 
@@ -310,7 +330,7 @@ static Result tst_expect_pass(void) {
   return r;
 }
 
-int main(void) {
+int main(int argc, const char ** argv) {
   Test tests[] = {
       tst_expects_boolean,
       tst_expects_equality,
@@ -320,9 +340,9 @@ int main(void) {
       tst_expects_arr_int,
       tst_expects_arr_double,
       tst_has_failed,
-      tst_expect_ok,
+      tst_expect_ok_nok,
       tst_expect_pass,
   };
 
-  return (run_tests(tests, sizeof(tests) / sizeof(Test)) == PASS) ? 0 : 1;
+  return (run_tests_with_args(tests, sizeof(tests) / sizeof(Test), argc, argv) == PASS) ? 0 : 1;
 }

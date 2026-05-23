@@ -25,8 +25,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "stat.h"
-
 typedef enum { FAIL, PASS } Result;
 
 typedef Result (*Test)(void);
@@ -50,8 +48,10 @@ Result run_tests_with_fixture_and_args(const TestWithFixture tests[],
                                        const char **         argv);
 
 void print_failure(const char * file, const char * func, int line, const char * fmt, ...);
+void print_info(const char * file, const char * func, int line, const char * fmt, ...);
 
 #define PRINT_FAIL(...) print_failure(__FILE__, __func__, __LINE__, __VA_ARGS__)
+#define PRINT_INFO(...) print_info(__FILE__, __func__, __LINE__, __VA_ARGS__)
 
 #define EXPECT_EQ(r_ptr, a, b)                                                                     \
   do {                                                                                             \
@@ -187,6 +187,17 @@ void print_failure(const char * file, const char * func, int line, const char * 
     if(!STAT_is_OK(stat_copy)) {                                                                   \
       *(r_ptr) = FAIL;                                                                             \
       PRINT_FAIL("%s == %s; != OK", #stat, STAT_to_str(stat_copy));                                \
+    }                                                                                              \
+  } while(false)
+
+#define EXPECT_NOK(r_ptr, stat)                                                                    \
+  do {                                                                                             \
+    const STAT_Val stat_copy = (stat);                                                             \
+    if(STAT_is_OK(stat_copy)) {                                                                    \
+      *(r_ptr) = FAIL;                                                                             \
+      PRINT_FAIL("(%s==%s) != NOK", #stat, STAT_to_str(stat_copy));                                \
+    } else {                                                                                       \
+      PRINT_INFO("err %s != OK, as expected", STAT_to_str(stat_copy));                             \
     }                                                                                              \
   } while(false)
 

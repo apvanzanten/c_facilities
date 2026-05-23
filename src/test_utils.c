@@ -56,17 +56,36 @@ static Settings get_settings(int argc, const char ** argv) {
   return settings;
 }
 
-void print_failure(const char * file, const char * func, int line, const char * fmt, ...) {
+void print_gen(const char * tag,
+               const char * file,
+               const char * func,
+               int          line,
+               const char * fmt,
+               va_list      args) {
+
   const char * file_basename = strrchr(file, '/');                          // find last '/'
   if(file_basename != NULL) file_basename++;                                // skip actual '/'
   if(file_basename == NULL || *file_basename == '\0') file_basename = file; // fallback, plain file
 
+  printf("--%s %s:%i in %s: ", tag, file_basename, line, func);
+  vprintf(fmt, args);
+  putc('\n', stdout);
+}
+
+void print_failure(const char * file, const char * func, int line, const char * fmt, ...) {
   va_list args;
   va_start(args, fmt);
 
-  printf("--FAIL %s:%i in %s: ", file_basename, line, func);
-  vprintf(fmt, args);
-  putc('\n', stdout);
+  print_gen("FAIL", file, func, line, fmt, args);
+
+  va_end(args);
+}
+
+void print_info(const char * file, const char * func, int line, const char * fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+
+  print_gen("INFO", file, func, line, fmt, args);
 
   va_end(args);
 }
@@ -113,8 +132,9 @@ static Result run_tests_impl(const Test tests[], size_t n, Settings settings) {
 
     if(tr == PASS) {
       num_passed++;
-    } else if(settings.stop_on_failure) {
-      break;
+    } else {
+      printf("test %zu out of %zu failed\n", (i + 1), n);
+      if(settings.stop_on_failure) break;
     }
   }
 
