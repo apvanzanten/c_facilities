@@ -110,8 +110,9 @@ static Result run_tests_with_fixture_impl(const TestWithFixture tests[],
 
       if((test_r == PASS) && (teardown_r == PASS)) {
         num_passed++;
-      } else if(settings.stop_on_failure) {
-        break;
+      } else {
+        printf("test %zu out of %zu failed\n", (i + 1), n);
+        if(settings.stop_on_failure) break;
       }
     }
   }
