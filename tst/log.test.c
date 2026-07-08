@@ -197,16 +197,25 @@ static Result tst_max_out_log_msg_size(void) {
   for(size_t i = 0; i < buff_size - 1; i++) {
     buff[i] = c;
 
-    if(c == 'z') {
-      c = 'a';
-    } else {
-      c++;
-    }
+    c = (c == 'z') ? 'a' : c + 1;
   }
 
   buff[buff_size - 1] = '\0';
 
   LOG_STAT(STAT_OK_INFO, "big msg!: %s", buff);
+
+  EXPECT_GE(&r, g_log_buff.size, LOG_MAX_MSG_BODY_SIZE);
+
+  const char * alphabet_start = strstr(g_log_buff.data, "abcdefghijklmnopqrstuvwxyz");
+  EXPECT_NE(&r, NULL, alphabet_start);
+  if(HAS_FAILED(&r)) return r;
+
+  c = 'a';
+  for(const char * p = alphabet_start; *p != '\0' && *p != '"'; p++) {
+    EXPECT_EQ(&r, c, *p);
+    c = (c == 'z') ? 'a' : c + 1;
+    if(HAS_FAILED(&r)) return r;
+  }
 
   free(buff);
 
