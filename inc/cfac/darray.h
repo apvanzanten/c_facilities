@@ -80,7 +80,6 @@ STAT_Val DAR_order_preserving_delete(DAR_DArray * this, size_t idx);
 bool DAR_equals(const DAR_DArray * lhs, const DAR_DArray * rhs);
 
 size_t DAR_get_capacity(const DAR_DArray * this);
-size_t DAR_get_capacity_in_bytes(const DAR_DArray * this);
 size_t DAR_get_size_in_bytes(const DAR_DArray * this);
 
 static inline size_t DAR_get_byte_idx(const DAR_DArray * this, size_t element_idx);

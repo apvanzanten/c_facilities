@@ -28,10 +28,10 @@
 
 #define OK STAT_OK
 
-#define MAX_SIZE                 SIZE_MAX
-#define MAX_CAPACITY_IN_BYTES    SIZE_MAX
-#define MIN_CAPACITY_IN_BYTES    32 /* TODO */
-#define MIN_CAPACITY_IN_ELEMENTS 8
+#define MAX_SIZE                       SIZE_MAX
+#define MAX_CAPACITY_IN_BYTES          SIZE_MAX
+#define MIN_CAPACITY_IN_BYTE_GUIDELINE 32 /* NOTE actual capacity may go slightly below */
+#define MIN_CAPACITY_IN_ELEMENTS       8
 
 static STAT_Val grow_capacity_as_needed(DAR_DArray * this, size_t num_elements_to_fit);
 static STAT_Val set_capacity(DAR_DArray * this, size_t new_capacity);
@@ -218,7 +218,7 @@ STAT_Val DAR_INT_get_checked_nonconst(DAR_DArray * this, size_t idx, void ** out
   if(out == NULL) return LOG_STAT(STAT_ERR_ARGS, "out is NULL");
 
   if(idx >= this->size) {
-    return LOG_STAT(STAT_ERR_RANGE, "idx %u out of range (size=%u)", idx, this->size);
+    return LOG_STAT(STAT_ERR_RANGE, "idx %zu out of range (size=%zu)", idx, this->size);
   }
 
   *out = DAR_get(this, idx);
@@ -231,7 +231,7 @@ STAT_Val DAR_INT_get_checked_const(const DAR_DArray * this, size_t idx, const vo
   if(out == NULL) return LOG_STAT(STAT_ERR_ARGS, "out is NULL");
 
   if(idx >= this->size) {
-    return LOG_STAT(STAT_ERR_RANGE, "idx %u out of range (size=%u)", idx, this->size);
+    return LOG_STAT(STAT_ERR_RANGE, "idx %zu out of range (size=%zu)", idx, this->size);
   }
 
   *out = DAR_get(this, idx);
@@ -244,7 +244,7 @@ STAT_Val DAR_set_checked(DAR_DArray * this, size_t idx, const void * value) {
   if(value == NULL) return LOG_STAT(STAT_ERR_ARGS, "value is NULL");
 
   if(idx >= this->size) {
-    return LOG_STAT(STAT_ERR_RANGE, "idx %u out of range (size=%u)", idx, this->size);
+    return LOG_STAT(STAT_ERR_RANGE, "idx %zu out of range (size=%zu)", idx, this->size);
   }
 
   DAR_set(this, idx, value);
@@ -273,7 +273,7 @@ STAT_Val DAR_push_back_span(DAR_DArray * this, SPN_Span span) {
   if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
   if(this->element_size != span.element_size) {
     return LOG_STAT(STAT_ERR_ARGS,
-                    "element size mismatch (%u != %u)",
+                    "element size mismatch (%zu != %zu)",
                     this->element_size,
                     span.element_size);
   }
@@ -293,7 +293,7 @@ STAT_Val DAR_push_back_darray(DAR_DArray * this, const DAR_DArray * other) {
 STAT_Val DAR_delete(DAR_DArray * this, size_t idx) {
   if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
   if(idx >= this->size) {
-    return LOG_STAT(STAT_ERR_RANGE, "idx %u out of range (size=%u)", idx, this->size);
+    return LOG_STAT(STAT_ERR_RANGE, "idx %zu out of range (size=%zu)", idx, this->size);
   }
 
   if(idx < (this->size - 1)) memcpy(DAR_get(this, idx), DAR_last(this), this->element_size);
@@ -304,7 +304,7 @@ STAT_Val DAR_delete(DAR_DArray * this, size_t idx) {
 STAT_Val DAR_order_preserving_delete(DAR_DArray * this, size_t idx) {
   if(this == NULL) return LOG_STAT(STAT_ERR_ARGS, "this is NULL");
   if(idx >= this->size) {
-    return LOG_STAT(STAT_ERR_RANGE, "idx %u out of range (size=%u)", idx, this->size);
+    return LOG_STAT(STAT_ERR_RANGE, "idx %zu out of range (size=%zu)", idx, this->size);
   }
 
   const size_t num_elements_to_move = (this->size - 1) - idx;
@@ -370,7 +370,7 @@ static STAT_Val grow_capacity_as_needed(DAR_DArray * this, size_t num_elements_t
 }
 
 static size_t get_min_capacity(size_t element_size) {
-  const size_t min_element_by_bytes = MIN_CAPACITY_IN_BYTES / element_size;
+  const size_t min_element_by_bytes = MIN_CAPACITY_IN_BYTE_GUIDELINE / element_size;
   return (MIN_CAPACITY_IN_ELEMENTS > min_element_by_bytes) ? MIN_CAPACITY_IN_ELEMENTS
                                                            : min_element_by_bytes;
 }

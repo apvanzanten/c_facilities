@@ -637,8 +637,8 @@ static Result tst_push_back_array(void * env) {
   EXPECT_EQ(&r, num_vals_a + num_zeroes + num_vals_b, arr->size);
   if(HAS_FAILED(&r)) return r;
 
-  EXPECT_EQ(&r, 0, memcmp(DAR_get(arr, 0), vals_a, num_vals_a));
-  EXPECT_EQ(&r, 0, memcmp(DAR_get(arr, num_vals_a + num_zeroes), vals_b, num_vals_b));
+  EXPECT_EQ(&r, 0, memcmp(DAR_get(arr, 0), vals_a, sizeof(vals_a)));
+  EXPECT_EQ(&r, 0, memcmp(DAR_get(arr, num_vals_a + num_zeroes), vals_b, sizeof(vals_b)));
 
   return r;
 }
@@ -668,8 +668,8 @@ static Result tst_push_back_span(void * env) {
   EXPECT_EQ(&r, num_vals_a + num_zeroes + num_vals_b, arr->size);
   if(HAS_FAILED(&r)) return r;
 
-  EXPECT_EQ(&r, 0, memcmp(DAR_get(arr, 0), vals_a, num_vals_a));
-  EXPECT_EQ(&r, 0, memcmp(DAR_get(arr, num_vals_a + num_zeroes), vals_b, num_vals_b));
+  EXPECT_EQ(&r, 0, memcmp(DAR_get(arr, 0), vals_a, sizeof(vals_a)));
+  EXPECT_EQ(&r, 0, memcmp(DAR_get(arr, num_vals_a + num_zeroes), vals_b, sizeof(vals_b)));
 
   return r;
 }
@@ -699,8 +699,8 @@ static Result tst_push_back_darray(void * env) {
   EXPECT_EQ(&r, num_vals_a + num_vals_b, arr->size);
   if(HAS_FAILED(&r)) return r;
 
-  EXPECT_EQ(&r, 0, memcmp(DAR_get(arr, 0), vals_a, num_vals_a));
-  EXPECT_EQ(&r, 0, memcmp(DAR_get(arr, num_vals_a), vals_b, num_vals_b));
+  EXPECT_EQ(&r, 0, memcmp(DAR_get(arr, 0), vals_a, sizeof(vals_a)));
+  EXPECT_EQ(&r, 0, memcmp(DAR_get(arr, num_vals_a), vals_b, sizeof(vals_b)));
 
   EXPECT_EQ(&r, OK, DAR_destroy(&other_arr));
 
@@ -726,7 +726,7 @@ static Result tst_create_from(void * env) {
   EXPECT_EQ(&r, arr->element_size, other_arr.element_size);
   if(HAS_FAILED(&r)) return r;
 
-  EXPECT_EQ(&r, 0, memcmp(arr->data, other_arr.data, arr->size));
+  EXPECT_EQ(&r, 0, memcmp(arr->data, other_arr.data, DAR_get_size_in_bytes(arr)));
 
   EXPECT_EQ(&r, OK, DAR_destroy(&other_arr));
 
