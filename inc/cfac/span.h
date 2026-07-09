@@ -71,14 +71,21 @@ static inline SPN_Span SPN_mut_to_const(SPN_MutSpan span) {
   return (SPN_Span){.begin = span.begin, .len = span.len, .element_size = span.element_size};
 }
 
-inline static size_t SPN_get_byte_idx(SPN_Span sp, size_t idx) { return (sp.element_size * idx); }
+#define SPN_get_byte_idx(sp, i)                                                                    \
+  _Generic((sp), SPN_Span: SPN_INT_get_byte_idx, SPN_MutSpan: SPN_INT_get_byte_idx_mut)(sp, i)
+inline static size_t SPN_INT_get_byte_idx(SPN_Span sp, size_t idx) {
+  return (sp.element_size * idx);
+}
+inline static size_t SPN_INT_get_byte_idx_mut(SPN_MutSpan sp, size_t idx) {
+  return (sp.element_size * idx);
+}
 
 #define SPN_get(sp, i) _Generic((sp), SPN_Span: SPN_INT_get, SPN_MutSpan: SPN_INT_get_mut)(sp, i)
 inline static const void * SPN_INT_get(SPN_Span sp, size_t idx) {
-  return &(((const uint8_t *)sp.begin)[sp.element_size * idx]);
+  return &(((const uint8_t *)sp.begin)[SPN_get_byte_idx(sp, idx)]);
 }
 inline static void * SPN_INT_get_mut(SPN_MutSpan sp, size_t idx) {
-  return &(((uint8_t *)sp.begin)[sp.element_size * idx]);
+  return &(((uint8_t *)sp.begin)[SPN_get_byte_idx(sp, idx)]);
 }
 
 #define SPN_first(sp) _Generic((sp), SPN_Span: SPN_INT_first, SPN_MutSpan: SPN_INT_first_mut)(sp)

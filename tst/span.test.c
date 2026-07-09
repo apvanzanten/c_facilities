@@ -20,6 +20,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "stat.h"
 #include "test_utils.h"
@@ -38,6 +39,44 @@ static Result tst_create_from_cstr(void) {
   EXPECT_EQ(&r, str, span.begin);
   EXPECT_EQ(&r, len, (int)span.len);
   EXPECT_EQ(&r, 1, span.element_size);
+
+  return r;
+}
+
+static Result tst_create_mut_from_cstr(void) {
+  Result r = PASS;
+
+  const char str1[] =
+      "I've scarcely begun to make you understand that I don't intend to play the game.";
+  const char str2[] = "You're about to witness the extent of my cricket knowledge.";
+
+  const int len1 = strlen(str1);
+
+  char * mut_str = strdup(str1);
+  EXPECT_NE(&r, NULL, mut_str);
+  if(HAS_FAILED(&r)) return r;
+
+  EXPECT_EQ(&r, len1, strlen(mut_str));
+
+  const SPN_MutSpan span = SPN_mut_span_from_cstr(mut_str);
+  EXPECT_EQ(&r, mut_str, span.begin);
+  EXPECT_EQ(&r, len1, (int)span.len);
+  EXPECT_EQ(&r, 1, span.element_size);
+
+  const int len2 = strlen(str2);
+
+  EXPECT_GE(&r, len1, len2); // must be to allow copying str2 over top of (copy of) str1
+  if(HAS_FAILED(&r)) return r;
+
+  for(size_t i = 0; i < len2; i++) {
+    char * p = SPN_get(span, i);
+    *p       = str2[i];
+  }
+  *((char *)SPN_get(span, len2)) = '\0';
+
+  EXPECT_EQ(&r, 0, strcmp(mut_str, str2));
+
+  free(mut_str);
 
   return r;
 }
@@ -859,10 +898,10 @@ static Result tst_mut(void) {
 
   int seq[] = {2, 3, 5, 7, 11, 13, 17, 19, 23};
 
-  SPN_MutSpan mut_span = {.begin        = seq,
-                          .element_size = sizeof(seq[0]),
-                          .len          = sizeof(seq) / sizeof(seq[0])};
-  SPN_Span    span     = SPN_mut_to_const(mut_span);
+  const SPN_MutSpan mut_span = {.begin        = seq,
+                                .element_size = sizeof(seq[0]),
+                                .len          = sizeof(seq) / sizeof(seq[0])};
+  const SPN_Span    span     = SPN_mut_to_const(mut_span);
   EXPECT_EQ(&r, span.begin, mut_span.begin);
   EXPECT_EQ(&r, span.len, mut_span.len);
   EXPECT_EQ(&r, span.element_size, mut_span.element_size);
@@ -877,6 +916,10 @@ static Result tst_mut(void) {
     EXPECT_EQ(&r, (int)i, *((int *)SPN_get(mut_span, i)));
     EXPECT_EQ(&r, (int)i, *((int *)SPN_get(span, i)));
   }
+
+  EXPECT_EQ(&r, SPN_first(span), SPN_first(mut_span));
+  EXPECT_EQ(&r, SPN_last(span), SPN_last(mut_span));
+  EXPECT_EQ(&r, SPN_end(span), SPN_end(mut_span));
 
   return r;
 }
@@ -913,6 +956,7 @@ static Result tst_swap(void) {
 int main(void) {
   Test tests[] = {
       tst_create_from_cstr,
+      tst_create_mut_from_cstr,
       tst_get_size_in_bytes,
       tst_get_char,
       tst_get_int,
