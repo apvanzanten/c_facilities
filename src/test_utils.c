@@ -101,19 +101,32 @@ static Result run_tests_with_fixture_impl(const TestWithFixture tests[],
   for(size_t i = 0; i < n; i++) {
     void * env = NULL;
 
-    Result setup_r = (*setup)(&env);
+    Result setup_r    = FAIL;
+    Result test_r     = FAIL;
+    Result teardown_r = FAIL;
+
+    setup_r = (*setup)(&env);
+
     if(setup_r == PASS) {
-      const Result test_r     = tests[i](env);
-      const Result teardown_r = teardown(&env);
+      test_r     = tests[i](env);
+      teardown_r = teardown(&env);
+    }
 
-      num_executed++;
+    num_executed++;
 
-      if((test_r == PASS) && (teardown_r == PASS)) {
-        num_passed++;
-      } else {
-        printf("test %zu out of %zu failed\n", (i + 1), n);
-        if(settings.stop_on_failure) break;
+    if((setup_r == PASS) && (test_r == PASS) && (teardown_r == PASS)) {
+      num_passed++;
+    } else {
+      printf("test %zu out of %zu failed", (i + 1), n);
+      if(setup_r != PASS) {
+        printf(" in setup");
+      } else if(test_r != PASS) {
+        // no special print for failure in test
+      } else { // failure only in teardown
+        printf(" in teardown");
       }
+      printf("\n");
+      if(settings.stop_on_failure) break;
     }
   }
 

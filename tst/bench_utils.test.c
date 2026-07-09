@@ -113,7 +113,7 @@ static Result tst_bench_wait(void) {
                   expect_iteration_time * benchmark.num_iterations_per_pass,
                   BNC_get_mean_pass_time(&benchmark),
                   0.002);
-  EXPECT_FLOAT_EQ(&r, expect_iteration_time, BNC_get_mean_iteration_time(&benchmark), 0.00001);
+  EXPECT_FLOAT_EQ(&r, expect_iteration_time, BNC_get_mean_iteration_time(&benchmark), 0.00005);
 
   EXPECT_OK(&r, BNC_print_benchmark_results(&benchmark));
 

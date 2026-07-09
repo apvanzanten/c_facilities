@@ -53,6 +53,14 @@ void print_info(const char * file, const char * func, int line, const char * fmt
 #define PRINT_FAIL(...) print_failure(__FILE__, __func__, __LINE__, __VA_ARGS__)
 #define PRINT_INFO(...) print_info(__FILE__, __func__, __LINE__, __VA_ARGS__)
 
+#define FAIL_WITH_MSG(r_ptr, ...)                                                                  \
+  do {                                                                                             \
+    *(r_ptr) = FAIL;                                                                               \
+    PRINT_FAIL(__VA_ARGS__);                                                                       \
+  } while(false)
+
+// TODO use FAIL_WITH_MSG in other macros below
+
 #define EXPECT_EQ(r_ptr, a, b)                                                                     \
   do {                                                                                             \
     if((a) != (b)) {                                                                               \

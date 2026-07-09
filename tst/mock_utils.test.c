@@ -32,6 +32,8 @@ static Result tst_init_verify_no_calls(void) {
 
   EXPECT_OK(&r, MOC_init_registry());
 
+  EXPECT_OK(&r, MOC_init_registry()); // second time, it's already initialized, that's OK
+
   EXPECT_TRUE(&r, MOC_is_all_registered_expectations_matched());
 
   EXPECT_OK(&r, MOC_clear_registry());
@@ -600,6 +602,43 @@ static Result tst_expectation_and_call_arg_mismatch(void) {
   return r;
 }
 
+static Result tst_print_expectation_report(void) {
+  Result r = PASS;
+  EXPECT_OK(&r, MOC_init_registry());
+
+  int three = 3;
+  int five  = 5;
+  int two   = 2;
+  int one   = 1;
+  int zero  = 0;
+
+  EXPECT_OK(&r, EXPECT_CALL(baz, MATCH_ARG(0, &five, comp_int)));
+  EXPECT_OK(&r, EXPECT_CALL(baz, MATCH_ARG(0, &three, comp_int), TIMES(EXACTLY(2))));
+  EXPECT_OK(&r, EXPECT_CALL(baz, MATCH_ARG(0, &two, comp_int), TIMES(AT_LEAST(3))));
+  EXPECT_OK(&r, EXPECT_CALL(baz, MATCH_ARG(0, &one, comp_int), TIMES(AT_MOST(1))));
+  EXPECT_OK(&r, EXPECT_CALL(baz, MATCH_ARG(0, &zero, comp_int), TIMES(ANY_NUMBER())));
+  baz(5);
+  baz(3);
+  baz(3);
+  baz(2);
+  baz(2);
+  baz(1);
+  baz(1);
+  baz(0);
+  baz(0);
+
+  // NOTE we can't easily check for printf calls (or stdout), so the user will need to confirm
+  // output
+  printf("report with verbosity 'all'\n");
+  EXPECT_OK(&r, MOC_print_expectations_report(MOC_REPORT_VERBOSITY_ALL));
+
+  printf("report with verbosity 'fail only'\n");
+  EXPECT_OK(&r, MOC_print_expectations_report(MOC_REPORT_VERBOSITY_FAIL_ONLY));
+
+  EXPECT_OK(&r, MOC_destroy_registry());
+  return r;
+}
+
 int main(void) {
   Test tests[] = {
       tst_init_verify_no_calls,
@@ -615,6 +654,7 @@ int main(void) {
       tst_set_arg,
       tst_expectation_and_call_mismatch,
       tst_expectation_and_call_arg_mismatch,
+      tst_print_expectation_report,
   };
 
   const Result test_res = run_tests(tests, sizeof(tests) / sizeof(Test));

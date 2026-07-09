@@ -20,6 +20,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "stat.h"
 #include "test_utils.h"
@@ -330,6 +331,426 @@ static Result tst_expect_pass(void) {
   return r;
 }
 
+static size_t g_passing_test_counter = 0;
+static size_t g_failing_test_counter = 0;
+
+static Result passing_test(void) {
+  g_passing_test_counter++;
+  return PASS;
+}
+static Result failing_test(void) {
+  g_failing_test_counter++;
+  return FAIL;
+}
+
+static Result tst_run_tests(void) {
+  Result r = PASS;
+
+  g_passing_test_counter = 0;
+  g_failing_test_counter = 0;
+  EXPECT_EQ(&r, PASS, run_tests((Test[]){passing_test, passing_test}, 2));
+  EXPECT_EQ(&r, 2, g_passing_test_counter);
+  EXPECT_EQ(&r, 0, g_failing_test_counter);
+
+  g_passing_test_counter = 0;
+  g_failing_test_counter = 0;
+  EXPECT_EQ(&r,
+            FAIL,
+            run_tests(
+                (Test[]){
+                    passing_test,
+                    passing_test,
+                    failing_test,
+                    failing_test,
+                    passing_test,
+                },
+                5));
+  EXPECT_EQ(&r, 3, g_passing_test_counter);
+  EXPECT_EQ(&r, 2, g_failing_test_counter);
+
+  // with --stop-on-failure
+  g_passing_test_counter = 0;
+  g_failing_test_counter = 0;
+  EXPECT_EQ(&r,
+            FAIL,
+            run_tests_with_args(
+                (Test[]){
+                    passing_test,
+                    passing_test,
+                    failing_test, // will stop executing after this one
+                    failing_test,
+                    passing_test,
+                },
+                5,
+                2,
+                (const char *[]){__func__, "--stop-on-failure"}));
+  EXPECT_EQ(&r, 2, g_passing_test_counter);
+  EXPECT_EQ(&r, 1, g_failing_test_counter);
+
+  return r;
+}
+
+typedef enum Flag {
+  FLAG_NONE = 0,
+  FLAG_BLUE,
+  FLAG_RED,
+} Flag;
+
+static const char * flag_to_str(Flag flag) {
+  switch(flag) {
+  case FLAG_NONE: return "FLAG_NONE";
+  case FLAG_BLUE: return "FLAG_BLUE";
+  case FLAG_RED: return "FLAG_RED";
+  }
+  return "UNKNOWN";
+}
+
+typedef struct Fixture {
+  Flag flag;
+} Fixture;
+
+#define FLAG_ARRAY_SIZE 16
+
+static Flag   g_input_flag_array[FLAG_ARRAY_SIZE]  = {0};
+static Flag   g_output_flag_array[FLAG_ARRAY_SIZE] = {0};
+static size_t g_input_flag_idx                     = 0;
+static size_t g_output_flag_idx                    = 0;
+
+static size_t g_fixture_setup_counter    = 0;
+static size_t g_fixture_teardown_counter = 0;
+static size_t g_fixture_test_counter     = 0;
+static size_t g_fail_setup_at_count      = FLAG_ARRAY_SIZE;
+static size_t g_fail_test_at_count       = FLAG_ARRAY_SIZE;
+static size_t g_fail_teardown_at_count   = FLAG_ARRAY_SIZE;
+
+static Result setup(void ** fixture_pp) {
+  Result r = PASS;
+
+  g_fixture_setup_counter++;
+
+  // NOTE fail before allocate
+  if(g_fixture_setup_counter == g_fail_setup_at_count) {
+    FAIL_WITH_MSG(&r, "failing setup at count %zu", g_fixture_setup_counter);
+    return r;
+  }
+
+  EXPECT_LT(&r, g_input_flag_idx, FLAG_ARRAY_SIZE);
+  EXPECT_LT(&r, g_output_flag_idx, FLAG_ARRAY_SIZE);
+  if(HAS_FAILED(&r)) return r;
+
+  EXPECT_EQ(&r, FLAG_NONE, g_output_flag_array[g_output_flag_idx]);
+  if(HAS_FAILED(&r)) return r;
+
+  EXPECT_NE(&r, NULL, fixture_pp);
+  if(HAS_FAILED(&r)) return r;
+
+  Fixture * fixture_p = malloc(sizeof(Fixture));
+  EXPECT_NE(&r, NULL, fixture_p);
+  if(HAS_FAILED(&r)) return r;
+
+  *fixture_p = (Fixture){.flag = FLAG_NONE};
+
+  *fixture_pp = fixture_p;
+
+  return r;
+}
+
+static Result teardown(void ** fixture_pp) {
+  Result r = PASS;
+
+  g_fixture_teardown_counter++;
+
+  EXPECT_NE(&r, NULL, fixture_pp);
+  if(HAS_FAILED(&r)) return r;
+
+  Fixture * fixture_p = *fixture_pp;
+  EXPECT_NE(&r, NULL, fixture_p);
+  if(HAS_FAILED(&r)) return r;
+
+  printf("%s #%zu:", __func__, g_fixture_teardown_counter);
+
+  if(fixture_p->flag != FLAG_NONE) {
+    g_output_flag_array[g_output_flag_idx] = fixture_p->flag;
+    printf(" set output %zu to %s\n", g_output_flag_idx, flag_to_str(fixture_p->flag));
+    g_output_flag_idx++;
+  } else {
+    printf(" did not set output, as fixture flag is FLAG_NONE");
+  }
+
+  free(fixture_p);
+
+  // NOTE fail last, so we've already freed
+  if(g_fixture_teardown_counter == g_fail_teardown_at_count) {
+    FAIL_WITH_MSG(&r, "failing teardown at count %zu", g_fixture_teardown_counter);
+  }
+
+  return r;
+}
+
+static Result test_with_fixture_impl(void * fixture_void_p, Flag maybe_overrule) {
+  Result r = PASS;
+
+  g_fixture_test_counter++;
+
+  if(g_fixture_test_counter == g_fail_test_at_count) {
+    FAIL_WITH_MSG(&r, "failing test at count %zu", g_fixture_test_counter);
+    return r;
+  }
+
+  Fixture * fixture_p = fixture_void_p;
+  EXPECT_NE(&r, NULL, fixture_p);
+  if(HAS_FAILED(&r)) return r;
+
+  printf("%s #%zu:", __func__, g_fixture_test_counter);
+
+  if(maybe_overrule == FLAG_NONE) {
+    // no overrule, take from input
+    printf(" from input at idx: %zu,", g_input_flag_idx);
+    fixture_p->flag = g_input_flag_array[g_input_flag_idx++];
+  } else {
+    fixture_p->flag = maybe_overrule;
+  }
+  printf("set flag to %s\n", flag_to_str(fixture_p->flag));
+
+  return r;
+}
+
+static Result test_with_fixture_reading_input(void * fixture_void_p) {
+  return test_with_fixture_impl(fixture_void_p, FLAG_NONE);
+}
+
+static Result test_with_fixture_setting_to_blue(void * fixture_void_p) {
+  return test_with_fixture_impl(fixture_void_p, FLAG_BLUE);
+}
+
+static Result test_with_fixture_setting_to_red(void * fixture_void_p) {
+  return test_with_fixture_impl(fixture_void_p, FLAG_RED);
+}
+
+static Result set_flags_and_reset_counters(const Flag * input_flags) {
+  Result r = PASS;
+  EXPECT_NE(&r, NULL, input_flags);
+  if(HAS_FAILED(&r)) return r;
+
+  bool is_all_set = false;
+  for(size_t i = 0; i < FLAG_ARRAY_SIZE; i++) {
+    if(!is_all_set && input_flags[i] == FLAG_NONE) is_all_set = true;
+    g_input_flag_array[i] = (is_all_set ? FLAG_NONE : input_flags[i]);
+
+    g_output_flag_array[i] = FLAG_NONE;
+  }
+  EXPECT_TRUE(&r, is_all_set);
+
+  g_fixture_setup_counter    = 0;
+  g_fixture_teardown_counter = 0;
+  g_fixture_test_counter     = 0;
+  g_input_flag_idx           = 0;
+  g_output_flag_idx          = 0;
+  g_fail_setup_at_count      = FLAG_ARRAY_SIZE;
+  g_fail_test_at_count       = FLAG_ARRAY_SIZE;
+  g_fail_teardown_at_count   = FLAG_ARRAY_SIZE;
+
+  return r;
+}
+
+static Result check_flags(const Flag * expect_flags) {
+  Result r = PASS;
+  EXPECT_NE(&r, NULL, expect_flags);
+  if(HAS_FAILED(&r)) return r;
+
+  bool is_all_checked = false;
+  for(size_t i = 0; i < FLAG_ARRAY_SIZE; i++) {
+    EXPECT_EQ(&r, expect_flags[i], g_output_flag_array[i]);
+    if(HAS_FAILED(&r)) {
+      printf("%s: fail check on flag %zu; expected: %s, actual: %s\n",
+             __func__,
+             i,
+             flag_to_str(expect_flags[i]),
+             flag_to_str(g_output_flag_array[i]));
+      break;
+    }
+    if(expect_flags[i] == FLAG_NONE) {
+      is_all_checked = true;
+      break;
+    }
+  }
+  EXPECT_TRUE(&r, is_all_checked);
+
+  return r;
+}
+
+static Result tst_run_tests_with_fixture_pass(void) {
+  Result r = PASS;
+  printf("== %s starting ==\n", __func__);
+
+  EXPECT_PASS(&r,
+              set_flags_and_reset_counters((Flag[]){
+                  FLAG_BLUE,
+                  FLAG_RED,
+                  FLAG_RED,
+                  FLAG_NONE,
+              }));
+  EXPECT_PASS(&r,
+              run_tests_with_fixture(
+                  (TestWithFixture[]){
+                      test_with_fixture_reading_input,
+                      test_with_fixture_setting_to_blue,
+                      test_with_fixture_reading_input,
+                      test_with_fixture_setting_to_blue,
+                      test_with_fixture_setting_to_red,
+                      test_with_fixture_reading_input,
+                  },
+                  6,
+                  setup,
+                  teardown));
+  EXPECT_EQ(&r, 6, g_fixture_setup_counter);
+  EXPECT_EQ(&r, 6, g_fixture_test_counter);
+  EXPECT_EQ(&r, 6, g_fixture_teardown_counter);
+  EXPECT_PASS(&r,
+              check_flags((Flag[]){
+                  FLAG_BLUE,
+                  FLAG_BLUE,
+                  FLAG_RED,
+                  FLAG_BLUE,
+                  FLAG_RED,
+                  FLAG_RED,
+                  FLAG_NONE,
+              }));
+
+  return r;
+}
+
+static Result tst_run_tests_with_fixture_fail(void) {
+  Result r = PASS;
+  printf("== %s starting ==\n", __func__);
+
+  EXPECT_PASS(&r,
+              set_flags_and_reset_counters((Flag[]){
+                  FLAG_BLUE,
+                  FLAG_RED,
+                  FLAG_RED,
+                  FLAG_NONE,
+              }));
+  g_fail_setup_at_count    = 2;
+  g_fail_teardown_at_count = 4;
+  g_fail_test_at_count     = 5;
+  EXPECT_EQ(&r,
+            FAIL,
+            run_tests_with_fixture(
+                (TestWithFixture[]){
+                    test_with_fixture_reading_input,
+                    test_with_fixture_setting_to_blue, // fail setup
+                    test_with_fixture_reading_input,
+                    test_with_fixture_setting_to_blue, // fail teardown
+                    test_with_fixture_setting_to_red,  // fail test
+                    test_with_fixture_reading_input,
+                },
+                6,
+                setup,
+                teardown));
+  EXPECT_EQ(&r, 6, g_fixture_setup_counter); // failed setup is still counted
+  EXPECT_EQ(&r, 5, g_fixture_test_counter);  // 1 less due to failed setup; failed test is counted
+  EXPECT_EQ(&r, 5, g_fixture_teardown_counter); // 1 less due to failed setup
+  EXPECT_PASS(&r,
+              check_flags((Flag[]){
+                  FLAG_BLUE,
+                  // FLAG_BLUE, <- fails setup, so test is not executed
+                  FLAG_RED,
+                  FLAG_BLUE, // <-- fails teardown, but not before saving output
+                  // FLAG_RED, // <-- fails test, so no output
+                  FLAG_RED,
+                  FLAG_NONE,
+              }));
+
+  return r;
+}
+
+static Result tst_run_tests_with_fixture_and_args_fail(void) {
+  Result r = PASS;
+  printf("== %s starting ==\n", __func__);
+
+  EXPECT_PASS(&r, set_flags_and_reset_counters((Flag[]){FLAG_NONE}));
+  g_fail_setup_at_count = 2;
+  EXPECT_EQ(&r,
+            FAIL,
+            run_tests_with_fixture_and_args(
+                (TestWithFixture[]){
+                    test_with_fixture_setting_to_red,
+                    test_with_fixture_setting_to_blue, // fail setup
+                    test_with_fixture_reading_input,   // no longer executed, due to stop-on-failure
+                },
+                3,
+                setup,
+                teardown,
+                2,
+                (const char *[]){"bla", "--stop-on-failure"}));
+  EXPECT_EQ(&r, 2, g_fixture_setup_counter);    // failed setup is still counted
+  EXPECT_EQ(&r, 1, g_fixture_test_counter);     // only 1 due to failed setup on 2
+  EXPECT_EQ(&r, 1, g_fixture_teardown_counter); // only 1 due to failed setup on 2
+  EXPECT_PASS(&r,
+              check_flags((Flag[]){
+                  FLAG_RED,
+                  FLAG_NONE, // end because failure on setup #2
+              }));
+
+  EXPECT_PASS(&r, set_flags_and_reset_counters((Flag[]){FLAG_NONE}));
+  g_fail_test_at_count = 3;
+  EXPECT_EQ(&r,
+            FAIL,
+            run_tests_with_fixture_and_args(
+                (TestWithFixture[]){
+                    test_with_fixture_setting_to_red,
+                    test_with_fixture_setting_to_blue,
+                    test_with_fixture_setting_to_red, // fail test
+                    test_with_fixture_reading_input,  // no longer executed, due to stop-on-failure
+                },
+                4,
+                setup,
+                teardown,
+                2,
+                (const char *[]){"bla", "--stop-on-failure"}));
+  EXPECT_EQ(&r, 3, g_fixture_setup_counter);
+  EXPECT_EQ(&r, 3, g_fixture_test_counter);     // failed test is still counted
+  EXPECT_EQ(&r, 3, g_fixture_teardown_counter); // failed test still must be torn down
+  EXPECT_PASS(&r,
+              check_flags((Flag[]){
+                  FLAG_RED,
+                  FLAG_BLUE,
+                  FLAG_NONE, // end because failure on test #3
+              }));
+
+  EXPECT_PASS(&r, set_flags_and_reset_counters((Flag[]){FLAG_NONE}));
+  g_fail_teardown_at_count = 4;
+  EXPECT_EQ(&r,
+            FAIL,
+            run_tests_with_fixture_and_args(
+                (TestWithFixture[]){
+                    test_with_fixture_setting_to_red,
+                    test_with_fixture_setting_to_blue,
+                    test_with_fixture_setting_to_red,
+                    test_with_fixture_setting_to_blue, // fail teardown
+                    test_with_fixture_reading_input,   // no longer executed, due to stop-on-failure
+                },
+                5,
+                setup,
+                teardown,
+                2,
+                (const char *[]){"bla", "--stop-on-failure"}));
+  EXPECT_EQ(&r, 4, g_fixture_setup_counter);
+  EXPECT_EQ(&r, 4, g_fixture_test_counter);
+  EXPECT_EQ(&r, 4, g_fixture_teardown_counter); // failed teardown is still counted
+  EXPECT_PASS(&r,
+              check_flags((Flag[]){
+                  FLAG_RED,
+                  FLAG_BLUE,
+                  FLAG_RED,
+                  FLAG_BLUE, // failed teardown still stores output
+                  FLAG_NONE, // end because failure on teardown #4
+              }));
+
+  return r;
+}
+
 int main(int argc, const char ** argv) {
   Test tests[] = {
       tst_expects_boolean,
@@ -342,6 +763,10 @@ int main(int argc, const char ** argv) {
       tst_has_failed,
       tst_expect_ok_nok,
       tst_expect_pass,
+      tst_run_tests,
+      tst_run_tests_with_fixture_pass,
+      tst_run_tests_with_fixture_fail,
+      tst_run_tests_with_fixture_and_args_fail,
   };
 
   return (run_tests_with_args(tests, sizeof(tests) / sizeof(Test), argc, argv) == PASS) ? 0 : 1;
