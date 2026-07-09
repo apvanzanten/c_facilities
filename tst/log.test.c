@@ -81,6 +81,19 @@ static Result tst_LOG_STAT(void) {
   EXPECT_NE(&r, NULL, strstr(g_log_buff.data, "\"test LOG_STAT some more, also 9001\""));
   EXPECT_NE(&r, NULL, strstr(g_log_buff.data, "\n"));
 
+  init_log_buff(); // clear buff
+
+  const STAT_Val st_err_alloc = STAT_ERR_ALLOC;
+
+  EXPECT_EQ(&r, STAT_ERR_ALLOC, LOG_STAT(st_err_alloc, "test LOG_STAT with indirect STAT"));
+
+  EXPECT_NE(&r, 0, g_log_buff.size);
+  EXPECT_NE(&r, NULL, strstr(g_log_buff.data, "st_err_alloc"));
+  EXPECT_NE(&r, NULL, strstr(g_log_buff.data, "STAT_ERR_ALLOC"));
+  EXPECT_NE(&r, NULL, strstr(g_log_buff.data, __func__));
+  EXPECT_NE(&r, NULL, strstr(g_log_buff.data, "\"test LOG_STAT with indirect STAT\""));
+  EXPECT_NE(&r, NULL, strstr(g_log_buff.data, "\n"));
+
   return r;
 }
 

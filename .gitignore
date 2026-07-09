@@ -55,3 +55,4 @@ bld
 .vscode
 bld_debug
 bld_release
+bld_coverage

@@ -24,6 +24,8 @@ set(SANITIZERS
 set(DEBUG_FLAGS -Og; -g; -DDEBUG; -DLOG_MAX_MSG_BODY_SIZE=4096)
 set(RELEASE_FLAGS -O2)
 
+set(COVERAGE_FLAGS --coverage)
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_compile_options(${WARNINGS})
@@ -32,6 +34,11 @@ if (DEBUG)
     add_compile_options(${DEBUG_FLAGS})
     add_compile_options(${SANITIZERS})
     add_link_options(${SANITIZERS})
+
+    if (COVERAGE)
+        add_compile_options(${COVERAGE_FLAGS})
+        add_link_options(${COVERAGE_FLAGS})
+    endif()
 else()
     add_compile_options(${RELEASE_FLAGS})
 endif()
@@ -87,7 +94,6 @@ target_link_libraries(mock_utils PUBLIC log darray)
 enable_testing()
 
 if (DEBUG)
-
     function(AddTest TEST_NAME TEST_SOURCE #[[test dependencies...]])
         add_executable(${TEST_NAME} ${TST_DIR}/${TEST_SOURCE})
 
