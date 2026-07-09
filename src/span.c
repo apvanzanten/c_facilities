@@ -27,6 +27,9 @@
 #define OK STAT_OK
 
 static bool is_valid(SPN_Span span) { return (span.begin != NULL && span.element_size != 0); }
+static bool is_valid_mut(SPN_MutSpan span) {
+  return (span.begin != NULL && span.element_size != 0);
+}
 
 SPN_Span SPN_from_cstr(const char * cstr) {
   if(cstr == NULL) return (SPN_Span){0};
@@ -47,7 +50,6 @@ SPN_Span SPN_subspan(SPN_Span src, size_t begin_idx, size_t len) {
 bool SPN_equals(SPN_Span lhs, SPN_Span rhs) {
   if(lhs.len != rhs.len) return false;
   if(lhs.element_size != rhs.element_size) return false;
-  if(lhs.begin == NULL || rhs.begin == NULL) return false;
   if(lhs.begin == rhs.begin) return true;
   return (memcmp(lhs.begin, rhs.begin, SPN_get_size_in_bytes(lhs)) == 0);
 }
@@ -86,8 +88,8 @@ STAT_Val SPN_find_at(SPN_Span span, const void * element, size_t at_idx, size_t 
 }
 
 STAT_Val SPN_find_reverse(SPN_Span span, const void * element, size_t * o_idx) {
-  if(span.len == 0) return STAT_OK_NOT_FOUND;
-  return SPN_find_reverse_at(span, element, span.len - 1, o_idx);
+  const size_t len = ((span.len > 0) ? span.len - 1 : 0); // avoid underflow on zero-length input
+  return SPN_find_reverse_at(span, element, len, o_idx);
 }
 
 STAT_Val SPN_find_reverse_at(SPN_Span span, const void * element, size_t at_idx, size_t * o_idx) {
@@ -191,8 +193,7 @@ void SPN_swap(SPN_MutSpan span, size_t idx_a, size_t idx_b) {
 }
 
 STAT_Val SPN_swap_checked(SPN_MutSpan span, size_t idx_a, size_t idx_b) {
-  if(span.begin == NULL || span.element_size == 0)
-    return LOG_STAT(STAT_ERR_ARGS, "span has no data is NULL");
+  if(!is_valid_mut(span)) return LOG_STAT(STAT_ERR_ARGS, "span not valid");
 
   if(idx_a >= span.len) {
     return LOG_STAT(STAT_ERR_RANGE, "idx_a %zu out of range (size=%zu)", idx_a, span.len);

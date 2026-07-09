@@ -35,15 +35,66 @@ static Result tst_create_from_cstr(void) {
   const char str[] = "As I drove away sadly on my motorbike";
   const int  len   = strlen(str);
 
-  const SPN_Span span = SPN_from_cstr(str);
-  EXPECT_EQ(&r, str, span.begin);
-  EXPECT_EQ(&r, len, (int)span.len);
-  EXPECT_EQ(&r, 1, span.element_size);
+  {
+    const SPN_Span span = SPN_from_cstr(str);
+    EXPECT_EQ(&r, str, span.begin);
+    EXPECT_EQ(&r, len, (int)span.len);
+    EXPECT_EQ(&r, 1, span.element_size);
+  }
+  {
+    const SPN_Span null_span = SPN_from_cstr(NULL);
+    EXPECT_EQ(&r, NULL, null_span.begin);
+    EXPECT_EQ(&r, 0, null_span.len);
+    EXPECT_EQ(&r, 0, null_span.element_size);
+  }
+  {
+    const SPN_Span empty_span = SPN_from_cstr("");
+    EXPECT_NE(&r, NULL, empty_span.begin);
+    EXPECT_EQ(&r, 0, empty_span.len);
+    EXPECT_EQ(&r, 1, empty_span.element_size);
+  }
 
   return r;
 }
 
 static Result tst_create_mut_from_cstr(void) {
+  Result r = PASS;
+
+  {
+    const char str[]   = "As I drove away sadly on my motorbike";
+    const int  len     = strlen(str);
+    char *     mut_str = strdup(str);
+
+    EXPECT_NE(&r, NULL, mut_str);
+    if(HAS_FAILED(&r)) return r;
+
+    const SPN_MutSpan span = SPN_mut_span_from_cstr(mut_str);
+    EXPECT_EQ(&r, mut_str, span.begin);
+    EXPECT_EQ(&r, len, (int)span.len);
+    EXPECT_EQ(&r, 1, span.element_size);
+
+    free(mut_str);
+  }
+
+  {
+    const SPN_MutSpan null_mut_span = SPN_mut_span_from_cstr(NULL);
+    EXPECT_EQ(&r, NULL, null_mut_span.begin);
+    EXPECT_EQ(&r, 0, null_mut_span.len);
+    EXPECT_EQ(&r, 0, null_mut_span.element_size);
+  }
+
+  {
+    char              empty_str[]    = "";
+    const SPN_MutSpan empty_mut_span = SPN_mut_span_from_cstr(empty_str);
+    EXPECT_EQ(&r, empty_str, empty_mut_span.begin);
+    EXPECT_EQ(&r, 0, empty_mut_span.len);
+    EXPECT_EQ(&r, 1, empty_mut_span.element_size);
+  }
+
+  return r;
+}
+
+static Result tst_create_and_modify_mut_from_cstr(void) {
   Result r = PASS;
 
   const char str1[] =
@@ -90,6 +141,24 @@ static Result tst_get_size_in_bytes(void) {
   EXPECT_EQ(&r, 1, SPN_get_size_in_bytes((SPN_Span){data, .len = 1, .element_size = 1}));
   EXPECT_EQ(&r, 10, SPN_get_size_in_bytes((SPN_Span){data, .len = 10, .element_size = 1}));
   EXPECT_EQ(&r, 40, SPN_get_size_in_bytes((SPN_Span){data, .len = 10, .element_size = 4}));
+
+  return r;
+}
+
+static Result tst_is_empty(void) {
+  Result r = PASS;
+
+  const int val = 42;
+
+  EXPECT_TRUE(&r, SPN_is_empty((SPN_Span){0}));
+  EXPECT_TRUE(&r, SPN_is_empty(SPN_from_cstr(NULL)));
+  EXPECT_TRUE(&r, SPN_is_empty(SPN_from_cstr("")));
+  EXPECT_TRUE(&r, SPN_is_empty((SPN_Span){.begin = &val, .len = 0, .element_size = sizeof(int)}));
+  // begin == NULL counts as empty even if len/element_size claim otherwise
+  EXPECT_TRUE(&r, SPN_is_empty((SPN_Span){.begin = NULL, .len = 5, .element_size = sizeof(int)}));
+
+  EXPECT_FALSE(&r, SPN_is_empty((SPN_Span){.begin = &val, .len = 1, .element_size = sizeof(int)}));
+  EXPECT_FALSE(&r, SPN_is_empty(SPN_from_cstr("x")));
 
   return r;
 }
@@ -171,6 +240,16 @@ static Result tst_equals(void) {
   EXPECT_TRUE(&r, SPN_equals(span_flags, span_flags_copy));
   EXPECT_FALSE(&r, SPN_equals(span_flags, span_other_flags));
   EXPECT_FALSE(&r, SPN_equals(span_flags_copy, span_other_flags));
+
+  EXPECT_TRUE(&r, SPN_equals((SPN_Span){0}, (SPN_Span){0}));
+
+  EXPECT_FALSE(&r, SPN_equals(SPN_from_cstr(str), (SPN_Span){0}));
+  EXPECT_FALSE(&r, SPN_equals(span_flags, (SPN_Span){0}));
+  EXPECT_FALSE(&r, SPN_equals(span_numbers, (SPN_Span){0}));
+
+  EXPECT_FALSE(&r, SPN_equals(SPN_from_cstr(str), span_flags));
+  EXPECT_FALSE(&r, SPN_equals(span_flags, span_numbers));
+  EXPECT_FALSE(&r, SPN_equals(span_numbers, SPN_from_cstr(other_str)));
 
   return r;
 }
@@ -283,6 +362,33 @@ static Result tst_subspan_double(void) {
   return r;
 }
 
+static Result tst_subspan_bad_weather(void) {
+  Result r = PASS;
+
+  const char     str[] = "short";
+  const SPN_Span span  = SPN_from_cstr(str);
+
+  { // begin_idx well past the end: clamped to src.len, yielding an empty subspan at the end
+    const SPN_Span subsp = SPN_subspan(span, 9999, 3);
+    EXPECT_EQ(&r, SPN_end(span), subsp.begin);
+    EXPECT_EQ(&r, 0, subsp.len);
+    EXPECT_EQ(&r, span.element_size, subsp.element_size);
+  }
+  { // begin_idx exactly at src.len: also yields an empty subspan at the end
+    const SPN_Span subsp = SPN_subspan(span, span.len, 5);
+    EXPECT_EQ(&r, SPN_end(span), subsp.begin);
+    EXPECT_EQ(&r, 0, subsp.len);
+  }
+  { // len 0 on an already-empty (but validly-backed) span
+    const SPN_Span empty_span = {.begin = str, .len = 0, .element_size = 1};
+    const SPN_Span subsp      = SPN_subspan(empty_span, 0, 5);
+    EXPECT_EQ(&r, str, subsp.begin);
+    EXPECT_EQ(&r, 0, subsp.len);
+  }
+
+  return r;
+}
+
 static Result tst_constains_subspan_cstr(void) {
   Result r = PASS;
 
@@ -304,6 +410,10 @@ static Result tst_constains_subspan_cstr(void) {
   EXPECT_TRUE(&r,
               SPN_contains_subspan(SPN_from_cstr("a somewhat longer string"),
                                    SPN_from_cstr("somewhat longer string")));
+
+  EXPECT_FALSE(&r,
+               SPN_contains_subspan(SPN_from_cstr("a somewhat longer string"),
+                                    SPN_from_cstr("a somewhat longer string.")));
 
   EXPECT_FALSE(&r,
                SPN_contains_subspan(SPN_from_cstr("a somewhat longer string"),
@@ -386,6 +496,21 @@ static Result tst_constains_subspan_int(void) {
                                      .element_size = sizeof(uint64_t)};
     EXPECT_FALSE(&r, SPN_contains_subspan(span, subspan));
   }
+
+  return r;
+}
+
+static Result tst_contains_subspan_invalid_input(void) {
+  Result r = PASS;
+
+  const SPN_Span valid_span        = SPN_from_cstr("I have my orders, sir. Please be nice to me!");
+  const SPN_Span invalid_null_span = {.begin = NULL, .len = 3, .element_size = 1};
+  const SPN_Span invalid_zero_elemsize_span = {.begin = "abc", .len = 3, .element_size = 0};
+
+  EXPECT_FALSE(&r, SPN_contains_subspan(invalid_null_span, valid_span));
+  EXPECT_FALSE(&r, SPN_contains_subspan(valid_span, invalid_null_span));
+  EXPECT_FALSE(&r, SPN_contains_subspan(invalid_zero_elemsize_span, valid_span));
+  EXPECT_FALSE(&r, SPN_contains_subspan(valid_span, invalid_zero_elemsize_span));
 
   return r;
 }
@@ -524,6 +649,77 @@ static Result tst_find_int(void) {
       if(HAS_FAILED(&r)) return r;
     }
   }
+
+  return r;
+}
+
+static Result tst_find_invalid_args(void) {
+  Result r = PASS;
+
+  const size_t orig_out_idx = 1337;
+  size_t       out_idx      = orig_out_idx;
+
+  const char elem = 'x';
+
+  { // zero-initialized is not valid
+    EXPECT_EQ(&r, STAT_ERR_ARGS, SPN_find((SPN_Span){0}, &elem, &out_idx));
+    EXPECT_EQ(&r, STAT_ERR_ARGS, SPN_find_at((SPN_Span){0}, &elem, 0, &out_idx));
+    EXPECT_EQ(&r, STAT_ERR_ARGS, SPN_find_reverse((SPN_Span){0}, &elem, &out_idx));
+    EXPECT_EQ(&r, STAT_ERR_ARGS, SPN_find_reverse_at((SPN_Span){0}, &elem, 0, &out_idx));
+
+    EXPECT_EQ(&r, orig_out_idx, out_idx);
+  }
+
+  { // NULL begin, non-zero len; always invalid
+    const SPN_Span null_begin_span = {.begin = NULL, .len = 5, .element_size = 1};
+    EXPECT_EQ(&r, STAT_ERR_ARGS, SPN_find(null_begin_span, &elem, &out_idx));
+    EXPECT_EQ(&r, STAT_ERR_ARGS, SPN_find_at(null_begin_span, &elem, 0, &out_idx));
+    EXPECT_EQ(&r, STAT_ERR_ARGS, SPN_find_reverse(null_begin_span, &elem, &out_idx));
+    EXPECT_EQ(&r, STAT_ERR_ARGS, SPN_find_reverse_at(null_begin_span, &elem, 0, &out_idx));
+
+    EXPECT_EQ(&r, orig_out_idx, out_idx);
+  }
+
+  { // element_size == 0 is also invalid
+    const char     data[5]            = {0};
+    const SPN_Span zero_elemsize_span = {.begin = data, .len = 5, .element_size = 0};
+    EXPECT_EQ(&r, STAT_ERR_ARGS, SPN_find(zero_elemsize_span, &elem, &out_idx));
+    EXPECT_EQ(&r, STAT_ERR_ARGS, SPN_find_reverse(zero_elemsize_span, &elem, &out_idx));
+
+    EXPECT_EQ(&r, orig_out_idx, out_idx);
+  }
+
+  { // NULL element with an otherwise-valid span
+    const SPN_Span span = SPN_from_cstr("abc");
+    EXPECT_EQ(&r, STAT_ERR_ARGS, SPN_find(span, NULL, &out_idx));
+    EXPECT_EQ(&r, STAT_ERR_ARGS, SPN_find_at(span, NULL, 0, &out_idx));
+    EXPECT_EQ(&r, STAT_ERR_ARGS, SPN_find_reverse(span, NULL, &out_idx));
+    EXPECT_EQ(&r, STAT_ERR_ARGS, SPN_find_reverse_at(span, NULL, 0, &out_idx));
+
+    EXPECT_EQ(&r, orig_out_idx, out_idx);
+  }
+
+  return r;
+}
+
+static Result tst_find_at_idx_out_of_range(void) {
+  Result r = PASS;
+
+  const size_t orig_out_idx = 1337;
+  size_t       out_idx      = orig_out_idx;
+
+  const char     str[] = "abcde";
+  const SPN_Span span  = SPN_from_cstr(str);
+
+  // at_idx >= len; find_at finds nothing. No out-of-bounds access (sanitizers help check this)
+  EXPECT_EQ(&r, STAT_OK_NOT_FOUND, SPN_find_at(span, "a", span.len, &out_idx));
+  EXPECT_EQ(&r, STAT_OK_NOT_FOUND, SPN_find_at(span, "a", span.len + 100, &out_idx));
+
+  // at_idx >= len: i.e. starting idx is 'past the end', while we're searching in reverse. Function
+  // will search starting from end.
+  out_idx = 9999;
+  EXPECT_EQ(&r, OK, SPN_find_reverse_at(span, "b", span.len + 100, &out_idx));
+  EXPECT_EQ(&r, 1, out_idx);
 
   return r;
 }
@@ -676,6 +872,61 @@ static Result tst_find_subspan_at_basic(void) {
             OK,
             SPN_find_subspan_reverse_at(SPN_from_cstr("012012"), SPN_from_cstr("1"), 2, &tmp));
   EXPECT_EQ(&r, 1, tmp);
+
+  return r;
+}
+
+static Result tst_find_subspan_invalid_spans(void) {
+  Result r   = PASS;
+  size_t tmp = 9999;
+
+  const SPN_Span valid_span = SPN_from_cstr("well hello, and welcome to my home");
+  const SPN_Span valid_sub  = SPN_from_cstr("welcome");
+
+  const SPN_Span invalid_null_span          = {.begin = NULL, .len = 3, .element_size = 1};
+  const SPN_Span invalid_zero_elemsize_span = {.begin = "abc", .len = 3, .element_size = 0};
+
+  EXPECT_EQ(&r, STAT_ERR_ARGS, SPN_find_subspan(invalid_null_span, valid_sub, &tmp));
+  EXPECT_EQ(&r, STAT_ERR_ARGS, SPN_find_subspan(valid_span, invalid_null_span, &tmp));
+  EXPECT_EQ(&r, STAT_ERR_ARGS, SPN_find_subspan_at(invalid_null_span, valid_sub, 0, &tmp));
+  EXPECT_EQ(&r, STAT_ERR_ARGS, SPN_find_subspan_at(valid_span, invalid_null_span, 0, &tmp));
+  EXPECT_EQ(&r, STAT_ERR_ARGS, SPN_find_subspan_reverse(invalid_null_span, valid_sub, &tmp));
+  EXPECT_EQ(&r, STAT_ERR_ARGS, SPN_find_subspan_reverse(valid_span, invalid_null_span, &tmp));
+  EXPECT_EQ(&r, STAT_ERR_ARGS, SPN_find_subspan_reverse_at(invalid_null_span, valid_sub, 0, &tmp));
+  EXPECT_EQ(&r, STAT_ERR_ARGS, SPN_find_subspan_reverse_at(valid_span, invalid_null_span, 0, &tmp));
+
+  EXPECT_EQ(&r, STAT_ERR_ARGS, SPN_find_subspan(invalid_zero_elemsize_span, valid_sub, &tmp));
+  EXPECT_EQ(&r, STAT_ERR_ARGS, SPN_find_subspan(valid_span, invalid_zero_elemsize_span, &tmp));
+
+  { // mismatched element sizes
+    const int      int_vals[] = {1, 2, 3};
+    const SPN_Span int_span   = {.begin = int_vals, .len = 3, .element_size = sizeof(int)};
+    EXPECT_EQ(&r, STAT_ERR_ARGS, SPN_find_subspan(valid_span, int_span, &tmp));
+    EXPECT_EQ(&r, STAT_ERR_ARGS, SPN_find_subspan_at(valid_span, int_span, 0, &tmp));
+    EXPECT_EQ(&r, STAT_ERR_ARGS, SPN_find_subspan_reverse(valid_span, int_span, &tmp));
+    EXPECT_EQ(&r, STAT_ERR_ARGS, SPN_find_subspan_reverse_at(valid_span, int_span, 0, &tmp));
+  }
+
+  { // subspan longer than span
+    const SPN_Span too_long_sub = SPN_from_cstr(
+        "I really rather like the word trousers, it's a word I'm going to sing a song about.");
+    EXPECT_EQ(&r, STAT_OK_NOT_FOUND, SPN_find_subspan(valid_span, too_long_sub, &tmp));
+    EXPECT_EQ(&r, STAT_OK_NOT_FOUND, SPN_find_subspan_reverse(valid_span, too_long_sub, &tmp));
+  }
+
+  // at_idx >= span.len; finds nothing, without out-of-bounds access (sanitizers help us here)
+  EXPECT_EQ(&r,
+            STAT_OK_NOT_FOUND,
+            SPN_find_subspan_at(valid_span, valid_sub, valid_span.len, &tmp));
+  EXPECT_EQ(&r,
+            STAT_OK_NOT_FOUND,
+            SPN_find_subspan_at(valid_span, valid_sub, valid_span.len + 100, &tmp));
+
+  // at_idx >= len: i.e. starting idx is 'past the end', while we're searching in reverse. Function
+  // will search starting from end.
+  tmp = 9999;
+  EXPECT_EQ(&r, OK, SPN_find_subspan_reverse_at(valid_span, valid_sub, valid_span.len + 100, &tmp));
+  EXPECT_EQ(&r, 16, tmp);
 
   return r;
 }
@@ -934,8 +1185,10 @@ static Result tst_swap(void) {
   for(size_t i = 0; i < span.len; i++) {
     EXPECT_EQ(&r, vals[i], *(double *)SPN_get(span, i));
   }
-
   if(HAS_FAILED(&r)) return r;
+
+  SPN_swap(span, 1, 1); // swapping with itself doesn't do anything, but also doesn't cause issues
+  EXPECT_EQ(&r, 1.0, *(double *)SPN_get(span, 1));
 
   SPN_swap(span, 0, 4);
 
@@ -950,6 +1203,15 @@ static Result tst_swap(void) {
   EXPECT_EQ(&r, STAT_ERR_RANGE, SPN_swap_checked(span, 99, 3));
   EXPECT_EQ(&r, STAT_ERR_RANGE, SPN_swap_checked(span, 1, 99));
 
+  // invalid span
+  EXPECT_EQ(&r, STAT_ERR_ARGS, SPN_swap_checked((SPN_MutSpan){0}, 0, 0));
+  EXPECT_EQ(&r,
+            STAT_ERR_ARGS,
+            SPN_swap_checked((SPN_MutSpan){.begin = NULL, .element_size = 1, .len = 2}, 0, 1));
+  EXPECT_EQ(&r,
+            STAT_ERR_ARGS,
+            SPN_swap_checked((SPN_MutSpan){.begin = "hi", .element_size = 0, .len = 3}, 1, 0));
+
   return r;
 }
 
@@ -957,20 +1219,27 @@ int main(void) {
   Test tests[] = {
       tst_create_from_cstr,
       tst_create_mut_from_cstr,
+      tst_create_and_modify_mut_from_cstr,
       tst_get_size_in_bytes,
+      tst_is_empty,
       tst_get_char,
       tst_get_int,
       tst_equals,
       tst_subspan_char,
       tst_subspan_double,
+      tst_subspan_bad_weather,
       tst_constains_subspan_cstr,
       tst_constains_subspan_int,
       tst_find_char,
       tst_find_int,
+      tst_find_invalid_args,
+      tst_find_at_idx_out_of_range,
       tst_find_at_and_reverse_with_duplicates,
       tst_find_at_likely_usage,
       tst_find_subspan_basic,
       tst_find_subspan_at_basic,
+      tst_contains_subspan_invalid_input,
+      tst_find_subspan_invalid_spans,
       tst_find_subspan_monster,
       tst_large_elements,
       tst_get_first_last_end_cstr,
