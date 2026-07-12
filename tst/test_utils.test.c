@@ -315,7 +315,7 @@ static Result tst_expect_pass(void) {
   Result r = PASS;
 
   const Result pass = PASS;
-  const Result fail = fail;
+  const Result fail = FAIL;
 
   // pointer indirection to shut up compiler/cppcheck about conditions always being true/false
   const Result * p_pass = &pass;

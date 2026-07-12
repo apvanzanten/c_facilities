@@ -39,23 +39,12 @@ if (DEBUG)
         add_compile_options(${COVERAGE_FLAGS})
         add_link_options(${COVERAGE_FLAGS})
     endif()
+
+    find_program(HAS_CPPCHECK NAMES cppcheck)
 else()
     add_compile_options(${RELEASE_FLAGS})
 endif()
 
-find_program(HAS_CPPCHECK NAMES cppcheck)
-if (HAS_CPPCHECK)
-    set(CMAKE_C_CPPCHECK 
-                cppcheck;
-                    --enable=all; 
-                    --suppress=unusedFunction; # functions go unused in libraries a lot
-                    --suppress=uninitvar; # generates some false positives, and anyway compilers do this pretty OK already
-                    --suppress=missingIncludeSystem; # cppcheck can't find system headers and I don't care to help it
-                    --suppress=unmatchedSuppression;
-                    --suppress=redundantAssignment; # generates some false positives in some cases where functions with side-effects are used
-                    --suppress=internalAstError; # cppcheck doesn't deal with generics very well, I don't particulary care to hear about it.
-    )
-endif()
 
 
 # --- libraries ---

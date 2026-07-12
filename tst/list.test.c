@@ -71,13 +71,11 @@ static Result tst_memory_alignment_of_nodes(void) {
   EXPECT_TRUE(&r, is_aligned(sizeof(max_align_t), node_on_stack_b.data));
   EXPECT_TRUE(&r, is_aligned(sizeof(max_align_t), node_on_stack_c.data));
 
-  LST_Node * node_on_heap = NULL;
-
   for(size_t element_size = 0; element_size < 1024; element_size++) {
     const size_t base_size  = sizeof(LST_Node) + element_size;
     const size_t alloc_size = ((base_size / sizeof(max_align_t)) + 1) * sizeof(max_align_t);
 
-    node_on_heap = aligned_alloc(sizeof(max_align_t), alloc_size);
+    LST_Node * node_on_heap = aligned_alloc(sizeof(max_align_t), alloc_size);
     EXPECT_NE(&r, NULL, node_on_heap);
 
     // expect alignment of sizeof(max_align_t) for both struct and data flexible array member
